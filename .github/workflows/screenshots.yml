@@ -26,7 +26,7 @@ jobs:
         git fetch origin v6-source
         git checkout FETCH_HEAD -- .github
         git add -A -- . ':!*.apk'
-        git commit -m "v74 source snapshot - validation pending"
+        git commit -m "v82 source snapshot - validation pending"
         git push -f origin v6-source
 
   compile:
@@ -106,7 +106,7 @@ jobs:
         CHECK
 
     - name: Queue Undo placement regression tests
-      run: ./gradlew :app:testDevDebugUnitTest -Pbitchord.bundleWear=false --tests '*QueueUndoPositionTest*'
+      run: ./gradlew :app:testDevDebugUnitTest -Pbitchord.bundleWear=false --tests '*QueueUndoPositionTest*' --tests '*SpoolMotionPolicyTest*'
 
     # Targeted visual verification: only the V6ScreenshotTest capture class.
     # A targeted green is a capture pass, never a full-suite pass; the full
