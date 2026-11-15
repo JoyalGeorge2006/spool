@@ -55,12 +55,17 @@ jobs:
       run: |
         curl -fL -o "$RUNNER_TEMP/last-installed.apk" 'https://github.com/JoyalGeorge2006/spool/releases/download/v6-test-20261115-125159/spool.apk'
         signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
-        "$signer" verify --print-certs "$RUNNER_TEMP/last-installed.apk" | tee "$RUNNER_TEMP/last-installed-cert.txt"
-        "$signer" verify --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee "$RUNNER_TEMP/candidate-cert.txt"
-        grep 'Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/last-installed-cert.txt" > "$RUNNER_TEMP/old-digest.txt"
-        grep 'Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/candidate-cert.txt" > "$RUNNER_TEMP/new-digest.txt"
-        cmp "$RUNNER_TEMP/old-digest.txt" "$RUNNER_TEMP/new-digest.txt"
-        echo 'Signing certificate matches the last APK the user confirmed installing'
+        # Validate the installed asset for the user's Pixel 7 platform generation.
+        # Its old v2 signer differs from v3, so an all-API check is not update proof.
+        for api in 34 35 36; do
+          "$signer" verify --min-sdk-version "$api" --max-sdk-version "$api" --print-certs "$RUNNER_TEMP/last-installed.apk" | tee "$RUNNER_TEMP/last-installed-cert-$api.txt"
+          "$signer" verify --min-sdk-version "$api" --max-sdk-version "$api" --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee "$RUNNER_TEMP/candidate-cert-$api.txt"
+          grep 'certificate SHA-256 digest:' "$RUNNER_TEMP/last-installed-cert-$api.txt" | sed 's/.*digest: //' | sort -u > "$RUNNER_TEMP/old-digest.txt"
+          grep 'certificate SHA-256 digest:' "$RUNNER_TEMP/candidate-cert-$api.txt" | sed 's/.*digest: //' | sort -u > "$RUNNER_TEMP/new-digest.txt"
+          test -s "$RUNNER_TEMP/old-digest.txt"
+          cmp "$RUNNER_TEMP/old-digest.txt" "$RUNNER_TEMP/new-digest.txt"
+        done
+        echo 'Signing certificate matches the last installed APK for API 34 through 36'
 
     - name: Enable KVM
       run: |
