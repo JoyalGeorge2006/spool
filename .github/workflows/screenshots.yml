@@ -80,12 +80,24 @@ jobs:
       run: |
         git config user.email "actions@github.com"
         git config user.name "github-actions"
-        git checkout -B v6-shots
+        mkdir -p "$RUNNER_TEMP/shots-out"
+        cp app/build/outputs/roborazzi/*.png "$RUNNER_TEMP/shots-out/"
+        # Base the shots commit on the branch's own tip. Pushing a tree whose
+        # .github/workflows differ from the pushed ref's needs the workflows
+        # permission this token lacks - that was the v38 publish failure - so
+        # the branch keeps its own .github and only shots/ changes.
+        if git fetch --depth 1 origin v6-shots; then
+          git checkout -B v6-shots FETCH_HEAD
+        else
+          git checkout --orphan v6-shots
+          git rm -rf . >/dev/null 2>&1 || true
+        fi
         mkdir -p shots
-        cp app/build/outputs/roborazzi/*.png shots/
+        cp "$RUNNER_TEMP/shots-out"/*.png shots/
         git add shots
         git commit -m "v6 screenshots $(date -u +%Y%m%d-%H%M%S)"
-        git push -f origin v6-shots
+        # Two publisher jobs can race; one rebase retry, then fail loudly.
+        git push origin v6-shots || { git pull --rebase origin v6-shots && git push origin v6-shots; }
 
   build:
     runs-on: ubuntu-latest
