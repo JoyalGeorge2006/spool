@@ -112,6 +112,14 @@ jobs:
         cp app/build/outputs/apk/dev/debug/*-arm64-v8a-debug.apk spool.apk
         ls -la spool.apk spool-universal.apk spool-x86.apk
 
+    - name: Fail-safe raw APK splits artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: raw-apk-splits
+        path: app/build/outputs/apk/dev/debug/*.apk
+        if-no-files-found: ignore
+
     - name: Publish patched source to v6-source branch
       run: |
         git config user.email "actions@github.com"
