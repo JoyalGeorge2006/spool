@@ -22,4 +22,4 @@ jobs:
       run: |
         ls -la
         tag="v6-test-$(date -u +%Y%m%d-%H%M%S)"
-        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Automated debug-signed test build. Installs as spool. Built from the v6-source branch." spool.apk
+        gh release create "$tag" --repo JoyalGeorge2006/spool --title "spool v6 test build ($tag)" --notes "Automated debug-signed test build. Installs as spool. Built from the v6-source branch." spool.apk
