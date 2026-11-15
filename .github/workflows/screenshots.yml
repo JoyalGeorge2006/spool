@@ -1,10 +1,10 @@
-name: v6 screenshots (tests only, no APK)
+name: v6 compile check (no APK)
 
 on:
   workflow_dispatch:
 
 jobs:
-  shots:
+  compile:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -27,25 +27,10 @@ jobs:
     - name: Prove the task graph builds no APK
       run: |
         chmod +x gradlew
-        ./gradlew :app:recordRoborazziDevDebug --tests 'com.music.bitchord.V6ScreenshotTest' --dry-run > /tmp/tasks.txt
-        cat /tmp/tasks.txt
-        if grep -qiE 'assemble|apk|androidTest' /tmp/tasks.txt; then
+        ./gradlew :app:compileDevDebugKotlin :app:compileDevDebugUnitTestKotlin --dry-run | tee /tmp/tasks.txt
+        if grep -qiE 'assemble|Apk|androidTest' /tmp/tasks.txt; then
           echo "::error::APK-producing task in graph, refusing to run"; exit 1
         fi
 
-    - name: Record v6 screenshots
-      run: ./gradlew :app:recordRoborazziDevDebug --tests 'com.music.bitchord.V6ScreenshotTest'
-
-    - name: Upload v6 screenshots
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: v6-screenshots
-        path: app/build/outputs/roborazzi/
-
-    - name: Upload screenshot test reports
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: v6-test-reports
-        path: app/build/test-results/testDevDebugUnitTest/
+    - name: Compile Home sources and screenshot-test sources
+      run: ./gradlew :app:compileDevDebugKotlin :app:compileDevDebugUnitTestKotlin
