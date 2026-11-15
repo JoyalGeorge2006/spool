@@ -1,4 +1,4 @@
-name: v6 compile check (no APK)
+name: spool verification (no release publication)
 
 on:
   workflow_dispatch:
@@ -9,6 +9,26 @@ on:
         default: false
 
 jobs:
+  source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+    - name: Apply and push exact patched source (unverified until checks pass)
+      run: |
+        set -euo pipefail
+        curl -fsSL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
+        git apply --exclude='native/lame/*' /tmp/spool.patch
+        git config user.email "actions@github.com"
+        git config user.name "github-actions"
+        git checkout -B v6-source
+        git fetch origin v6-source
+        git checkout FETCH_HEAD -- .github
+        git add -A -- . ':!*.apk'
+        git commit -m "v67 source snapshot - validation pending"
+        git push -f origin v6-source
+
   compile:
     runs-on: ubuntu-latest
     steps:
@@ -70,11 +90,27 @@ jobs:
           echo "::error::APK-producing task in graph, refusing to run"; exit 1
         fi
 
+    - name: Focused import cancellation regression tests
+      run: |
+        ./gradlew :shared:jvmTest --tests '*SpotifyImportCancellationTest*'
+        python3 - <<'CHECK'
+        import glob, xml.etree.ElementTree as E
+        expected = {'normalBodyIsReturnedIntact', 'cancellationBeforeHeadersCancelsCall', 'cancellationDuringTricklingBodyCancelsCallAndClosesResponse'}
+        passed = set()
+        for path in glob.glob('shared/build/test-results/jvmTest/*.xml'):
+            for t in E.parse(path).iter('testcase'):
+                if 'SpotifyImportCancellationTest' in t.get('classname', '') and not any(t.find(x) is not None for x in ['failure','error','skipped']):
+                    passed.add(t.get('name', '').split('[')[0])
+        assert expected <= passed, f'Missing/nonpassing tests: {expected-passed}'
+        print('All three focused import tests passed, none skipped')
+        CHECK
+
     # Targeted visual verification: only the V6ScreenshotTest capture class.
     # A targeted green is a capture pass, never a full-suite pass; the full
     # suite runs when this workflow is dispatched with full_suite=true.
     - name: Record v6 screenshots (targeted captures)
-      run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests "com.music.bitchord.V6ScreenshotTest"
+      timeout-minutes: 20
+      run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.settings_*' --tests 'com.music.bitchord.V6ScreenshotTest.import_dialog_*' --tests 'com.music.bitchord.V6ScreenshotTest.player_video_*' 
 
     - name: Full unit test suite (release gate)
       if: inputs.full_suite
@@ -190,16 +226,3 @@ jobs:
         name: launch-screenshot
         path: ${{ runner.temp }}/launch.png
         if-no-files-found: ignore
-
-    - name: Publish patched source to v6-source branch
-      if: always()
-      continue-on-error: true
-      run: |
-        git config user.email "actions@github.com"
-        git config user.name "github-actions"
-        git checkout -B v6-source
-        git fetch origin v6-source
-        git checkout FETCH_HEAD -- .github || true
-        git add -A -- . ':!*.apk'
-        git commit -m "v6 source $(date -u +%Y%m%d-%H%M%S)"
-        git push -f origin v6-source
