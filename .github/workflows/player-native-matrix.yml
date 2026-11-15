@@ -1,0 +1,64 @@
+name: Native player evidence (capture only)
+on:
+  workflow_dispatch:
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        include:
+          - surface: root
+            test: player
+          - surface: queue
+            test: player_pane_queue
+          - surface: lyrics
+            test: player_pane_lyrics
+          - surface: related
+            test: player_pane_related
+          - surface: overflow
+            test: settings_player_overflow
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Apply the spool patch
+      run: |
+        curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
+        echo '3ba79614347d92470c3ba1b267fc29982d96842007575825ede7277235f52d52  /tmp/spool.patch' | sha256sum -c -
+        git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
+        curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+
+
+    - name: Capture both themes of the native surface
+      timeout-minutes: 25
+      run: |
+        chmod +x gradlew
+        cat > /tmp/capture-diagnostics.gradle <<'GRADLE'
+        allprojects {
+          tasks.withType(Test).configureEach {
+            testLogging { events 'started', 'passed', 'skipped', 'failed'; exceptionFormat 'full' }
+          }
+        }
+        GRADLE
+        ./gradlew --init-script /tmp/capture-diagnostics.gradle :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.${{ matrix.test }}_light' --tests 'com.music.bitchord.V6ScreenshotTest.${{ matrix.test }}_dark'
+
+    - name: Upload native PNGs and test evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: native-${{ matrix.surface }}
+        path: |
+          app/build/outputs/roborazzi/*.png
+          app/build/test-results/testDevDebugUnitTest/*.xml
+        if-no-files-found: ignore
