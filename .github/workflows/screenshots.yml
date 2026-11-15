@@ -113,7 +113,7 @@ jobs:
     # suite runs when this workflow is dispatched with full_suite=true.
     - name: Record v6 screenshots (targeted captures)
       timeout-minutes: 20
-      run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.settings_*' --tests 'com.music.bitchord.V6ScreenshotTest.import_dialog_*' --tests 'com.music.bitchord.V6ScreenshotTest.player_video_*' 
+      run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.settings_*' --tests 'com.music.bitchord.V6ScreenshotTest.import_dialog_*' --tests 'com.music.bitchord.V6ScreenshotTest.player_*' 
 
     - name: Full unit test suite (release gate)
       if: inputs.full_suite
