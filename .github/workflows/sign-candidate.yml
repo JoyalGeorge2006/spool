@@ -19,7 +19,7 @@ jobs:
     - name: Apply the spool patch
       run: |
         curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
-        echo '8b4775c8ae05dfd916155126f604d78c25a826b477d18c185d659c7724fc48be  /tmp/spool.patch' | sha256sum -c -
+        echo 'dbc047b9f0c2826eae58d8e4f9c63f51c45f38eb881730491224caa4f474577c  /tmp/spool.patch' | sha256sum -c -
         git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
         curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
@@ -67,4 +67,41 @@ jobs:
           /tmp/spool-device-logcat.txt
           /tmp/spool-device.png
           app/build/reports/**
+        if-no-files-found: ignore
+  interactions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Apply the spool patch
+      run: |
+        curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
+        echo 'dbc047b9f0c2826eae58d8e4f9c63f51c45f38eb881730491224caa4f474577c  /tmp/spool.patch' | sha256sum -c -
+        git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
+        curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+
+
+    - name: Execute real Compose queue and menu-effect interactions
+      run: |
+        chmod +x gradlew
+        xvfb-run -a ./gradlew :sharedUi:jvmTest --tests '*InlineQueueInteractionTest' --tests '*PlayerMenuRequestTest' --stacktrace
+    - name: Upload interaction evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-compose-interactions
+        path: |
+          sharedUi/build/test-results/jvmTest/*.xml
+          sharedUi/build/reports/tests/jvmTest/**
         if-no-files-found: ignore
