@@ -36,55 +36,8 @@ jobs:
         api-level: 34
         arch: x86_64
         script: |
-          set -x
-          adb install -r "$RUNNER_TEMP/apk-out/spool-x86.apk"
-          adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
-          sleep 12
-          shot() { adb exec-out screencap -p > "$RUNNER_TEMP/pages/$1.png"; ls -la "$RUNNER_TEMP/pages/$1.png"; }
-          uix() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml 2>/dev/null; }
-          tap_text() {
-            local label="$1"
-            local b=$(uix | tr '"' '\n' | grep -A0 "" | paste - - 2>/dev/null | true)
-            local line=$(uix | grep -o "text=\"$label\"[^/]*bounds=\"[^\"]*\"" | head -1)
-            if [ -z "$line" ]; then line=$(uix | grep -o "content-desc=\"$label\"[^/]*bounds=\"[^\"]*\"" | head -1); fi
-            local bounds=$(echo "$line" | grep -o 'bounds="[^"]*"' | head -1 | sed 's/bounds="//;s/"//')
-            if [ -z "$bounds" ]; then echo "TAP_MISS $label"; return 1; fi
-            local x1=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\1/')
-            local y1=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\2/')
-            local x2=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\3/')
-            local y2=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\4/')
-            adb shell input tap $(( (x1+x2)/2 )) $(( (y1+y2)/2 ))
-            echo "TAPPED $label at $(( (x1+x2)/2 )),$(( (y1+y2)/2 ))"
-          }
-          # Onboarding
-          uix > "$RUNNER_TEMP/pages/ui-onboarding.xml"
-          tap_text "Your name" && adb shell input text "Joyal"
-          sleep 1
-          tap_text "Next"
-          sleep 10
-          shot 01-home
-          # Tabs
-          tap_text "Explore"; sleep 6; shot 02-explore
-          tap_text "Library"; sleep 6; shot 03-library
-          tap_text "Downloads" || tap_text "Downloaded"; sleep 5; shot 04-downloads
-          adb shell input keyevent KEYCODE_BACK; sleep 3
-          tap_text "Search"; sleep 6; shot 05-search
-          # open first search result page if possible: type a query
-          tap_text "Artists, Songs, Lyrics and More" || tap_text "Songs, artists, albums"
-          sleep 2; adb shell input text "arijit singh"; adb shell input keyevent KEYCODE_ENTER; sleep 8
-          shot 06-search-results
-          uix > "$RUNNER_TEMP/pages/ui-results.xml"
-          # try opening an album/artist/playlist from results via card taps
-          tap_text "Albums" || true; sleep 3; shot 07-results-albums
-          adb shell input tap 270 800; sleep 6; shot 08-detail-opened
-          uix > "$RUNNER_TEMP/pages/ui-detail.xml"
-          adb shell input keyevent KEYCODE_BACK; sleep 3
-          # settings via profile icon if reachable
-          adb shell input keyevent KEYCODE_BACK; sleep 2
-          tap_text "Listen"; sleep 4
-          adb shell input tap 585 120; sleep 5; shot 09-maybe-settings
-          uix > "$RUNNER_TEMP/pages/ui-last.xml"
-          shot 99-final
+          echo IyEvYmluL2Jhc2gKc2V0IC14Cm1rZGlyIC1wICIkUlVOTkVSX1RFTVAvcGFnZXMiCmFkYiBpbnN0YWxsIC1yICIkUlVOTkVSX1RFTVAvYXBrLW91dC9zcG9vbC14ODYuYXBrIgphZGIgc2hlbGwgbW9ua2V5IC1wIGFwcC5zcG9vbC5tdXNpYy5kZXYgLWMgYW5kcm9pZC5pbnRlbnQuY2F0ZWdvcnkuTEFVTkNIRVIgMQpzbGVlcCAxMgpzaG90KCkgeyBhZGIgZXhlYy1vdXQgc2NyZWVuY2FwIC1wID4gIiRSVU5ORVJfVEVNUC9wYWdlcy8kMS5wbmciOyBscyAtbGEgIiRSVU5ORVJfVEVNUC9wYWdlcy8kMS5wbmciOyB9CnVpeCgpIHsgYWRiIHNoZWxsIHVpYXV0b21hdG9yIGR1bXAgL3NkY2FyZC91aS54bWwgPi9kZXYvbnVsbCAyPiYxOyBhZGIgc2hlbGwgY2F0IC9zZGNhcmQvdWkueG1sIDI+L2Rldi9udWxsOyB9CmJvdW5kc19vZigpIHsKICBsb2NhbCBsaW5lCiAgbGluZT0kKHVpeCB8IGdyZXAgLW8gInRleHQ9XCIkMVwiW14vXSpib3VuZHM9XCJbXlwiXSpcIiIgfCBoZWFkIC0xKQogIGlmIFsgLXogIiRsaW5lIiBdOyB0aGVuIGxpbmU9JCh1aXggfCBncmVwIC1vICJjb250ZW50LWRlc2M9XCIkMVwiW14vXSpib3VuZHM9XCJbXlwiXSpcIiIgfCBoZWFkIC0xKTsgZmkKICBlY2hvICIkbGluZSIgfCBncmVwIC1vICdib3VuZHM9IlteIl0qIicgfCBoZWFkIC0xIHwgc2VkICdzL2JvdW5kcz0iLy87cy8iJC8vJwp9Cm51bXNfb2YoKSB7IGVjaG8gIiQxIiB8IHNlZCAncy9cW1woWzAtOV0qXCksXChbMC05XSpcKVxdXFtcKFswLTldKlwpLFwoWzAtOV0qXClcXS9cMSBcMiBcMyBcNC8nOyB9CnRhcF90ZXh0KCkgewogIGxvY2FsIGIKICBiPSQoYm91bmRzX29mICIkMSIpCiAgaWYgWyAteiAiJGIiIF07IHRoZW4gZWNobyAiVEFQX01JU1MgJDEiOyByZXR1cm4gMTsgZmkKICBsb2NhbCBuCiAgbj0kKG51bXNfb2YgIiRiIikKICBsb2NhbCB4MSB5MSB4MiB5MgogIHJlYWQgeDEgeTEgeDIgeTIgPDw8ICIkbiIKICBhZGIgc2hlbGwgaW5wdXQgdGFwICQoKCAoeDEreDIpLzIgKSkgJCgoICh5MSt5MikvMiApKQogIGVjaG8gIlRBUFBFRCAkMSBhdCAkKCggKHgxK3gyKS8yICkpLCQoKCAoeTEreTIpLzIgKSkiCn0KdWl4ID4gIiRSVU5ORVJfVEVNUC9wYWdlcy91aS1vbmJvYXJkaW5nLnhtbCIKdGFwX3RleHQgIllvdXIgbmFtZSIgJiYgYWRiIHNoZWxsIGlucHV0IHRleHQgIkpveWFsIgpzbGVlcCAxCnRhcF90ZXh0ICJOZXh0IgpzbGVlcCAxMApzaG90IDAxLWhvbWUKdWl4ID4gIiRSVU5ORVJfVEVNUC9wYWdlcy91aS1ob21lLnhtbCIKdGFwX3RleHQgIkV4cGxvcmUiOyBzbGVlcCA2OyBzaG90IDAyLWV4cGxvcmUKdGFwX3RleHQgIkxpYnJhcnkiOyBzbGVlcCA2OyBzaG90IDAzLWxpYnJhcnkKdGFwX3RleHQgIkRvd25sb2FkcyIgfHwgdGFwX3RleHQgIkRvd25sb2FkZWQiOyBzbGVlcCA1OyBzaG90IDA0LWRvd25sb2FkcwphZGIgc2hlbGwgaW5wdXQga2V5ZXZlbnQgS0VZQ09ERV9CQUNLOyBzbGVlcCAzCnRhcF90ZXh0ICJTZWFyY2giOyBzbGVlcCA2OyBzaG90IDA1LXNlYXJjaAp0YXBfdGV4dCAiU29uZ3MsIGFydGlzdHMsIGFsYnVtcyIgfHwgdGFwX3RleHQgIkFydGlzdHMsIFNvbmdzLCBMeXJpY3MgYW5kIE1vcmUiCnNsZWVwIDIKYWRiIHNoZWxsIGlucHV0IHRleHQgImFyaWppdCBzaW5naCIKYWRiIHNoZWxsIGlucHV0IGtleWV2ZW50IEtFWUNPREVfRU5URVIKc2xlZXAgOApzaG90IDA2LXNlYXJjaC1yZXN1bHRzCnVpeCA+ICIkUlVOTkVSX1RFTVAvcGFnZXMvdWktcmVzdWx0cy54bWwiCnRhcF90ZXh0ICJTb25ncyIgfHwgdHJ1ZQpzbGVlcCAzCnNob3QgMDctcmVzdWx0cy1zb25ncwphZGIgc2hlbGwgaW5wdXQgdGFwIDQwMCA5MDAKc2xlZXAgMTAKc2hvdCAwOC1ub3ctcGxheWluZy1taW5pCmI9JChib3VuZHNfb2YgIlBhdXNlIik7IGlmIFsgLXogIiRiIiBdOyB0aGVuIGI9JChib3VuZHNfb2YgIlBsYXkiKTsgZmkKaWYgWyAtbiAiJGIiIF07IHRoZW4KICBuPSQobnVtc19vZiAiJGIiKQogIHJlYWQgeDEgeTEgeDIgeTIgPDw8ICIkbiIKICB0eD0keDE7IGlmIFsgIiR4MSIgLWd0IDYwMCBdOyB0aGVuIHR4PSQoKCB4MSAtIDUwMCApKTsgZmkKICBhZGIgc2hlbGwgaW5wdXQgdGFwICIkdHgiICQoKCAoeTEreTIpLzIgKSkKICBzbGVlcCA2CmZpCnNob3QgMDktcGxheWVyCnVpeCA+ICIkUlVOTkVSX1RFTVAvcGFnZXMvdWktcGxheWVyLnhtbCIKYWRiIHNoZWxsIGlucHV0IGtleWV2ZW50IEtFWUNPREVfQkFDSwpzbGVlcCAzCnRhcF90ZXh0ICJMaXN0ZW4iOyBzbGVlcCA0CmFkYiBzaGVsbCBpbnB1dCB0YXAgNTg1IDEyMApzbGVlcCA1CnNob3QgMTAtbWF5YmUtc2V0dGluZ3MKdWl4ID4gIiRSVU5ORVJfVEVNUC9wYWdlcy91aS1sYXN0LnhtbCIKc2hvdCA5OS1maW5hbAo= | base64 -d > /tmp/cap.sh
+          bash /tmp/cap.sh
 
     - name: Upload page captures
       if: always()
