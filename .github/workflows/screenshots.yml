@@ -2,6 +2,11 @@ name: v6 compile check (no APK)
 
 on:
   workflow_dispatch:
+    inputs:
+      full_suite:
+        description: 'Run the complete unit test suite in the shots job (slow, ~25 min); default runs only the targeted V6ScreenshotTest captures'
+        type: boolean
+        default: false
 
 jobs:
   compile:
@@ -65,8 +70,15 @@ jobs:
           echo "::error::APK-producing task in graph, refusing to run"; exit 1
         fi
 
-    - name: Record v6 screenshots
-      run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false
+    # Targeted visual verification: only the V6ScreenshotTest capture class.
+    # A targeted green is a capture pass, never a full-suite pass; the full
+    # suite runs when this workflow is dispatched with full_suite=true.
+    - name: Record v6 screenshots (targeted captures)
+      run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests "com.music.bitchord.V6ScreenshotTest"
+
+    - name: Full unit test suite (release gate)
+      if: inputs.full_suite
+      run: ./gradlew :app:testDevDebugUnitTest -Pbitchord.bundleWear=false
 
     - name: Fail-safe roborazzi PNG artifact
       if: always()
@@ -121,7 +133,7 @@ jobs:
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
 
-    - name: Build the spool APK (user-authorized)
+    - name: Build the spool APK (verification test build)
       run: |
         chmod +x gradlew
         ./gradlew :app:assembleDevDebug
