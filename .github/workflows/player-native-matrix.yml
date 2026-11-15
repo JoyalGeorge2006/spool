@@ -8,7 +8,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 9
       matrix:
         include:
           - surface: root
@@ -19,6 +19,14 @@ jobs:
             test: player_pane_lyrics
           - surface: related
             test: player_pane_related
+          - surface: empty
+            test: player_pane_empty
+          - surface: party
+            test: player_party
+          - surface: landscape
+            test: player_landscape
+          - surface: video
+            test: player_video
           - surface: overflow
             test: settings_player_overflow
     steps:
