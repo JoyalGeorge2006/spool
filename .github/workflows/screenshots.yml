@@ -112,6 +112,7 @@ jobs:
     # A targeted green is a capture pass, never a full-suite pass; the full
     # suite runs when this workflow is dispatched with full_suite=true.
     - name: Record v6 screenshots (targeted captures)
+      if: ${{ !cancelled() }}
       timeout-minutes: 20
       run: ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.settings_*' --tests 'com.music.bitchord.V6ScreenshotTest.import_dialog_*' --tests 'com.music.bitchord.V6ScreenshotTest.player_*' 
 
@@ -221,6 +222,7 @@ jobs:
           adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
           sleep 20
           adb shell pidof app.spool.music.dev
+          bash scripts/spool-launcher-smoke.sh "$RUNNER_TEMP/apk-out/spool-x86.apk"
           adb exec-out screencap -p > "$RUNNER_TEMP/launch.png"
 
     - name: Upload launch screenshot
