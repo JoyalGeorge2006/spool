@@ -104,12 +104,13 @@ jobs:
         chmod +x gradlew
         ./gradlew :app:assembleDevDebug
 
-    - name: Collect the APK
+    - name: Collect the APKs
       run: |
-        apk=$(find app/build/outputs/apk -name '*.apk' | head -1)
-        echo "found APK: $apk"
-        cp "$apk" spool.apk
-        ls -la spool.apk
+        ls -la app/build/outputs/apk/dev/debug/
+        cp app/build/outputs/apk/dev/debug/*-universal.apk spool.apk
+        cp app/build/outputs/apk/dev/debug/*-x86_64.apk spool-x86.apk
+        cp app/build/outputs/apk/dev/debug/*-arm64-v8a.apk spool-arm64.apk
+        ls -la spool.apk spool-x86.apk spool-arm64.apk
 
     - name: Publish patched source to v6-source branch
       run: |
@@ -131,7 +132,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         tag="v6-test-$(date -u +%Y%m%d-%H%M%S)"
-        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Automated debug-signed test build. Installs as spool. Built from the v6-source branch." spool.apk
+        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Automated debug-signed test build. Installs as spool. Built from the v6-source branch." spool.apk spool-arm64.apk
 
     - name: Enable KVM
       run: |
@@ -142,10 +143,10 @@ jobs:
     - name: Emulator smoke test (install + launch)
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 30
-        arch: arm64-v8a
+        api-level: 34
+        arch: x86_64
         script: |
-          adb install -r spool.apk
+          adb install -r spool-x86.apk
           adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
           sleep 20
           adb shell pidof app.spool.music.dev
