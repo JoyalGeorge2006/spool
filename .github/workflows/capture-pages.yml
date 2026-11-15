@@ -48,3 +48,22 @@ jobs:
         name: page-captures
         path: ${{ runner.temp }}/pages/
         if-no-files-found: ignore
+
+    - name: Publish page captures to the v6-shots branch
+      if: always()
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "github-actions"
+        # Same rule as the shots publish: keep the branch's own .github, add
+        # only pages/, or the token's missing workflows permission rejects it.
+        if git fetch --depth 1 origin v6-shots; then
+          git checkout -B v6-shots FETCH_HEAD
+        else
+          git checkout --orphan v6-shots
+          git rm -rf . >/dev/null 2>&1 || true
+        fi
+        mkdir -p pages
+        cp "$RUNNER_TEMP/pages"/* pages/ 2>/dev/null || true
+        git add pages
+        git commit -m "v6 page captures $(date -u +%Y%m%d-%H%M%S)" || exit 0
+        git push origin v6-shots || { git pull --rebase origin v6-shots && git push origin v6-shots; }
