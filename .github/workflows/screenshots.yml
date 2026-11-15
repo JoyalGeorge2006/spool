@@ -163,13 +163,7 @@ jobs:
         name: spool-apk
         path: ${{ runner.temp }}/apk-out/spool.apk
 
-    - name: Publish spool.apk as a GitHub release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        cd "$RUNNER_TEMP/apk-out"
-        tag="v6-test-$(date -u +%Y%m%d-%H%M%S)"
-        gh release create "$tag" --repo JoyalGeorge2006/spool --title "spool v6 test build ($tag)" --notes "Debug-signed test build, installs as spool. spool.apk = arm64-v8a split (Pixel 7 and most modern phones). spool-universal.apk = all ABIs fallback. Built from the v6-source branch." spool.apk spool-universal.apk
+    # Release publication intentionally absent. Verification artifacts only.
 
     - name: Enable KVM
       run: |
