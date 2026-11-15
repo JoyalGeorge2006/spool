@@ -104,14 +104,6 @@ jobs:
         chmod +x gradlew
         ./gradlew :app:assembleDevDebug
 
-    - name: Collect the APKs
-      run: |
-        ls -la app/build/outputs/apk/dev/debug/
-        cp app/build/outputs/apk/dev/debug/*-universal-debug.apk spool-universal.apk
-        cp app/build/outputs/apk/dev/debug/*-x86_64-debug.apk spool-x86.apk
-        cp app/build/outputs/apk/dev/debug/*-arm64-v8a-debug.apk spool.apk
-        ls -la spool.apk spool-universal.apk spool-x86.apk
-
     - name: Fail-safe raw APK splits artifact
       if: always()
       uses: actions/upload-artifact@v4
@@ -120,27 +112,30 @@ jobs:
         path: app/build/outputs/apk/dev/debug/*.apk
         if-no-files-found: ignore
 
-    - name: Publish patched source to v6-source branch
+    - name: Collect the APKs (outside the source checkout)
       run: |
-        git config user.email "actions@github.com"
-        git config user.name "github-actions"
-        git checkout -B v6-source
-        git add -A
-        git commit -m "v6 source $(date -u +%Y%m%d-%H%M%S)"
-        git push -f origin v6-source
+        ls -la app/build/outputs/apk/dev/debug/
+        mkdir -p "$RUNNER_TEMP/apk-out"
+        cp app/build/outputs/apk/dev/debug/*-universal-debug.apk "$RUNNER_TEMP/apk-out/spool-universal.apk"
+        cp app/build/outputs/apk/dev/debug/*-x86_64-debug.apk "$RUNNER_TEMP/apk-out/spool-x86.apk"
+        cp app/build/outputs/apk/dev/debug/*-arm64-v8a-debug.apk "$RUNNER_TEMP/apk-out/spool.apk"
+        ls -la "$RUNNER_TEMP/apk-out/"
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool-universal.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
 
     - name: Upload spool.apk
       uses: actions/upload-artifact@v4
       with:
         name: spool-apk
-        path: spool.apk
+        path: ${{ runner.temp }}/apk-out/spool.apk
 
     - name: Publish spool.apk as a GitHub release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        cd "$RUNNER_TEMP/apk-out"
         tag="v6-test-$(date -u +%Y%m%d-%H%M%S)"
-        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Debug-signed test build, installs as spool. spool.apk = arm64 (Pixel 7 and most modern phones). spool-universal.apk = all ABIs. Built from the v6-source branch." spool.apk spool-universal.apk
+        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Debug-signed test build, installs as spool. spool.apk = arm64-v8a split (Pixel 7 and most modern phones). spool-universal.apk = all ABIs fallback. Built from the v6-source branch." spool.apk spool-universal.apk
 
     - name: Enable KVM
       run: |
@@ -154,14 +149,28 @@ jobs:
         api-level: 34
         arch: x86_64
         script: |
-          adb install -r spool-x86.apk
+          adb install -r "$RUNNER_TEMP/apk-out/spool-x86.apk"
           adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
           sleep 20
           adb shell pidof app.spool.music.dev
-          adb exec-out screencap -p > launch.png
+          adb exec-out screencap -p > "$RUNNER_TEMP/launch.png"
 
     - name: Upload launch screenshot
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: launch-screenshot
-        path: launch.png
+        path: ${{ runner.temp }}/launch.png
+        if-no-files-found: ignore
+
+    - name: Publish patched source to v6-source branch
+      if: always()
+      continue-on-error: true
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "github-actions"
+        git checkout -B v6-source
+        rm -rf .github/workflows
+        git add -A -- . ':!*.apk'
+        git commit -m "v6 source $(date -u +%Y%m%d-%H%M%S)"
+        git push -f origin v6-source
