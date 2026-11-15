@@ -1,0 +1,90 @@
+name: Sign and verify exact candidate (no release)
+on:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+    - uses: actions/download-artifact@v4
+      with:
+        name: raw-apk-splits
+        run-id: 43748435151
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: ${{ runner.temp }}/candidate
+    - uses: actions/download-artifact@v4
+      with:
+        name: raw-apk-splits
+        run-id: 43747139582
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: ${{ runner.temp }}/prior-v116
+    - name: Load exact candidate source for the emulator assertions
+      run: |
+        curl -fsSL -o /tmp/spool.patch 'https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY'
+        echo '3ba79614347d92470c3ba1b267fc29982d96842007575825ede7277235f52d52  /tmp/spool.patch' | sha256sum -c -
+        git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
+    - name: Sign compiled candidate and emulator fixture with persisted key
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        test -n "$SPOOL_DEBUG_KEYSTORE_B64" && test -n "$SPOOL_DEBUG_STORE_PASSWORD" && test -n "$SPOOL_DEBUG_KEY_PASSWORD"
+        printf '%s' "$SPOOL_DEBUG_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/signing.keystore"
+        chmod 600 "$RUNNER_TEMP/signing.keystore"
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+        test -n "$signer"
+        mkdir -p "$RUNNER_TEMP/apk-out"
+        cp "$(find "$RUNNER_TEMP/candidate" -name '*-arm64-v8a-debug.apk' -print -quit)" "$RUNNER_TEMP/apk-out/spool.apk"
+        cp "$(find "$RUNNER_TEMP/candidate" -name '*-x86_64-debug.apk' -print -quit)" "$RUNNER_TEMP/apk-out/spool-x86.apk"
+        fixture=$(find "$RUNNER_TEMP/prior-v116" -name '*-x86_64-debug.apk' -print -quit)
+        test -n "$fixture"
+        for apk in "$RUNNER_TEMP/apk-out/spool.apk" "$RUNNER_TEMP/apk-out/spool-x86.apk" "$fixture"; do
+          "$signer" sign --ks "$RUNNER_TEMP/signing.keystore" --ks-key-alias spooldebug --ks-pass env:SPOOL_DEBUG_STORE_PASSWORD --key-pass env:SPOOL_DEBUG_KEY_PASSWORD "$apk"
+          "$signer" verify --verbose --print-certs "$apk"
+        done
+        rm "$RUNNER_TEMP/signing.keystore"
+    - name: Compare signing certificate with the user's last installed APK
+      run: |
+        curl -fL -o "$RUNNER_TEMP/last-installed.apk" 'https://github.com/JoyalGeorge2006/spool/releases/download/v6-test-20261115-125159/spool.apk'
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+        "$signer" verify --print-certs "$RUNNER_TEMP/last-installed.apk" | tee "$RUNNER_TEMP/last-installed-cert.txt"
+        "$signer" verify --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee "$RUNNER_TEMP/candidate-cert.txt"
+        grep 'Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/last-installed-cert.txt" > "$RUNNER_TEMP/old-digest.txt"
+        grep 'Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/candidate-cert.txt" > "$RUNNER_TEMP/new-digest.txt"
+        cmp "$RUNNER_TEMP/old-digest.txt" "$RUNNER_TEMP/new-digest.txt"
+        echo 'Signing certificate matches the last APK the user confirmed installing'
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Emulator smoke test (install + launch)
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        script: |
+          adb install "$RUNNER_TEMP/apk-out/spool-x86.apk"
+          adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
+          sleep 20
+          adb shell pidof app.spool.music.dev
+          bash scripts/spool-launcher-smoke.sh "$RUNNER_TEMP/apk-out/spool-x86.apk" "$(find "$RUNNER_TEMP/prior-v116" -name '*-x86_64-debug.apk' -print -quit)"
+          adb exec-out screencap -p > "$RUNNER_TEMP/launch.png"
+
+    - name: Upload verified candidate APK and launch evidence
+      uses: actions/upload-artifact@v4
+      with:
+        name: persisted-signed-candidate
+        path: |
+          ${{ runner.temp }}/apk-out/spool.apk
+          ${{ runner.temp }}/launch.png
