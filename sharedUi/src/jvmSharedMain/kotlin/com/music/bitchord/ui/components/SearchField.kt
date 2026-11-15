@@ -62,6 +62,7 @@ fun SearchField(
     /** What the empty field says it is for — the one part that changes per screen. */
     placeholder: String = stringResource(Res.string.search_hint),
     modifier: Modifier = Modifier,
+    cornerRadius: androidx.compose.ui.unit.Dp = 14.dp,
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -81,7 +82,7 @@ fun SearchField(
                     // Fixed height prevents the row from growing when text is entered
                     Modifier
                         .height(46.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(11.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(cornerRadius))
                 },
             )
             // Asymmetric: the magnifier is a button now and wants a real touch

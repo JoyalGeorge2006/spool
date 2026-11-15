@@ -6,8 +6,11 @@ import com.music.bitchord.data.model.SearchFilter
 import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.sources.TrackMatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
@@ -19,9 +22,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /** Single track metadata extracted from a Spotify playlist. */
 data class SpotifyImportTrack(
@@ -40,6 +50,50 @@ data class SpotifyImportResult(
 )
 
 object SpotifyImporter {
+
+    /** An OkHttp response already read down to its body text. */
+    internal class StringResponse(val code: Int, val successful: Boolean, val body: String)
+
+    /**
+     * Awaits an OkHttp call so coroutine cancellation — the import dialog's
+     * overall deadline, or the dialog closing mid-import — cancels the
+     * underlying call at once. A plain blocking `execute()` would ignore the
+     * deadline until the socket read returned, leaving the dialog in its
+     * working state for up to a full stalled request past it.
+     *
+     * The body is read inside the callback, BEFORE the continuation resumes:
+     * `invokeOnCancellation` keeps the call armed while bytes stream in, so a
+     * deadline mid-read interrupts the read too. Resuming with the Response
+     * instead would disarm cancellation at the headers and leave a slowly
+     * trickling body — which a socket read timeout only bounds per read, not
+     * in total — holding the dialog past the deadline.
+     */
+    internal suspend fun Call.executeCancellable(): StringResponse =
+        suspendCancellableCoroutine { cont ->
+            cont.invokeOnCancellation { cancel() }
+            enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    // A cancelled call reports here as "Canceled"; the
+                    // continuation is already gone, so there is nothing to resume.
+                    if (cont.isActive) cont.resumeWithException(e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val result = runCatching {
+                        response.use {
+                            StringResponse(it.code, it.isSuccessful, it.body?.string().orEmpty())
+                        }
+                    }
+                    result.onSuccess { cont.resume(it) }
+                    result.onFailure {
+                        // The read threw: a real failure, or the cancellation
+                        // above cutting the stream — in which case the
+                        // continuation is gone and there is nothing to resume.
+                        if (cont.isActive) cont.resumeWithException(it)
+                    }
+                }
+            })
+        }
 
     private const val USER_AGENT =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -85,12 +139,11 @@ object SpotifyImporter {
                 .header("User-Agent", USER_AGENT)
                 .build()
 
-            val html = Http.client.newCall(request).execute().use { response ->
-                val body = response.body?.string().orEmpty()
-                if (!response.isSuccessful || body.isBlank()) {
+            val html = Http.client.newCall(request).executeCancellable().let { response ->
+                if (!response.successful || response.body.isBlank()) {
                     error("Failed to load Spotify playlist (HTTP ${response.code})")
                 }
-                body
+                response.body
             }
 
             // Extract <script id="__NEXT_DATA__" type="application/json">...</script>
@@ -147,6 +200,9 @@ object SpotifyImporter {
                     ?.get("accessToken")?.jsonPrimitive?.content
                 if (token != null) {
                     runCatching { fetchRemainingTracks(playlistId, token, tracks.size) }
+                        // A deadline mid-pagination must unwind, not fall back
+                        // to the first 100 tracks as if the fetch had failed.
+                        .onFailure { if (it is CancellationException) throw it }
                         .getOrNull()
                         ?.let { tracks.addAll(it) }
                 }
@@ -184,7 +240,7 @@ object SpotifyImporter {
     private const val FETCH_PLAYLIST_HASH = "19ff1327c29e99c208c86d7a9d8f1929cfdf3d3202a0ff4253c821f1901aa94d"
 
     /** Tracks from [start] to the end of the playlist, a page at a time. */
-    private fun fetchRemainingTracks(
+    private suspend fun fetchRemainingTracks(
         playlistId: String,
         token: String,
         start: Int,
@@ -192,6 +248,9 @@ object SpotifyImporter {
         val out = mutableListOf<SpotifyImportTrack>()
         var offset = start
         while (true) {
+            // One page per deadline check: without it a large playlist pages
+            // to its end before a fired deadline can land anywhere.
+            coroutineContext.ensureActive()
             val variables = """{"uri":"spotify:playlist:$playlistId","offset":$offset,"limit":$PAGE_SIZE,"enableWatchFeedEntrypoint":false}"""
             val extensions = """{"persistedQuery":{"version":1,"sha256Hash":"$FETCH_PLAYLIST_HASH"}}"""
             val url = PATHFINDER_URL.toHttpUrl().newBuilder()
@@ -206,9 +265,9 @@ object SpotifyImporter {
                 .header("App-platform", "WebPlayer")
                 .header("Accept", "application/json")
                 .build()
-            val body = Http.client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) error("HTTP ${response.code}")
-                response.body?.string().orEmpty()
+            val body = Http.client.newCall(request).executeCancellable().let { response ->
+                if (!response.successful) error("HTTP ${response.code}")
+                response.body
             }
             val content = json.parseToJsonElement(body).jsonObject["data"]?.jsonObject
                 ?.get("playlistV2")?.jsonObject?.get("content")?.jsonObject

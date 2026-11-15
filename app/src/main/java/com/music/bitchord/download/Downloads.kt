@@ -202,6 +202,7 @@ object Downloads {
         }
         _active.update { it + (id to DownloadState.Queued) }
         DownloadSession.queued(song, from)
+        if (from != null) enqueuedFrom[id] = from
 
         val app = context.applicationContext
         runCatching {
@@ -228,6 +229,35 @@ object Downloads {
      * route fails — see [prepare].
      */
     private val fromCache = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * The release a track was asked for as part of, kept for the MP3 export's
+     * log line. [DownloadSession] records the same thing for its own list but
+     * is deliberately session-scoped and mutable, so the export reads its own
+     * copy; entries leave with [clear].
+     */
+    private val enqueuedFrom = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /**
+     * Extension of an already-on-disk download. DISPLAY_NAME is the truth for
+     * content:// rows (their last segment is a numeric row id); on pre-Q the
+     * query can come back null for file://, whose own segment is a real name.
+     */
+    internal fun adoptedExtension(displayName: String?, scheme: String?, lastSegment: String?): String {
+        val fromName = displayName?.substringAfterLast('.', "")?.lowercase().orEmpty()
+        if (fromName.isNotEmpty()) return fromName
+        if (scheme == "file") return lastSegment?.substringAfterLast('.', "")?.lowercase().orEmpty()
+        return ""
+    }
+
+    /** The export folder the listener was last told is inaccessible; one notice per episode. */
+    private val folderNoticeFor = java.util.concurrent.atomic.AtomicReference<String?>(null)
+
+    /** Failures swallowed while a failure toast was already recent. */
+    private val mp3FailureSuppressed = java.util.concurrent.atomic.AtomicInteger(0)
+
+    @Volatile
+    private var lastMp3FailureToastAt = 0L
 
     /** Marks [videoIds] as wanted from the song cache; see [fromCache]. Call before [enqueue]. */
     fun preferCachedCopy(videoIds: Collection<String>) {
@@ -298,6 +328,7 @@ object Downloads {
         claimed.forEach { song ->
             _active.update { it + (song.videoId to DownloadState.Queued) }
             DownloadSession.queued(song, from)
+            if (from != null) enqueuedFrom[song.videoId] = from
         }
         val slots = Semaphore(BATCH_WORKERS)
         try {
@@ -1071,6 +1102,70 @@ object Downloads {
      * commits or aborts, so a caller is free to call it a second time with a
      * freshly resolved plan without the first attempt leaving anything behind.
      */
+    /** A short user-visible note from the download workers, posted on the main thread. */
+    private fun toast(context: Context, text: String) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            android.widget.Toast.makeText(context.applicationContext, text, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * The MP3 copy for a download that reached its saved file by any route -
+     * fresh transfer, adopted existing file, or a record re-adopted after a
+     * loss. Skips tracks already exported. A failure is told to the listener
+     * and logged, never charged against the download itself.
+     */
+    private suspend fun exportMp3Copy(
+        context: Context,
+        id: String,
+        track: Song,
+        source: Uri,
+        extension: String,
+        words: LyricsTag.Embeddable?,
+        cover: MediaTagger.Artwork?,
+    ) {
+        if (!Mp3Exporter.ready(context)) {
+            // The toggle is on but the folder's grant is gone (revoked,
+            // deleted, or never persisted): skipping quietly is the same
+            // silent no-export the toasts fixed, so say it once per folder.
+            val tree = AppSettings.mp3ExportFolder.value
+            if (AppSettings.mp3Export.value && tree.isNotBlank() &&
+                folderNoticeFor.getAndSet(tree) != tree
+            ) {
+                toast(context, "MP3 copies are paused - the export folder is no longer accessible. Pick it again in Settings.")
+            }
+            return
+        }
+        folderNoticeFor.set(null)
+        if (track.videoId in AppSettings.mp3ExportedIds.value) return
+        runCatching {
+            Mp3Exporter.export(
+                context, track, source, extension, enqueuedFrom[id], words, cover,
+            ) { fraction -> DownloadSession.running(id, 0.95f + 0.05f * fraction) }
+        }.onSuccess {
+            // The copy is in the chosen folder (a null return means
+            // it already was) - Home's MP3 badge reads this.
+            AppSettings.addMp3Exported(track.videoId)
+        }.onFailure {
+            if (it is CancellationException) throw it
+            Log.w(TAG, "mp3 export failed for $id: ${it.message}")
+            // One toast per 30s, with a count folded in - a batch of failing
+            // exports must not fire one toast per track.
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastMp3FailureToastAt < 30_000L) {
+                mp3FailureSuppressed.incrementAndGet()
+            } else {
+                lastMp3FailureToastAt = now
+                val extra = mp3FailureSuppressed.getAndSet(0)
+                if (extra > 0) {
+                    toast(context, "Couldn't save the MP3 copy of ${track.title} (and $extra more)")
+                } else {
+                    toast(context, "Couldn't save the MP3 copy of ${track.title}")
+                }
+            }
+        }
+    }
+
     private suspend fun transfer(context: Context, song: Song, plan: Prepared) {
         val id = song.videoId
         val track = plan.track
@@ -1079,6 +1174,20 @@ object Downloads {
         // rather than writing a second copy beside it.
         plan.alreadyAt?.let { uri ->
             remember(song, track, uri)
+            // A content:// row's last segment is the numeric row id - asking
+            // it for the extension would misread every adopted MP3 as
+            // re-encode material. The display name carries the real suffix.
+            val ext = adoptedExtension(
+                runCatching {
+                    context.contentResolver.query(
+                        uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME),
+                        null, null, null,
+                    )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                }.getOrNull(),
+                uri.scheme,
+                uri.lastPathSegment,
+            )
+            exportMp3Copy(context, id, track, uri, ext, null, null)
             DownloadSession.done(id)
             clear(id)
             return
@@ -1115,6 +1224,7 @@ object Downloads {
                 if (alreadyThere != null) {
                     Log.d(TAG, "$name is already in Music; adopting it")
                     remember(song, track, alreadyThere)
+                    exportMp3Copy(context, id, track, alreadyThere, route.extension, lyrics?.await(), artwork?.await())
                     DownloadSession.done(id)
                     clear(id)
                     return@coroutineScope
@@ -1149,6 +1259,12 @@ object Downloads {
                         )
                     }
                     remember(song, track, savedUri, route.downloadFormat)
+                    // An offline HLS/DASH package is a folder of segments, not
+                    // one audio file to re-encode: say so instead of silently
+                    // skipping the MP3 copy the listener asked for.
+                    if (AppSettings.mp3Export.value) {
+                        toast(context, "No MP3 copy of ${track.title} - this track saves as an offline package")
+                    }
                     DownloadSession.done(id)
                     clear(id)
                     Log.d(TAG, "saved offline ${if (manifest.dash) "DASH" else "HLS"} package for $name")
@@ -1173,6 +1289,10 @@ object Downloads {
                 val savedUri = destination.commit()
                 pending = null
                 remember(song, track, savedUri, route.downloadFormat, artworkUri)
+                // The MP3 copy, when the listener asked for one. Deliberately
+                // after the commit: the download itself is already saved, so an
+                // export that fails loses only the copy, never the download.
+                exportMp3Copy(context, id, track, savedUri, route.extension, words, cover)
                 DownloadSession.done(id)
                 clear(id)
                 Log.d(TAG, "saved $name")
@@ -1512,6 +1632,7 @@ object Downloads {
     /** Back to "not downloaded" — used for success, where [saved] takes over, and for cancellation. */
     private fun clear(videoId: String) {
         _active.update { it - videoId }
+        enqueuedFrom.remove(videoId)
     }
 
     private fun fail(videoId: String, reason: String) {

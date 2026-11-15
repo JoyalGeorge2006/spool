@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -268,6 +269,8 @@ internal fun LazyListScope.localFolderItems(
     onSongClick: (List<Song>, Int) -> Unit,
     onSongLongPress: (Song) -> Unit,
     onSongSwipe: (Song) -> Unit,
+    /** Tracks with a genuine .mp3 copy exported, by videoId: they carry the row's MP3 badge. */
+    mp3ExportedIds: Set<String> = emptySet(),
 ) {
     val tabs = folder.tabs
     item(key = "folder-tabs") {
@@ -343,7 +346,21 @@ internal fun LazyListScope.localFolderItems(
                 )
             }
         } else {
+            // The v6 folder list: one rounded container holding every row, the
+            // corners on the end rows and the hairlines inset inside it.
             itemsIndexed(songs, key = { index, song -> "song-${song.videoId}-$index" }) { index, song ->
+                val rowShape = when {
+                    songs.size == 1 -> RoundedCornerShape(FOLDER_CONTAINER_CORNER)
+                    index == 0 -> RoundedCornerShape(
+                        topStart = FOLDER_CONTAINER_CORNER,
+                        topEnd = FOLDER_CONTAINER_CORNER,
+                    )
+                    index == songs.lastIndex -> RoundedCornerShape(
+                        bottomStart = FOLDER_CONTAINER_CORNER,
+                        bottomEnd = FOLDER_CONTAINER_CORNER,
+                    )
+                    else -> RectangleShape
+                }
                 SongRow(
                     song = song,
                     selected = song.videoId in state.selectedIds,
@@ -352,9 +369,17 @@ internal fun LazyListScope.localFolderItems(
                     searchPlayingStyle = true,
                     activeTint = palette.accent,
                     subtitleColor = palette.onBackgroundVariant,
-                    rowBackground = Color.Transparent,
+                    rowBackground = palette.elevated,
                     // Every row here is on the device already.
                     downloadedTint = null,
+                    modifier = Modifier
+                        .padding(horizontal = FOLDER_CONTAINER_MARGIN)
+                        .then(if (index == 0) Modifier.padding(top = FOLDER_CONTAINER_END_PAD) else Modifier)
+                        .then(if (index == songs.lastIndex) Modifier.padding(bottom = FOLDER_CONTAINER_END_PAD) else Modifier)
+                        .clip(rowShape)
+                        .background(palette.elevated),
+                    titleBadge = if (song.videoId in mp3ExportedIds) MP3_ROW_BADGE else null,
+                    badgeAccent = palette.onBackgroundVariant,
                     onClick = { songClick(index) },
                     onLongPress = { songHold(song) },
                     onMore = { onSongLongPress(song) },
@@ -363,7 +388,21 @@ internal fun LazyListScope.localFolderItems(
                         { RowDownloadButton(song, palette) { download(listOf(song)) } }
                     },
                 )
-                if (index < songs.lastIndex) FolderDivider(palette)
+                if (index < songs.lastIndex) {
+                    // Inside the container, so the band between rows stays the
+                    // card's colour rather than the page's.
+                    Box(
+                        Modifier
+                            .padding(horizontal = FOLDER_CONTAINER_MARGIN)
+                            .background(palette.elevated),
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = ROW_DIVIDER_INSET, end = PAGE_GUTTER),
+                            thickness = 0.5.dp,
+                            color = palette.divider,
+                        )
+                    }
+                }
             }
         }
 
@@ -402,6 +441,14 @@ internal fun LazyListScope.localFolderItems(
         }
     }
 }
+
+/** The label on a row whose track has a real .mp3 copy on disk. */
+private const val MP3_ROW_BADGE = "MP3"
+
+/** The rounded card holding a folder's track list: its corner, margin and end padding. */
+private val FOLDER_CONTAINER_CORNER = 20.dp
+private val FOLDER_CONTAINER_MARGIN = 8.dp
+private val FOLDER_CONTAINER_END_PAD = 6.dp
 
 @Composable
 private fun LocalFolderTab.label(): String = stringResource(

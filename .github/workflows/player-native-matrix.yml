@@ -8,11 +8,19 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 9
+      max-parallel: 5
       matrix:
         include:
-          - surface: landscape
-            test: player_landscape
+          - surface: root
+            test: player
+          - surface: queue
+            test: player_pane_queue
+          - surface: lyrics
+            test: player_pane_lyrics
+          - surface: related
+            test: player_pane_related
+          - surface: overflow
+            test: settings_player_overflow
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 17
@@ -25,7 +33,7 @@ jobs:
     - name: Apply the spool patch
       run: |
         curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
-        echo '798ab9b0dc710d6a8ea3a66645177d7409c28c7783b9a5a4892d88d52b853e06  /tmp/spool.patch' | sha256sum -c -
+        echo 'c3733d9b959fd3deac5a0b5e854db254a24f1e85ef8ca0d26b58f0d51f6ef4e8  /tmp/spool.patch' | sha256sum -c -
         git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
         curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame

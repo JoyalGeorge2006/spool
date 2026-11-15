@@ -2,6 +2,7 @@ package com.music.bitchord.ui.player
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.BlendMode
@@ -99,6 +100,7 @@ import org.jetbrains.compose.resources.vectorResource
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -171,16 +173,23 @@ internal fun PlaybackOriginCaption(
     modifier: Modifier = Modifier,
 ) {
     val chrome = LocalPlayerChrome.current
+    // The page layout's caption is the reference's `.ctx`: 12.5sp regular, grey,
+    // no shadow (there is no artwork behind it to need one).
+    val ink = LocalPlayerInk.current
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall.copy(
-            shadow = Shadow(
-                color = Color.Black.copy(alpha = 0.55f),
-                offset = Offset(0f, 1f),
-                blurRadius = 4f,
-            ),
-        ),
-        color = Color.White.copy(alpha = if (chrome) CHROME_FULL_ALPHA else 1f),
+        style = if (ink) {
+            MaterialTheme.typography.labelSmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Normal)
+        } else {
+            MaterialTheme.typography.labelSmall.copy(
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    offset = Offset(0f, 1f),
+                    blurRadius = 4f,
+                ),
+            )
+        },
+        color = if (ink) chromeWhite(0.6f) else chromeWhite(if (chrome) CHROME_FULL_ALPHA else 1f),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         textAlign = textAlign,
@@ -213,6 +222,11 @@ internal fun PlayerScrubber(
     transitionWindow: ClosedFloatingPointRange<Float>?,
     onScrub: (Float) -> Unit,
     onScrubFinished: () -> Unit,
+    /**
+     * The approved video player's monochrome: ink rather than the Material
+     * player's purple accent, whatever [LocalPlayerFlat] says.
+     */
+    neutral: Boolean = false,
     centerLabel: @Composable BoxScope.() -> Unit = {},
 ) {
     val shown = shown()
@@ -233,6 +247,9 @@ internal fun PlayerScrubber(
             mixing = mixing,
             mixPulse = mixPulse,
             transitionWindow = transitionWindow,
+            activeColor = if (LocalPlayerFlat.current && !neutral) mdPlayerColors().accent else chromeWhite(0.92f),
+            inactiveColor = if (LocalPlayerFlat.current && !neutral) mdPlayerColors().accent.copy(alpha = 0.24f) else chromeWhite(0.26f),
+            handleColor = if (LocalPlayerFlat.current && !neutral) mdPlayerColors().accent else null,
         )
         Box(
             modifier = Modifier
@@ -404,7 +421,7 @@ internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
             Text(
                 text = stats,
                 style = nerdStyle,
-                color = Color.White.copy(alpha = 0.65f),
+                color = chromeWhite(0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -439,7 +456,7 @@ internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
                 // Dimmer than the measured line above it: that one describes
                 // the audio, this one describes the app, and the ranking
                 // should show.
-                color = Color.White.copy(alpha = 0.5f),
+                color = chromeWhite(0.5f),
                 // The detailed line runs long on a phone: a second line rather
                 // than an ellipsis through the part that says what the mix is.
                 maxLines = 2,
@@ -472,6 +489,20 @@ internal fun TransportRow(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     compact: Boolean = false,
+    /**
+     * Material player only: when [shuffleEnabled] is set, shuffle and repeat
+     * join the row at its ends. Other themes keep them in the action row's
+     * capsule.
+     */
+    shuffleEnabled: Boolean? = null,
+    repeatMode: Int = RepeatModes.OFF,
+    onToggleShuffle: () -> Unit = {},
+    onCycleRepeat: () -> Unit = {},
+    /**
+     * The approved video player's play control: a bare ink glyph rather than
+     * the Material player's filled accent disc.
+     */
+    barePlay: Boolean = false,
 ) {
     val playSize = if (compact) 58.dp else 74.dp
     val playTouch = if (compact) 76.dp else 92.dp
@@ -483,6 +514,17 @@ internal fun TransportRow(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (shuffleEnabled != null) {
+            TransportModeGlyph(
+                icon = BitChordIcons.Shuffle,
+                contentDescription = stringResource(
+                    if (shuffleEnabled) Res.string.shuffle_on else Res.string.shuffle_off,
+                ),
+                highlighted = shuffleEnabled,
+                haptic = if (shuffleEnabled) Haptic.ToggleOff else Haptic.ToggleOn,
+                onClick = onToggleShuffle,
+            )
+        }
         TransportGlyph(
             icon = Res.drawable.ic_player_previous,
             contentDescription = stringResource(Res.string.widget_previous),
@@ -498,7 +540,7 @@ internal fun TransportRow(
             // would shunt everything below it on every load.
             Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = chromeWhite(1f),
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(if (compact) 30.dp else 38.dp),
                 )
@@ -508,9 +550,10 @@ internal fun TransportRow(
                 icon = if (isPlaying) Res.drawable.ic_player_pause else Res.drawable.ic_player_play,
                 contentDescription = stringResource(if (isPlaying) Res.string.pause else Res.string.play),
                 size = playSize,
-                touchSize = playTouch,
+                touchSize = playSize,
                 onClick = onPlayPause,
                 haptic = if (isPlaying) Haptic.Pause else Haptic.Resume,
+                filledDisc = !barePlay,
             )
         }
         TransportGlyph(
@@ -523,8 +566,122 @@ internal fun TransportRow(
             enabled = nextEnabled,
             haptic = Haptic.SkipNext,
         )
+        if (shuffleEnabled != null) {
+            TransportModeGlyph(
+                icon = BitChordIcons.Repeat,
+                label = if (repeatMode == RepeatModes.ONE) "1" else null,
+                contentDescription = when (repeatMode) {
+                    RepeatModes.ONE -> stringResource(Res.string.repeat_one)
+                    RepeatModes.ALL -> stringResource(Res.string.repeat_all)
+                    else -> stringResource(Res.string.repeat_off)
+                },
+                highlighted = repeatMode != RepeatModes.OFF,
+                // Three states, so the buzz tracks the cycle's edges, as in
+                // the action row's capsule.
+                haptic = when (repeatMode) {
+                    RepeatModes.OFF -> Haptic.ToggleOn
+                    RepeatModes.ONE -> Haptic.ToggleOff
+                    else -> Haptic.Select
+                },
+                onClick = onCycleRepeat,
+            )
+        }
     }
 }
+
+/**
+ * A playback-mode glyph in the Material player's transport row: shuffle and
+ * repeat flanking the skips. Bare ink until the mode is on, when it takes the
+ * player accent; repeat-one carries the "1" badge the action row's capsule
+ * already uses.
+ */
+@Composable
+private fun TransportModeGlyph(
+    icon: ImageVector,
+    contentDescription: String,
+    highlighted: Boolean,
+    onClick: () -> Unit,
+    haptic: Haptic = Haptic.Tap,
+    label: String? = null,
+) {
+    val haptics = rememberHaptics()
+    val ink = LocalPlayerInk.current
+    val tint = if (highlighted) mdPlayerColors().accent else chromeWhite(0.85f)
+    Box(
+        modifier = Modifier
+            // The page layout draws them as the reference's 48dp neutral chips: a
+            // 12dp-radius wash of the ink, brighter while the mode is on.
+            .size(if (ink) 48.dp else PLAYER_SKIP_TOUCH_SIZE)
+            .clip(if (ink) RoundedCornerShape(12.dp) else CircleShape)
+            .then(if (ink) Modifier.background(chromeWhite(if (highlighted) 0.18f else 0.08f)) else Modifier)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) {
+                haptics.play(haptic)
+                onClick()
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(26.dp),
+        )
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = tint,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 8.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The Material player's M3 palette, player-only by design: the purple accent
+ * on M3 surface tints, never the app accent. Dark values are M3's dark-theme
+ * roles (primary80, on-primary20, surface-variant tones).
+ */
+private class MdPlayerColors(
+    val accent: Color,
+    val onAccent: Color,
+    val chip: Color,
+    val onChip: Color,
+)
+
+@Composable
+private fun mdPlayerColors(): MdPlayerColors =
+    if (LocalPlayerInk.current) {
+        // Ink, as the approved reference draws it: the fill and play button are
+        // the text colour, what sits on them is the background, and chips are a
+        // faint wash of the text colour.
+        val ink = MaterialTheme.colorScheme.onBackground
+        MdPlayerColors(
+            accent = ink,
+            onAccent = MaterialTheme.colorScheme.background,
+            chip = ink.copy(alpha = 0.08f),
+            onChip = ink,
+        )
+    } else if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        MdPlayerColors(
+            accent = Color(0xFFD0BCFF),
+            onAccent = Color(0xFF381E72),
+            chip = Color(0xFF4A4458),
+            onChip = Color(0xFFE8DEF8),
+        )
+    } else {
+        MdPlayerColors(
+            accent = Color(0xFF6750A4),
+            onAccent = Color(0xFFFFFFFF),
+            chip = Color(0xFFE8DEF8),
+            onChip = Color(0xFF1D192B),
+        )
+    }
 
 /** ThinSlider's fixed touch target at the volume bar's size: 10dp + 22dp. */
 internal val VOLUME_ROW_HEIGHT = 32.dp
@@ -571,6 +728,199 @@ internal fun VolumeRow(
 }
 
 /**
+ * The Material player's bottom row: Lyrics / Output / Up Next as M3 tonal
+ * chips. While the queue is up the centre chip holds autoplay — the one
+ * playback mode the transport row does not carry; in a party the centre is
+ * the output/party capsule it always was.
+ */
+@Composable
+private fun MdPlayerActionRow(
+    lyricsOpen: Boolean,
+    queueOpen: Boolean,
+    autoplayEnabled: Boolean,
+    onToggleLyrics: () -> Unit,
+    onToggleQueue: () -> Unit,
+    onToggleAutoplay: () -> Unit,
+    onOpenOutput: () -> Unit,
+    onListenTogether: () -> Unit,
+    onOpenListenTogetherMembers: () -> Unit,
+) {
+    val colors = mdPlayerColors()
+    val showPartyButton by PlayerSettings.showListenTogetherButton.collectAsStateWithLifecycle()
+    val inParty = rememberPartyBadge().inParty
+    // The page layout has tabs for Lyrics and Up next and no row below the volume.
+    val ink = LocalPlayerInk.current
+    if (ink) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (!ink) MdActionChip(
+            icon = BitChordIcons.LyricsQuote,
+            label = stringResource(Res.string.open_lyrics),
+            highlighted = lyricsOpen,
+            colors = colors,
+            onClick = onToggleLyrics,
+        )
+        when {
+            queueOpen -> Pill {
+                PillSegment(
+                    icon = BitChordIcons.Infinity,
+                    contentDescription = stringResource(
+                        if (autoplayEnabled) Res.string.autoplay_on else Res.string.autoplay_off,
+                    ),
+                    onClick = onToggleAutoplay,
+                    highlighted = autoplayEnabled,
+                    haptic = if (autoplayEnabled) Haptic.ToggleOff else Haptic.ToggleOn,
+                    tapWindowMs = AUTOPLAY_TAP_WINDOW_MS,
+                )
+            }
+            inParty || showPartyButton -> OutputPartyPill(
+                onOutput = onOpenOutput,
+                onParty = onListenTogether,
+                onOpenMembers = onOpenListenTogetherMembers,
+            )
+            else -> MdActionChip(
+                icon = rememberOutputGlyph().icon,
+                label = stringResource(Res.string.audio_output),
+                highlighted = false,
+                colors = colors,
+                onClick = onOpenOutput,
+            )
+        }
+        if (!ink) MdActionChip(
+            icon = BitChordIcons.Queue,
+            label = stringResource(Res.string.up_next),
+            highlighted = queueOpen,
+            colors = colors,
+            onClick = onToggleQueue,
+        )
+    }
+}
+
+/**
+ * The approved video player's bottom row: bare ink glyphs for the lyrics,
+ * output and queue sheets, with the output's own caption ("This phone") under
+ * the centre glyph. The Material player's tonal chips belong to the audio
+ * hero; every control here keeps its real sheet behind it.
+ */
+@Composable
+internal fun VideoPlayerActionRow(
+    lyricsOpen: Boolean,
+    queueOpen: Boolean,
+    accountName: String?,
+    onToggleLyrics: () -> Unit,
+    onOpenOutput: () -> Unit,
+    onOpenListenTogetherMembers: () -> Unit,
+    onToggleQueue: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        VideoActionGlyph(
+            icon = BitChordIcons.LyricsQuote,
+            contentDescription = stringResource(Res.string.open_lyrics),
+            active = lyricsOpen,
+            onClick = onToggleLyrics,
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            VideoActionGlyph(
+                icon = rememberOutputGlyph().icon,
+                contentDescription = stringResource(Res.string.audio_output),
+                active = false,
+                onClick = onOpenOutput,
+            )
+            OutputCaption(
+                accountName = accountName,
+                onOpenOutput = onOpenOutput,
+                onOpenMembers = onOpenListenTogetherMembers,
+            )
+        }
+        VideoActionGlyph(
+            icon = BitChordIcons.Queue,
+            contentDescription = stringResource(Res.string.up_next),
+            active = queueOpen,
+            onClick = onToggleQueue,
+        )
+    }
+}
+
+/** One bare glyph of the video player's bottom row: no tile, ink only. */
+@Composable
+private fun VideoActionGlyph(
+    icon: ImageVector,
+    contentDescription: String,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    val haptics = rememberHaptics()
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                role = Role.Button,
+            ) {
+                haptics.play(Haptic.Tap)
+                onClick()
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = chromeWhite(if (active) 1f else 0.6f),
+            modifier = Modifier.size(BOTTOM_ICON_SIZE),
+        )
+    }
+}
+
+/** One tonal chip of the Material player's bottom row: glyph and word on the M3 container. */
+@Composable
+private fun MdActionChip(
+    icon: ImageVector,
+    label: String,
+    highlighted: Boolean,
+    colors: MdPlayerColors,
+    onClick: () -> Unit,
+) {
+    val haptics = rememberHaptics()
+    Row(
+        modifier = Modifier
+            .semantics { contentDescription = label }
+            .clip(CircleShape)
+            .background(if (highlighted) colors.accent.copy(alpha = 0.28f) else colors.chip)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) {
+                haptics.play(Haptic.Tap)
+                onClick()
+            }
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = colors.onChip,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(7.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.onChip,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
  * Lyrics, the capsule, and the queue — the row both layouts end on.
  *
  * The capsule swaps: output and party normally, the three playback modes while
@@ -594,6 +944,20 @@ internal fun PlayerActionRow(
     /** Opens [ListenTogetherMembersSheet] rather than settings directly. */
     onOpenListenTogetherMembers: () -> Unit,
 ) {
+    if (LocalPlayerFlat.current) {
+        MdPlayerActionRow(
+            lyricsOpen = lyricsOpen,
+            queueOpen = queueOpen,
+            autoplayEnabled = autoplayEnabled,
+            onToggleLyrics = onToggleLyrics,
+            onToggleQueue = onToggleQueue,
+            onToggleAutoplay = onToggleAutoplay,
+            onOpenOutput = onOpenOutput,
+            onListenTogether = onListenTogether,
+            onOpenListenTogetherMembers = onOpenListenTogetherMembers,
+        )
+        return
+    }
     val showPartyButton by PlayerSettings.showListenTogetherButton.collectAsStateWithLifecycle()
     val inParty = rememberPartyBadge().inParty
     // Just the output glyph in the middle.
@@ -769,7 +1133,7 @@ internal fun CircleGlyph(
                     if (chrome) {
                         VibrantChromeInk.copy(alpha = (discAlpha * CIRCLE_DISC_DODGE_GAIN).coerceAtMost(1f))
                     } else {
-                        Color.White.copy(alpha = discAlpha)
+                        chromeWhite(discAlpha)
                     },
                 ),
         )
@@ -781,7 +1145,7 @@ internal fun CircleGlyph(
             Icon(
                 imageVector = glyph,
                 contentDescription = contentDescription,
-                tint = Color.White,
+                tint = chromeWhite(1f),
                 modifier = Modifier.size(19.dp),
             )
         }
@@ -804,6 +1168,8 @@ private fun TransportGlyph(
     haptic: Haptic = Haptic.Tap,
     /** Vertical squash of the glyph alone; its width and touch box are untouched. */
     heightScale: Float = 1f,
+    /** spool's flat play button: a filled ink circle rather than a bare glyph. */
+    filledDisc: Boolean = false,
 ) {
     val haptics = rememberHaptics()
     // Faded rather than hidden: the row keeps its shape at the ends of a queue.
@@ -811,9 +1177,22 @@ private fun TransportGlyph(
         targetValue = if (enabled) 1f else 0.3f,
         label = "transportAlpha",
     )
+    val flat = LocalPlayerFlat.current
+    val disc = filledDisc && flat
     Box(
         modifier = Modifier
             .size(touchSize)
+            .then(
+                if (disc) {
+                    // The reference's play key is a rounded square (88dp, 22dp radius), not a
+                    // circle, in the page layout; the other flat layouts keep the disc.
+                    Modifier
+                        .clip(if (LocalPlayerInk.current) RoundedCornerShape(touchSize * 0.25f) else CircleShape)
+                        .background(mdPlayerColors().accent)
+                } else {
+                    Modifier
+                },
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -827,9 +1206,13 @@ private fun TransportGlyph(
         Icon(
             painter = painterResource(icon),
             contentDescription = contentDescription,
-            tint = Color.White.copy(alpha = alpha),
+            tint = if (disc) {
+                mdPlayerColors().onAccent.copy(alpha = alpha)
+            } else {
+                chromeWhite(alpha)
+            },
             modifier = Modifier
-                .size(size)
+                .size(if (disc) size * 0.45f else size)
                 .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
         )
     }
@@ -918,7 +1301,7 @@ private fun Pill(
         modifier = modifier
             .height(BOTTOM_ACTION_SIZE)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.12f))
+            .background(chromeWhite(0.12f))
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = 0.82f,
@@ -936,7 +1319,7 @@ private fun PillDivider() {
         Modifier
             .width(1.dp)
             .fillMaxHeight()
-            .background(Color.White.copy(alpha = 0.20f)),
+            .background(chromeWhite(0.20f)),
     )
 }
 
@@ -1082,7 +1465,7 @@ private fun PillSegment(
             .height(BOTTOM_ACTION_SIZE)
             // Round the highlight and both fades, not inside them — see [CircleGlyph].
             .additiveChrome(chrome && !vibrant)
-            .background(if (highlighted) Color.White.copy(alpha = 0.14f) else Color.Transparent)
+            .background(if (highlighted) chromeWhite(0.14f) else Color.Transparent)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1103,8 +1486,8 @@ private fun PillSegment(
         } else {
             when {
                 !highlighted -> chromeWhite(0.75f)
-                chrome -> Color.White.copy(alpha = CHROME_FULL_ALPHA)
-                else -> Color.White
+                chrome -> chromeWhite(CHROME_FULL_ALPHA)
+                else -> chromeWhite(1f)
             }
         }
         Crossfade(
@@ -1116,7 +1499,7 @@ private fun PillSegment(
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(17.dp),
-                    color = Color.White,
+                    color = chromeWhite(1f),
                     strokeWidth = 2.dp,
                 )
             } else if (icon != null) {
@@ -1347,7 +1730,7 @@ private fun BottomGlyph(
         val tint = if (vibrant && chrome) {
             VibrantChromeInk
         } else {
-            if (highlighted) Color.White else chromeWhite(0.75f)
+            if (highlighted) chromeWhite(1f) else chromeWhite(0.75f)
         }
         val glyphChrome = if (vibrant) Modifier.vibrantChrome(chrome) else Modifier.additiveChrome(chrome)
         if (icon != null) {
@@ -1890,7 +2273,7 @@ private fun ShimmerText(
         ),
         label = "lossless-shimmer-progress",
     )
-    val tint = Color.White.copy(alpha = if (LocalPlayerChrome.current) CHROME_FULL_ALPHA else 1f)
+    val tint = chromeWhite(if (LocalPlayerChrome.current) CHROME_FULL_ALPHA else 1f)
     val baseColor = chromeWhite(baseAlpha)
     // The glyphs are laid out and drawn once, in the plain tint, and the moving
     // band is painted over them in the draw phase with SrcIn — which keeps the

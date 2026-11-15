@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -86,7 +88,7 @@ fun ExploreScreen(
                     item {
                         Text(
                             text = stringResource(Res.string.explore),
-                            style = MaterialTheme.typography.displayLarge,
+                            style = com.music.bitchord.ui.components.v6PageTitleStyle(),
                             color = MaterialTheme.colorScheme.onBackground,
                             // 14dp under the title, the same gap Library leaves
                             // above its first card (8dp title + 6dp Replay row).
@@ -105,13 +107,28 @@ fun ExploreScreen(
                         MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                     }
                     is UiState.Success -> {
-                        // Moods and genres read as one grid; the server's
-                        // grouping only decides the order.
-                        val rows = state.data.flatMap(MoodGenreSection::items)
-                            .distinctBy { it.browseId to it.params }
-                            .chunked(columns)
-                        items(rows, key = { row -> row.first().let { "${it.browseId}|${it.params}" } }) { row ->
-                            MoodGenreRow(row = row, columns = columns, onCategoryClick = onCategoryClick)
+                        // One headered grid per server section: the service's
+                        // own grouping and titles, nothing re-sorted or hidden.
+                        state.data.forEach { section ->
+                            item(key = "explore:header:${section.title}") {
+                                Text(
+                                    text = section.title,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(
+                                        start = PAGE_GUTTER,
+                                        end = PAGE_GUTTER,
+                                        top = 18.dp,
+                                        bottom = 10.dp,
+                                    ),
+                                )
+                            }
+                            val rows = section.items
+                                .distinctBy { it.browseId to it.params }
+                                .chunked(columns)
+                            items(rows, key = { row -> row.first().let { "${it.browseId}|${it.params}" } }) { row ->
+                                MoodGenreRow(row = row, columns = columns, onCategoryClick = onCategoryClick)
+                            }
                         }
                     }
                 }
@@ -150,14 +167,85 @@ private fun MoodGenreCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MoodGenreSleeve(
+    MoodGenreArtworkCard(
         item = item,
-        modifier = modifier
-            .aspectRatio(MOOD_CARD_ASPECT)
-            .clip(MOOD_CARD_SHAPE)
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier,
     )
 }
+
+/**
+ * The artwork-led category card: the category's real cover fills it edge to
+ * edge, the name sits bottom-left in white over a soft left-to-right shade.
+ * No duotone and no colour stripe - the artwork leads. Until the cover
+ * resolves (MainViewModel.loadMoodGenreArtwork) the card draws the
+ * category's service colour, dimmed toward black so the label still reads;
+ * that tint is a loading state, never the intended final look.
+ *
+ * Shared by Explore's grid and Search's browse grid so both pages show the
+ * same card; the TV keeps its own sleeve treatment.
+ */
+@Composable
+fun MoodGenreArtworkCard(
+    item: MoodGenre,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // The service covers carry their own baked-in editorial text, and it can
+    // even name a different playlist than the category ("Focus" art reading
+    // "Lofi Loft"): a label over the art collides, and no label mislabels the
+    // category. So the card is two zones - the art leads above, cropped, and
+    // the category's own name sits below it in the app's type on the card
+    // surface, always visible, never competing with the art.
+    Column(
+        modifier = modifier
+            .clip(MOOD_ARTWORK_SHAPE)
+            .background(MaterialTheme.colorScheme.surface)
+            .semantics { contentDescription = item.title }
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(MOOD_ARTWORK_ASPECT)
+                .background(moodArtworkPlaceholder(item)),
+        ) {
+            item.thumbnailUrl?.let { artwork ->
+                AsyncImage(
+                    model = artwork,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+        )
+    }
+}
+
+/**
+ * What an artwork card draws until its cover resolves: the category's own
+ * service colour dimmed toward black, or a plain surface for the rare
+ * category that carries none.
+ */
+@Composable
+private fun moodArtworkPlaceholder(item: MoodGenre): Color {
+    val stripe = item.stripeColor?.let { Color(it.toInt()) } ?: return MaterialTheme.colorScheme.surfaceVariant
+    return lerp(stripe, Color.Black, .3f)
+}
+
+val MOOD_ARTWORK_SHAPE = RoundedCornerShape(12.dp)
+
+/** Width over height for the artwork-led card; a two-column phone row lands at about 70dp tall. */
+const val MOOD_ARTWORK_ASPECT = 2.3f
 
 /**
  * A solid stripe down the left and the category's cover filling the rest,
@@ -324,7 +412,7 @@ fun MoodGenrePlaylistsScreen(
         item {
             Text(
                 text = title,
-                style = MaterialTheme.typography.displayLarge,
+                style = com.music.bitchord.ui.components.v6PageTitleStyle(),
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

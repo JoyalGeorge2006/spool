@@ -15,6 +15,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withTimeoutOrNull
 import com.music.bitchord.data.model.normalizedArtistName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -95,12 +96,28 @@ object TopPicks {
         val mixes = mixesAsync.await()
         Log.d(TAG, "topPicks: history=${history.size} artists=${artists.map { it.name }} mixes=${mixes.keys}")
 
+        // The mood cards: the hour's own first, then the rest of the card
+        // set — every one a real Find Your Mood station. Each asks its
+        // category page for one real playlist cover; without one the card
+        // paints the mood's own drawn art instead.
+        val moods = (listOf(moodFor(now)) + MOOD_CARD_SET).distinct()
+        val moodArt = moods.map { mood ->
+            async {
+                mood to withTimeoutOrNull(MOOD_ART_TIMEOUT_MS) {
+                    YtMusicRepository.moodGenreArtwork(TopPickMood.CATEGORY_BROWSE_ID, mood.params).getOrNull()
+                }
+            }
+        }.awaitAll().toMap()
+
         // The first card is always the new release when there is one, as on
         // Apple Music; the rest come in a different order every build.
         val lead = latestRelease(artists)
         val rest = buildList {
             personalStation(mixes, history, local)?.let(::add)
-            add(moodPick(now, local))
+            moods.forEach { mood ->
+                val base = if (mood == moodFor(now)) moodPick(now, local) else moodStation(mood)
+                add(base.copy(images = listOfNotNull(moodArt[mood])))
+            }
             artists.getOrNull(0)?.let { andSimilar(it, photos) }?.let(::add)
             artists.getOrNull(1)?.let { featured(it, photos) }?.let(::add)
             mixes[Mix.NEW_RELEASE]?.let { mix ->
@@ -487,6 +504,17 @@ object TopPicks {
 
     private const val MOOD_PLAYLISTS = 3
     private const val MOOD_QUEUE = 60
+
+    /** The Home mood cards offered after the hour's own mood. */
+    private val MOOD_CARD_SET = listOf(
+        TopPickMood.FOCUS,
+        TopPickMood.CHILL,
+        TopPickMood.PARTY,
+        TopPickMood.SLEEP,
+    )
+
+    /** A mood card's cover lookup never holds the row back. */
+    private const val MOOD_ART_TIMEOUT_MS = 4_000L
 
     /**
      * A mood station for a Find Your Mood tile — the same queue the Mood for

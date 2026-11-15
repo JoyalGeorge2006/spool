@@ -36,6 +36,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -95,10 +96,15 @@ fun ThinSlider(
     transitionWindow: ClosedFloatingPointRange<Float>? = null,
     idleHeight: Dp = 7.dp,
     activeHeight: Dp = 12.dp,
-    activeColor: Color = Color.White.copy(alpha = 0.92f),
-    inactiveColor: Color = Color.White.copy(alpha = 0.26f),
+    activeColor: Color = chromeWhite(0.92f),
+    inactiveColor: Color = chromeWhite(0.26f),
     /** Halfway between the two track colours: visible against unplayed, invisible under played. */
-    markerColor: Color = Color.White.copy(alpha = 0.5f),
+    markerColor: Color = chromeWhite(0.5f),
+    /**
+     * Material 3's handle: a vertical pill at the playhead and the stop dot at
+     * the track's end, in this colour. Null keeps the bare bar above.
+     */
+    handleColor: Color? = null,
 ) {
     var dragging by remember { mutableStateOf(false) }
     val height by animateDpAsState(
@@ -250,6 +256,25 @@ fun ThinSlider(
                         size.height,
                     ),
                     cornerRadius = radius,
+                )
+            }
+            if (handleColor != null) {
+                // The pill rides fillFactor with the fill, so the sheen's
+                // morph carries it too; the stop dot holds the track's end.
+                val playhead = (size.width * fraction * fillFactor).coerceIn(0f, size.width)
+                val pillWidth = 4.dp.toPx()
+                val pillHeight = 20.dp.toPx()
+                drawRoundRect(
+                    color = handleColor,
+                    topLeft = Offset(playhead - pillWidth / 2f, (size.height - pillHeight) / 2f),
+                    size = Size(pillWidth, pillHeight),
+                    cornerRadius = CornerRadius(pillWidth / 2f),
+                )
+                val stopRadius = 2.dp.toPx()
+                drawCircle(
+                    color = handleColor,
+                    radius = stopRadius,
+                    center = Offset(size.width - stopRadius, size.height / 2f),
                 )
             }
         }

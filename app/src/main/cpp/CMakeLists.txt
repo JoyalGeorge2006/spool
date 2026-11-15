@@ -134,3 +134,48 @@ target_link_options(bitchord_usb PRIVATE
     "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/bitperfect/exports.map")
 set_property(TARGET bitchord_usb APPEND PROPERTY LINK_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/bitperfect/exports.map")
+
+# MP3 export ("Save MP3 copy" in download settings): libmp3lame 3.100, vendored
+# under native/lame. Android ships no MP3 encoder — MediaCodec encodes AAC/AMR
+# only — so a software encoder is the only route to a real .mp3, and LAME is
+# the small, mature one. Kept as its own shared library: LAME is LGPL-2.0, and
+# dynamic linking is what that licence asks of an app bundling it. The app's
+# own code never links LAME statically; Mp3Encoder.kt loads this library.
+add_library(bitchord_lame SHARED
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/bitstream.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/encoder.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/fft.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/gain_analysis.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/id3tag.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/lame.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/mpglib_interface.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/newmdct.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/presets.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/psymodel.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/quantize.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/quantize_pvt.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/reservoir.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/set_get.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/tables.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/takehiro.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/util.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/vbrquantize.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/VbrTag.c
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame/version.c
+    jni/lame_jni.c
+)
+target_include_directories(bitchord_lame PRIVATE
+    ${BITCHORD_NATIVE_DIR}/lame/include
+    ${BITCHORD_NATIVE_DIR}/lame/libmp3lame
+)
+# -w: LAME is upstream C compiled without its autotools config.h; the warnings
+# are its own and not this app's to fix. STDC_HEADERS et al. stand in for the
+# configure probes that matter here. configure would also detect the IEEE-754
+# float typedefs used by util.h/util.c (fast_log2); without config.h we must
+# supply them, or the C build fails with "unknown type name".
+target_compile_definitions(bitchord_lame PRIVATE
+    STDC_HEADERS=1 HAVE_STRCHR=1 HAVE_MEMCPY=1 HAVE_INTTYPES_H=1
+    ieee754_float32_t=float ieee754_float64_t=double)
+target_compile_options(bitchord_lame PRIVATE -O2 -fvisibility=hidden -w)
+target_link_libraries(bitchord_lame ${log-lib} m)
+target_link_options(bitchord_lame PRIVATE "-Wl,-z,max-page-size=16384")

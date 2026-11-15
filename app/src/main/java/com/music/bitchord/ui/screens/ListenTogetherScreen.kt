@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -142,6 +143,7 @@ fun ListenTogetherScreen(
     onEditServer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    SpoolSettingsSurface {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
@@ -352,7 +354,8 @@ fun ListenTogetherScreen(
                 failure = null
             },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         ) {
             when (open) {
                 PartySheet.Create -> CreatePartySheet(
@@ -472,7 +475,8 @@ fun ListenTogetherScreen(
 
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
     ) {
@@ -580,6 +584,7 @@ fun ListenTogetherScreen(
         }
 
         Spacer(Modifier.height(32.dp))
+    }
     }
 }
 
@@ -879,7 +884,16 @@ private fun InAParty(
             state.members.size,
             state.maxMembers,
         ),
-        footer = stringResource(R.string.listen_together_members_footer, state.maxMembers),
+        // Say who can actually control the music: when the host has taken it,
+        // "anyone" would be a lie told under the member list.
+        footer = stringResource(
+            if (state.hostOnlyControl) {
+                R.string.listen_together_members_footer_host_only
+            } else {
+                R.string.listen_together_members_footer
+            },
+            state.maxMembers,
+        ),
     ) {
         if (state.you?.isHost == true) {
             Row(

@@ -53,6 +53,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -165,6 +167,15 @@ fun FrostedTopBar(
     transparentBackdrop: Boolean = false,
     /** Circular back surface and no collapsing title, for artwork-led pages. */
     artworkPageChrome: Boolean = false,
+    /**
+     * Artwork detail pages (album / artist / playlist / local) carry bare
+     * header glyphs - no circle under the back arrow, no capsule around the
+     * actions - per the approved detail references. Everywhere else keeps the
+     * floating circles.
+     */
+    bareDetailChrome: Boolean = false,
+    /** Neutral back circle for the settings home, with a 48dp touch target. */
+    settingsHomeChrome: Boolean = false,
     /** Source sampled by floating top-bar surfaces when liquid glass is off. */
     backButtonHazeState: HazeState? = null,
     trailingTitle: String? = null,
@@ -215,7 +226,19 @@ fun FrostedTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(stableStatusBarInsets())
-                .height(TopBarContentHeight),
+                .height(TopBarContentHeight)
+                // Bare glyphs sit straight on the page's art; a surface-coloured
+                // fall-off keeps the onSurface glyphs readable on bright covers.
+                .then(
+                    if (bareDetailChrome) {
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                0f to MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                                1f to MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                            ),
+                        )
+                    } else Modifier,
+                ),
         ) {
             /* Temporarily hidden: keep the scrolling center-title implementation
              * intact so it can be restored without rebuilding its transitions.
@@ -288,7 +311,23 @@ fun FrostedTopBar(
             // On a pushed page the back affordance is always visible, since
             // there is no large in-list header to fall back on.
             if (onBack != null) {
-                if (useFloatingChrome) {
+                if (settingsHomeChrome) {
+                    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.align(Alignment.CenterStart).padding(start = 12.dp).size(48.dp),
+                    ) {
+                        Box(
+                            Modifier.size(40.dp).background(
+                                if (dark) Color(0xFF1C1A20) else Color.White, CircleShape,
+                            ), contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(SfIcons.ArrowBack, stringResource(R.string.back),
+                                tint = if (dark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+                                modifier = Modifier.size(20.dp))
+                        }
+                    }
+                } else if (useFloatingChrome && !bareDetailChrome) {
                     ArtworkPageBackButton(
                         onClick = onBack,
                         hazeState = backButtonHazeState,
@@ -299,6 +338,18 @@ fun FrostedTopBar(
                             .align(Alignment.CenterStart)
                             .padding(start = BAR_GUTTER),
                     )
+                } else if (bareDetailChrome) {
+                    // The approved detail chrome: the bare glyph, same gutter.
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.align(Alignment.CenterStart).padding(start = BAR_GUTTER),
+                    ) {
+                        Icon(
+                            SfIcons.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 } else {
                     IconButton(
                         onClick = onBack,
@@ -333,8 +384,10 @@ fun FrostedTopBar(
                     }
                     Spacer(Modifier.width(ACCESSORY_GAP))
                 }
-                if (useFloatingChrome) {
+                if (useFloatingChrome && !bareDetailChrome) {
                     ArtworkPageActions(hazeState = backButtonHazeState, content = actions)
+                } else if (bareDetailChrome) {
+                    ArtworkPageActions(hazeState = backButtonHazeState, bare = true, content = actions)
                 } else {
                     actions()
                 }
@@ -354,13 +407,7 @@ private fun ArtworkPageBackButton(
     modifier: Modifier = Modifier,
 ) {
     val shape = CircleShape
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
-    val contentColor = if (useLiquidGlass && !reduceDynamicBlur) {
-        glassContentColor()
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val contentColor = MaterialTheme.colorScheme.onSurface
 
     IconButton(
         onClick = onClick,
@@ -381,11 +428,12 @@ private fun ArtworkPageBackButton(
 private fun ArtworkPageActions(
     hazeState: HazeState?,
     modifier: Modifier = Modifier,
+    bare: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     ActionsRow(
         modifier = modifier
-            .then(artworkPageSurface(shape = CircleShape, hazeState = hazeState))
+            .then(if (bare) Modifier else artworkPageSurface(shape = CircleShape, hazeState = hazeState))
             // Keep the right edge fixed while a new action opens room to its
             // left. The surface itself therefore grows instead of jumping to
             // its new width in a single frame.
@@ -491,25 +539,12 @@ private fun artworkPageSurface(
     hazeState: HazeState?,
 ): Modifier {
     val container = MaterialTheme.colorScheme.surface
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
 
     return Modifier
         .clip(shape)
-        .then(
-            when {
-                useLiquidGlass -> Modifier.liquidGlass(shape)
-                reduceDynamicBlur || hazeState == null -> Modifier.background(container)
-                else -> Modifier.optimizedHazeEffect(
-                    state = hazeState,
-                    style = HazeMaterials.regular(container),
-                )
-            },
-        )
-        // Keep the same explicit hairline as FloatingBottomBar. Liquid glass
-        // also has its refractive highlight, but the navbar retains this edge
-        // so these surfaces do as well.
-        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
+        // v6: flat surface with a hairline - no frost, no glass.
+        .background(container)
+        .border(GLASS_EDGE_WIDTH, MaterialTheme.colorScheme.outline, shape)
 }
 
 /**
@@ -529,6 +564,11 @@ fun TopBarAccountButton(
     onClick: () -> Unit,
     onSwipeProfile: ((forward: Boolean) -> Boolean)? = null,
     modifier: Modifier = Modifier,
+    /**
+     * The Home title row's treatment: the same plain 40dp circle as the
+     * history button beside it - no ring, so the pair reads as one set.
+     */
+    plain: Boolean = false,
 ) {
     val translation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -554,30 +594,34 @@ fun TopBarAccountButton(
             },
     ) {
         val photo = account?.thumbnailUrl
+        val avatarSize = if (plain) PLAIN_AVATAR_SIZE else AVATAR_SIZE
         if (photo != null) {
             AsyncImage(
                 model = photo,
                 contentDescription = stringResource(R.string.switch_account),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(AVATAR_SIZE)
+                    .size(avatarSize)
                     .clip(CircleShape)
-                    .thumbnailBorder(CircleShape),
+                    .then(if (plain) Modifier else Modifier.thumbnailBorder(CircleShape)),
             )
         } else {
             Box(
                 modifier = Modifier
-                    .size(AVATAR_SIZE)
+                    .size(avatarSize)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .thumbnailBorder(CircleShape),
+                    .background(
+                        if (plain) MaterialTheme.colorScheme.surface
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .then(if (plain) Modifier else Modifier.thumbnailBorder(CircleShape)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Rounded.Person,
                     contentDescription = stringResource(R.string.switch_account),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(if (plain) 20.dp else 18.dp),
                 )
             }
         }
@@ -686,3 +730,6 @@ private val PUCK_OVERSHOOT = 20.dp
  * glyph does, and at 24 it sat heavier in the bar than the wordmark opposite it.
  */
 private val AVATAR_SIZE = 28.dp
+
+/** The Home title row's account circle, matched to the history button. */
+private val PLAIN_AVATAR_SIZE = 40.dp

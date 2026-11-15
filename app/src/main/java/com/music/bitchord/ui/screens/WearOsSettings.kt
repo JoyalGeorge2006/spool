@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -55,13 +56,14 @@ import com.music.bitchord.wear.WatchUpdateState
  * right, opening [WearOsScreen].
  */
 @Composable
-internal fun WearOsSettingsRow(onClick: () -> Unit) {
+internal fun WearOsSettingsRow(onClick: () -> Unit, iconTile: Boolean = true) {
     val context = LocalContext.current
     val watches by WatchInstaller.watches.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { WatchInstaller.refresh(context) }
     val list = watches.orEmpty()
     SettingsRow(
         icon = SfIcons.Watch,
+        iconTile = iconTile,
         title = stringResource(R.string.wear_os_section),
         value = when {
             watches == null -> null
@@ -92,9 +94,11 @@ fun WearOsScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) { WatchInstaller.refresh(context) }
     BackHandler(enabled = installingNode != null) { installingNode = null }
 
+    SpoolSettingsSurface {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
     ) {
@@ -138,6 +142,7 @@ fun WearOsScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
     }
 }
 

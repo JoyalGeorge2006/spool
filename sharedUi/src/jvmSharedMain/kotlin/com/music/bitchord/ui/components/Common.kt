@@ -60,6 +60,7 @@ import com.music.bitchord.ui.haptics.rememberHaptics
 import kotlin.math.abs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -97,6 +98,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import com.music.bitchord.data.model.ROW_ART_PX
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.isMatchPending
@@ -170,6 +172,58 @@ val SHELF_CARD_WIDTH = 150.dp
  */
 fun Modifier.trackArtSize(height: Dp, isVideo: Boolean): Modifier =
     if (isVideo && !VideoThumbnails.square) size(width = height * (16f / 9f), height = height) else size(height)
+
+/**
+ * A list row's artwork in its square slot, as YouTube Music lists them: a
+ * square cover fills the slot, wide video art fits inside on the page's own
+ * background — nothing cropped or stretched, and every row starts in line.
+ * The corner radius and border belong to art that fills the slot; contained
+ * art keeps its own edges, so no frame draws around the empty bands.
+ *
+ * The listener's Square video thumbnails choice keeps its cropped square
+ * exactly as it was. Loading and failed art keep the placeholder square.
+ */
+@Composable
+fun RowArtwork(
+    model: String?,
+    isVideo: Boolean,
+    size: Dp,
+    cornerRadius: Dp,
+    modifier: Modifier = Modifier,
+    placeholder: Color = MaterialTheme.colorScheme.surfaceVariant,
+    overlay: @Composable BoxScope.() -> Unit = {},
+) {
+    val cropSquare = isVideo && VideoThumbnails.square
+    var loaded by remember { mutableStateOf(false) }
+    var framed by remember { mutableStateOf(true) }
+    Box(modifier.size(size)) {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = if (cropSquare) ContentScale.Crop else ContentScale.Fit,
+            onState = { state ->
+                loaded = state is AsyncImagePainter.State.Success
+                framed = cropSquare || (state as? AsyncImagePainter.State.Success)
+                    ?.painter?.intrinsicSize?.let { sz ->
+                        // Unspecified intrinsic size (NaN) reads as filling.
+                        !sz.width.isFinite() || !sz.height.isFinite() ||
+                            kotlin.math.abs(sz.width - sz.height) <= sz.width * 0.06f
+                    } ?: true
+            },
+            modifier = Modifier
+                .matchParentSize()
+                .then(
+                    if (framed) {
+                        Modifier
+                            .clip(RoundedCornerShape(cornerRadius))
+                            .thumbnailBorder(RoundedCornerShape(cornerRadius))
+                    } else Modifier,
+                )
+                .background(if (loaded) Color.Transparent else placeholder),
+        )
+        overlay()
+    }
+}
 
 /**
  * The "Square video thumbnails" setting, as every surface that sizes a music
@@ -334,6 +388,18 @@ fun SongRow(
      * songs folder's per-track download button. Null on every other list.
      */
     trailing: (@Composable () -> Unit)? = null,
+    /**
+     * A small v6 pill drawn right after the title — "MP3" on a Downloads row
+     * whose track has a real exported copy. Null badges the row off.
+     */
+    titleBadge: String? = null,
+    /** The pill's tint; defaults to the badge's own accent. */
+    badgeAccent: Color? = null,
+    /**
+     * Row artwork height. 52dp everywhere except an album's own track
+     * listing, whose approved rows carry a smaller 44dp thumb.
+     */
+    artHeight: Dp = 52.dp,
 ) {
     SwipeToQueueBox(
         onSwipeToQueue = onSwipeToQueue,
@@ -355,6 +421,9 @@ fun SongRow(
             selected = selected,
             showSourceQuality = showSourceQuality,
             trailing = trailing,
+            titleBadge = titleBadge,
+            badgeAccent = badgeAccent,
+            artHeight = artHeight,
         )
     }
 }
@@ -496,6 +565,9 @@ private fun SongRowContent(
     selected: Boolean = false,
     showSourceQuality: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
+    titleBadge: String? = null,
+    badgeAccent: Color? = null,
+    artHeight: Dp = 52.dp,
 ) {
     val titleColor by animateColorAsState(
         targetValue = if (isCurrent && !searchPlayingStyle) activeTint else MaterialTheme.colorScheme.onBackground,
@@ -550,17 +622,12 @@ private fun SongRowContent(
                 }
             }
         } else {
-            Box(Modifier.trackArtSize(52.dp, song.isVideo)) {
-                AsyncImage(
-                    model = com.music.bitchord.ui.player.rememberRemoteArtworkUrl(song)?.artworkAt(ROW_ART_PX),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(8.dp))
-                        .thumbnailBorder(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                )
+            RowArtwork(
+                model = com.music.bitchord.ui.player.rememberRemoteArtworkUrl(song)?.artworkAt(ROW_ART_PX),
+                isVideo = song.isVideo,
+                size = artHeight,
+                cornerRadius = 8.dp,
+            ) {
                 if (searchPlayingStyle && isCurrent && isPlaying) {
                     SearchPlayingBars(Modifier.align(Alignment.Center))
                 }
@@ -571,11 +638,18 @@ private fun SongRowContent(
         // whatever its digit count.
         Spacer(Modifier.width(if (trackNumber == null) 14.dp else PAGE_GUTTER))
         Column(Modifier.weight(1f)) {
-            ExplicitSongTitle(
-                song = song,
-                style = MaterialTheme.typography.titleMedium,
-                color = titleColor,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ExplicitSongTitle(
+                    song = song,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = titleColor,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (titleBadge != null) {
+                    Spacer(Modifier.width(6.dp))
+                    V6Badge(label = titleBadge, accent = badgeAccent)
+                }
+            }
             Spacer(Modifier.height(2.dp))
             val subtitle = listOfNotNull(
                 song.artist.takeIf { it.isNotBlank() },
@@ -840,27 +914,21 @@ fun PullToRefresh(
 }
 
 /**
- * The prompt atop Home while signed out: a card in the welcome pages' living
- * mesh, so the one thing Home asks of a signed-out listener looks like an
- * invitation from the app rather than a settings row that wandered in.
- *
- * Drawn white-on-colour in either theme, like Replay and the welcome — the
- * mesh is the card, and white type is what sits on colour.
+ * The prompt atop Home while signed out: a flat card in the approved neutral
+ * language — surface, hairline, plain headline, and the one white Google
+ * button. It replaced the old design's animated gradient card.
  */
 @Composable
 fun SignInBanner(
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * Whether the mesh may move. Off, it finishes the fade it is in and rests:
-     * a blurred layer re-drawn every frame is not something to leave running
-     * under a scroll, or under the player where nobody sees it.
-     */
+    /** Kept for the caller; the flat card has nothing left to animate. */
     motion: Boolean = true,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.98f else 1f, spring(stiffness = 900f), label = "signInScale")
+    val cardShape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -869,32 +937,24 @@ fun SignInBanner(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(22.dp))
+            .clip(cardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline, cardShape)
             .clickable(interactionSource = interaction, indication = null, onClick = onSignIn),
     ) {
-        // A card is a few hundred dp the reader is looking straight at, which
-        // is the case the mesh lets keep moving — see its `continuous` note.
-        MeshGradientBackground(
-            palette = cyclingMeshPalette(WelcomeMeshPalettes, running = motion),
-            modifier = Modifier.matchParentSize(),
-            continuous = true,
-            paused = !motion,
-            driftMillis = 6_000,
-            blurRadius = 36.dp,
-            colorFadeMillis = MESH_CYCLE_MILLIS,
-        )
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 18.dp)) {
             Text(
                 text = stringResource(Res.string.sign_in_youtube_music),
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.W800,
-                color = Color.White,
+                fontWeight = FontWeight.W700,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(Modifier.height(16.dp))
             Row(
                 Modifier
                     .clip(CircleShape)
                     .background(Color.White)
+                    .border(0.5.dp, MaterialTheme.colorScheme.outline, CircleShape)
                     .padding(start = 16.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

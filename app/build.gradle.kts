@@ -1,12 +1,27 @@
+import org.gradle.api.tasks.testing.Test
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 import java.util.Properties
 import java.security.MessageDigest
 import java.io.FileInputStream
+
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.all {
+    // conscrypt-android carries no host native, so Robolectric's provider
+    // setup dies on it; the unit tests get conscrypt-openjdk-uber instead.
+    exclude(group = "org.conscrypt", module = "conscrypt-android")
+}
+
+// innertubex ships class file 65 (Java 21), so JVM unit tests must run on 21
+// even though the app itself targets 17.
+tasks.withType<Test>().configureEach {
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) })
+}
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("io.github.takahirom.roborazzi") version "1.79.0"
 }
 
 /**
@@ -74,7 +89,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.music.bitchord"
+        applicationId = "app.spool.music"
         // 26 keeps reach wide; real-time blur (RenderEffect) kicks in on API 31+,
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
@@ -100,7 +115,7 @@ android {
         // Which release assets are this app's: the phone and TV APKs ship in
         // the same GitHub release, told apart by file name. See
         // AppUpdateChecker.apkAssetUrl.
-        buildConfigField("String", "UPDATE_APK_PREFIX", "\"BitChord-\"")
+        buildConfigField("String", "UPDATE_APK_PREFIX", "\"spool-\"")
     }
 
     splits {
@@ -132,8 +147,8 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationId = "com.dev.bitchord"
-            resValue("string", "app_name", "BitChord Dev")
+            applicationId = "app.spool.music.dev"
+            resValue("string", "app_name", "spool")
         }
         create("prod") {
             dimension = "env"
@@ -142,6 +157,19 @@ android {
     }
 
     signingConfigs {
+        // One persisted debug key for CI builds, so each new APK installs over
+        // the last instead of failing on a signature mismatch. The keystore is
+        // restored to the repo root by the workflow; without it the usual
+        // generated debug key signs, exactly as before.
+        val debugStore = rootProject.file("spool-debug.keystore")
+        if (debugStore.exists()) {
+            getByName("debug") {
+                storeFile = debugStore
+                storePassword = System.getenv("SPOOL_DEBUG_STORE_PASSWORD")
+                keyAlias = "spooldebug"
+                keyPassword = System.getenv("SPOOL_DEBUG_KEY_PASSWORD")
+            }
+        }
         // Both halves have to be there, not just the properties file: it *names*
         // the keystore rather than containing it, and both are gitignored
         // separately, so a checkout can easily end up with the one and not the
@@ -231,6 +259,9 @@ android {
             // so a test of that layer fails on the logging rather than on the
             // logic it was written to check.
             isReturnDefaultValues = true
+            // Robolectric reads resources and assets straight from the merged
+            // build output; without this the unit tests see an empty package.
+            isIncludeAndroidResources = true
         }
     }
 }
@@ -304,6 +335,8 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // SAF tree access for the MP3 export folder (Mp3Exporter).
+    implementation("androidx.documentfile:documentfile:1.0.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // ---- Media playback: Media3 / ExoPlayer ----
@@ -447,6 +480,18 @@ dependencies {
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
 
     testImplementation("junit:junit:4.13.2")
+    // v6 screenshot proof: Roborazzi renders the rebuilt screens on the JVM
+    // (Robolectric) and records PNGs the CI build publishes as an artifact.
+    testImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    testImplementation("org.robolectric:robolectric:4.18")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.79.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.79.0")
+    // Robolectric installs any Conscrypt provider it finds on the classpath,
+    // and the app's conscrypt-android only ships the Android native - without
+    // the openjdk build every test dies with UnsatisfiedLinkError before it runs.
+    testImplementation("org.conscrypt:conscrypt-openjdk-uber:2.6.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     // A real HTTP server for the addon tests. The addon protocol is entirely
     // "what does this app send, and what does it do with what comes back", and
     // a hand-rolled fake of the client would be a test of the fake. Pinned to

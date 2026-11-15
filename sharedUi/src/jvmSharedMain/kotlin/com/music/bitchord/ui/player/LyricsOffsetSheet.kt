@@ -212,6 +212,8 @@ internal fun LyricsOffsetSheet(
                             onValueChange = { PlayerSettings.setLyricsOffsetMs(fractionToOffset(it)) },
                             idleHeight = 6.dp,
                             activeHeight = 10.dp,
+                            activeColor = Color.White.copy(alpha = 0.92f),
+                            inactiveColor = Color.White.copy(alpha = 0.26f),
                             modifier = Modifier.weight(1f),
                         )
                         OffsetButton(

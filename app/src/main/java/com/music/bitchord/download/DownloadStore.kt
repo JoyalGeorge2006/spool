@@ -56,7 +56,10 @@ object DownloadStore {
     private const val TAG = "BitChord"
 
     /** The subfolder of Music that everything lands in. */
-    const val FOLDER = "BitChord"
+    const val FOLDER = "spool"
+
+    /** Where builds before the rename put the same files; still searched, never written. */
+    private const val LEGACY_FOLDER = "BitChord"
 
     private val relativePath = "${Environment.DIRECTORY_MUSIC}/$FOLDER"
 
@@ -160,6 +163,7 @@ object DownloadStore {
             mediaStoreEntry(context, name)
         } else {
             legacyFile(name).takeIf { it.exists() }?.let(Uri::fromFile)
+                ?: legacyFile(name, LEGACY_FOLDER).takeIf { it.exists() }?.let(Uri::fromFile)
         }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -167,9 +171,10 @@ object DownloadStore {
         context.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             arrayOf(MediaStore.MediaColumns._ID),
-            "${MediaStore.MediaColumns.DISPLAY_NAME} = ? AND " +
-                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?",
-            arrayOf(name, "%$FOLDER%"),
+            "${MediaStore.MediaColumns.DISPLAY_NAME} = ? AND (" +
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ? OR " +
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?)",
+            arrayOf(name, "%$FOLDER%", "%$LEGACY_FOLDER%"),
             null,
         )?.use { cursor ->
             if (!cursor.moveToFirst()) return@use null
@@ -309,8 +314,8 @@ object DownloadStore {
     }
 
     @Suppress("DEPRECATION")
-    private fun legacyFile(name: String) = File(
-        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), FOLDER),
+    private fun legacyFile(name: String, folder: String = FOLDER) = File(
+        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), folder),
         name,
     )
 

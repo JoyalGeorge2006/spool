@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.RowArtwork
 import com.music.bitchord.ui.components.trackArtSize
 import androidx.compose.ui.layout.ContentScale
 import com.music.bitchord.data.model.toSong
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +64,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
@@ -75,6 +78,8 @@ import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.playingRowMatcher
+import com.music.bitchord.data.model.MoodGenre
+import com.music.bitchord.data.model.MoodGenreSection
 import com.music.bitchord.data.model.UiState
 import com.music.bitchord.data.model.SearchHistoryEntity
 import com.music.bitchord.data.model.EntityType
@@ -86,6 +91,7 @@ import com.music.bitchord.ui.components.SearchField
 import com.music.bitchord.ui.components.SongRow
 import com.music.bitchord.ui.components.SearchPlayingBars
 import com.music.bitchord.ui.components.thumbnailBorder
+import com.music.bitchord.ui.components.ShimmerBox
 import com.music.bitchord.ui.components.songListSkeleton
 import java.util.Locale
 
@@ -126,6 +132,13 @@ fun SearchScreen(
     onHistoryClear: () -> Unit,
     /** Long-press handler for typeahead rows — opens the song actions sheet. */
     onTypeaheadLongPress: ((Song) -> Unit)? = null,
+    /**
+     * Explore's mood and genre categories, reused here as the idle page's
+     * browse grid; null hides the grid (the desktop's search is results only).
+     */
+    moodGenres: UiState<List<MoodGenreSection>>? = null,
+    /** A browse-grid card opens its category page. */
+    onMoodGenreClick: (MoodGenre) -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
     /**
@@ -304,19 +317,25 @@ fun SearchScreen(
                         )
                     }
                 }
-                results == null -> if (history.isEmpty()) {
-                    item { MessageState(stringResource(Res.string.search_empty)) }
-                } else {
-                    recentSearches(
-                        history = history,
-                        currentSong = currentSong,
-                        isPlaying = isPlaying,
-                        onClick = onHistoryClick,
-                        onSongLongPress = onSongLongPress,
-                        onRemove = onHistoryRemove,
-                        onClear = onHistoryClear,
-                        onSongSwipe = onSongSwipe,
-                    )
+                results == null -> {
+                    // The idle page: what was searched before, then Explore's
+                    // categories as an artwork-led browse grid below them.
+                    if (history.isNotEmpty()) {
+                        recentSearches(
+                            history = history,
+                            currentSong = currentSong,
+                            isPlaying = isPlaying,
+                            onClick = onHistoryClick,
+                            onSongLongPress = onSongLongPress,
+                            onRemove = onHistoryRemove,
+                            onClear = onHistoryClear,
+                            onSongSwipe = onSongSwipe,
+                        )
+                    }
+                    moodGenreBrowse(moodGenres, onMoodGenreClick)
+                    if (history.isEmpty() && moodGenres !is UiState.Success) {
+                        item { MessageState(stringResource(Res.string.search_empty)) }
+                    }
                 }
                 results is UiState.Loading -> songListSkeleton(circular = filter == SearchFilter.ARTISTS)
                 results is UiState.Error -> item { MessageState(results.message) }
@@ -371,28 +390,52 @@ fun SearchScreen(
                                 }
                             },
                         ) { index, row ->
-                            when (row) {
-                                is SearchResult.TopTrack -> Unit
-                                is SearchResult.Track -> SongRow(
-                                    song = row.song,
-                                    onClick = {
-                                        onSongClick(tracks, tracks.indexOf(row.song).coerceAtLeast(0))
-                                    },
-                                    onLongPress = { onSongLongPress(row.song) },
-                                    onSwipeToQueue = { onSongSwipe(row.song) },
-                                    isCurrent = isCurrentRow(row.song),
-                                    isPlaying = isPlaying && isCurrentRow(row.song),
-                                    searchPlayingStyle = true,
-                                )
-                                is SearchResult.Browse -> BrowseRow(
-                                    item = row.item,
-                                    onClick = { onBrowseClick(row.item) },
-                                    onLongPress = onBrowseLongPress?.let { { it(row.item) } },
-                                )
+                            // The approved results page groups each section in
+                            // one rounded card: first and last rows carry the
+                            // corners, the rest are its flat middle, and the
+                            // hairlines stay inside it.
+                            val cardShape = when {
+                                section.rows.size == 1 -> RoundedCornerShape(16.dp)
+                                index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                                index == section.rows.lastIndex -> RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
+                                else -> RectangleShape
+                            }
+                            Box(
+                                Modifier
+                                    .padding(horizontal = PAGE_GUTTER)
+                                    .clip(cardShape)
+                                    .background(MaterialTheme.colorScheme.surface),
+                            ) {
+                                when (row) {
+                                    is SearchResult.TopTrack -> Unit
+                                    is SearchResult.Track -> SongRow(
+                                        song = row.song,
+                                        onClick = {
+                                            onSongClick(tracks, tracks.indexOf(row.song).coerceAtLeast(0))
+                                        },
+                                        onLongPress = { onSongLongPress(row.song) },
+                                        onSwipeToQueue = { onSongSwipe(row.song) },
+                                        isCurrent = isCurrentRow(row.song),
+                                        isPlaying = isPlaying && isCurrentRow(row.song),
+                                        searchPlayingStyle = true,
+                                        rowBackground = MaterialTheme.colorScheme.surface,
+                                    )
+                                    is SearchResult.Browse -> BrowseRow(
+                                        item = row.item,
+                                        onClick = { onBrowseClick(row.item) },
+                                        onLongPress = onBrowseLongPress?.let { { it(row.item) } },
+                                    )
+                                }
                             }
                             if (index < section.rows.lastIndex) {
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(start = ROW_DIVIDER_INSET),
+                                    modifier = Modifier
+                                        .padding(horizontal = PAGE_GUTTER)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        // card padding + artwork + its trailing
+                                        // spacer, so the line starts under the
+                                        // row's text, not its cover.
+                                        .padding(start = 82.dp),
                                     thickness = 0.5.dp,
                                     color = MaterialTheme.colorScheme.outline,
                                 )
@@ -760,17 +803,12 @@ private fun TypeaheadSongRow(
             .padding(horizontal = PAGE_GUTTER, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.trackArtSize(52.dp, song.isVideo)) {
-            AsyncImage(
-                model = song.artworkAt(ROW_ART_PX),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(8.dp))
-                    .thumbnailBorder(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            )
+        RowArtwork(
+            model = song.artworkAt(ROW_ART_PX),
+            isVideo = song.isVideo,
+            size = 52.dp,
+            cornerRadius = 8.dp,
+        ) {
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         }
         Spacer(Modifier.width(14.dp))
@@ -833,20 +871,45 @@ private fun LazyListScope.recentSearches(
             )
         }
     }
-    items(history, key = { "recent:${it.id}" }) { entity ->
+    itemsIndexed(history, key = { _, it -> "recent:${it.id}" }) { index, entity ->
         // A recent track gets the same menu and swipe as a result row, so it can
         // be queued without interrupting what's playing. The ids an old build
         // saved as raw queries ("q:…") have no track behind them.
         val song = entity.toSong()
-        RecentSearchEntityRow(
-            entity = entity,
-            isCurrent = entity.entityType == EntityType.TRACK && entity.id == currentSong?.videoId,
-            isPlaying = isPlaying,
-            onClick = { onClick(entity) },
-            onLongPress = song?.let { { onSongLongPress(it) } },
-            onRemove = { onRemove(entity.id) },
-            onSwipeToQueue = song?.let { { onSongSwipe(it) } },
-        )
+        // Same grouped card the results page sets a section in: corners on
+        // the first and last rows, hairlines inset between them.
+        val cardShape = when {
+            history.size == 1 -> RoundedCornerShape(16.dp)
+            index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+            index == history.lastIndex -> RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
+            else -> RectangleShape
+        }
+        Box(
+            Modifier
+                .padding(horizontal = PAGE_GUTTER)
+                .clip(cardShape)
+                .background(MaterialTheme.colorScheme.surface),
+        ) {
+            RecentSearchEntityRow(
+                entity = entity,
+                isCurrent = entity.entityType == EntityType.TRACK && entity.id == currentSong?.videoId,
+                isPlaying = isPlaying,
+                onClick = { onClick(entity) },
+                onLongPress = song?.let { { onSongLongPress(it) } },
+                onRemove = { onRemove(entity.id) },
+                onSwipeToQueue = song?.let { { onSongSwipe(it) } },
+            )
+        }
+        if (index < history.lastIndex) {
+            HorizontalDivider(
+                modifier = Modifier
+                    .padding(horizontal = PAGE_GUTTER)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(start = 82.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
     }
 }
 
@@ -945,7 +1008,9 @@ private fun RecentSearchEntityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
+                // The recents group card's surface, not the page's, or a swipe
+                // would drag a page-coloured band across the card.
+                .background(MaterialTheme.colorScheme.surface)
                 .longPressMenuClickable(
                     onClick = onClick,
                     onLongClick = onLongPress,
@@ -1054,6 +1119,77 @@ private fun BrowseRow(item: BrowseItem, onClick: () -> Unit, onLongPress: (() ->
         }
     }
 }
+
+/**
+ * The idle Search page's browse grid: Explore's mood and genre categories,
+ * each card the category's real cover art edge to edge with the label over a
+ * soft shade at the bottom-left. Two columns, like the Explore grid on a
+ * phone; the card art arrives lazily (MainViewModel.loadMoodGenreArtwork), so
+ * a card first draws its category colour and swaps the cover in.
+ */
+private fun LazyListScope.moodGenreBrowse(
+    state: UiState<List<MoodGenreSection>>?,
+    onCategoryClick: (MoodGenre) -> Unit,
+) {
+    when (state) {
+        null, is UiState.Error -> Unit
+        UiState.Loading -> {
+            item(key = "moods:header") { MoodBrowseHeader() }
+            item(key = "moods:skeleton") {
+                Column(Modifier.padding(horizontal = PAGE_GUTTER)) {
+                    repeat(3) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(SEARCH_MOOD_SPACING),
+                            modifier = Modifier.padding(bottom = SEARCH_MOOD_SPACING),
+                        ) {
+                            repeat(2) {
+                                ShimmerBox(Modifier.weight(1f).aspectRatio(MOOD_ARTWORK_ASPECT), MOOD_ARTWORK_SHAPE)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        is UiState.Success -> {
+            // The server's grouping only decides the order; the grid reads as
+            // one, the same flattening Explore applies.
+            val cards = state.data.flatMap(MoodGenreSection::items)
+                .distinctBy { it.browseId to it.params }
+            if (cards.isEmpty()) return
+            item(key = "moods:header") { MoodBrowseHeader() }
+            items(cards.chunked(2), key = { row -> "moods:${row.first().browseId}|${row.first().params}" }) { row ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(SEARCH_MOOD_SPACING),
+                    modifier = Modifier
+                        .padding(horizontal = PAGE_GUTTER)
+                        .padding(bottom = SEARCH_MOOD_SPACING),
+                ) {
+                    row.forEach { item ->
+                        MoodGenreArtworkCard(
+                            item = item,
+                            onClick = { onCategoryClick(item) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    // A short last row keeps its card the size of a full row's.
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoodBrowseHeader() {
+    Text(
+        text = stringResource(Res.string.browse_moods_genres),
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 18.dp, bottom = 10.dp),
+    )
+}
+
+private val SEARCH_MOOD_SPACING = 12.dp
 
 /** How far an addon row the quality setting won't play is dimmed; Material's disabled level. */
 private const val BLOCKED_ROW_ALPHA = 0.38f

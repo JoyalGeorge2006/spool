@@ -33,14 +33,20 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitVerticalTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,7 +73,10 @@ import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -112,6 +121,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
@@ -821,6 +831,14 @@ fun NowPlayingScreen(
     onQueueDragActiveChange: (Boolean) -> Unit = {},
     onClearQueue: () -> Unit,
     onOpenMenu: () -> Unit,
+    /**
+     * The host's Song/Video switch: true asks for the video cut, false for the
+     * audio one. Null when the host has none (or a party lock forbids it), and
+     * the pill is then not drawn.
+     */
+    onSelectVersion: ((video: Boolean) -> Unit)? = null,
+    /** Availability is separate from the hook so joining a party never changes layout. */
+    versionSwitchEnabled: Boolean = true,
     onOpenAlbum: (String) -> Unit,
     /**
      * Opens an artist's page. [browseId] is null for anyone but the lead credit:
@@ -830,6 +848,8 @@ fun NowPlayingScreen(
     onOpenArtist: (browseId: String?, name: String) -> Unit,
     /** Return to the queue-level page named by the caption above the player. */
     onOpenPlaybackSource: () -> Unit,
+    /** Collapses the player back to the bar; the Material player's top chevron. */
+    onCollapse: () -> Unit = {},
     /**
      * Open Listen Together, from the party half of the output capsule.
      *
@@ -882,10 +902,11 @@ fun NowPlayingScreen(
     val artTopLuminance = rememberArtworkTopBandLuminance(remoteArt, ART_PX)
     val artworkStatusScrimAlpha = topBandScrimAlpha(artTopLuminance)
 
-    // Media-player convention: the player always owns light status icons. The
-    // top treatment below, rather than a window-flag flip per cover, provides
-    // their contrast and stays visually stable through artwork transitions.
-    StatusBarIcons(dark = false)
+    // The top treatment, rather than a window-flag flip per cover, provides
+    // the status icons' contrast and stays visually stable through artwork
+    // transitions; the icon colour itself is chosen where the player's shape
+    // is known, below.
+    val playerTheme by PlayerSettings.playerTheme.collectAsStateWithLifecycle()
     // Composed only while the player is, so closing it brings the bar back.
     // The layout below reads [stableStatusBarInsets] and keeps its place.
     val hideStatusBar by PlayerSettings.hideStatusBar.collectAsStateWithLifecycle()
@@ -911,6 +932,17 @@ fun NowPlayingScreen(
     // to show, so the pill and the caption fall back to [onListenTogether]
     // itself (create/join) when there isn't one.
     val openListenTogetherMembers: () -> Unit = { showListenTogetherMembers = true }
+
+    // The app's track menu asks for these sheets through [PlayerMenuRequest]: the
+    // page layout has no output/party row of its own. Each runs the same path the
+    // old row did, so the Bluetooth gate and the in-party / not-in-party split hold.
+    PlayerMenuRequestEffect(
+        onOutput = openAudioOutput,
+        onCast = { showCast = true },
+        onParty = {
+            if (PlayerPlatform.host.party.value.inParty) openListenTogetherMembers() else onListenTogether()
+        },
+    )
 
     val syncedLyricsEnabled by PlayerSettings.syncedLyrics.collectAsStateWithLifecycle()
     val lyricsOffsetMs by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
@@ -962,6 +994,18 @@ fun NowPlayingScreen(
     // that asked: the queue can move on to a song while it is still sideways.
     var fullscreenRequested by remember { mutableStateOf(false) }
     val sideways = landscapePlayerAvailable(windowWidth, windowHeight)
+    // Media-player convention: the player owns light status icons, except the
+    // flat Material player on a light theme, whose ink chrome needs dark ones.
+    // The approved video player's page is literal system black or white, so
+    // its icons key on the SYSTEM light/dark the way its ink does.
+    StatusBarIcons(
+        dark = if (videoMode && !sideways) {
+            !isSystemInDarkTheme()
+        } else {
+            playerTheme == PlayerTheme.FLAT &&
+                MaterialTheme.colorScheme.background.luminance() >= 0.5f
+        },
+    )
     LaunchedEffect(sideways) { if (!sideways) fullscreenRequested = false }
     val exitFullscreen = {
         fullscreenRequested = false
@@ -994,8 +1038,10 @@ fun NowPlayingScreen(
     // frame of the fade, and the still art it governs is an AsyncImage whose
     // request is rebuilt on each pass and so would not be skipped.
     val canvasCover = remember(canvas?.url) { mutableFloatStateOf(0f) }
-    // What the main player stands on — see [PlayerTheme].
-    val playerTheme by PlayerSettings.playerTheme.collectAsStateWithLifecycle()
+    // What the main player stands on — see [PlayerTheme]; collected beside the
+    // status-bar call above, which needs it first.
+    // spool's flat player: theme background, no mesh, ink chrome on the main page.
+    val flatPlayer = playerTheme == PlayerTheme.FLAT
     // Both meshes follow a playing clip's colours. The blurred still cover has
     // nothing to re-tint, and each read is a GPU readback.
     val tintsOffClip = playerTheme != PlayerTheme.SIMPLE
@@ -1018,11 +1064,17 @@ fun NowPlayingScreen(
     // the same surface on phones and tablets without making this UI state a
     // continuously collected setting.
     val restoredPlayerScreen = remember { PlayerSettings.lastPlayerScreen.value }
+    // The Material player with a version switch is one scrolling page: artwork,
+    // credits and transport stay up top and the tab pane sits below them. In that
+    // mode queueOpen and lyricsOpen never go true — the artwork never collapses —
+    // and the pane is picked by [pagePane] instead. Decided before any restored
+    // state is read, so a restore lands in the right model.
+    val flatPage = flatPlayer && onSelectVersion != null && !sideways
     var queueOpen by remember {
-        mutableStateOf(restoredPlayerScreen == LastPlayerScreen.QUEUE)
+        mutableStateOf(!flatPage && (restoredPlayerScreen == LastPlayerScreen.QUEUE || restoredPlayerScreen == LastPlayerScreen.RELATED))
     }
     var lyricsOpen by remember {
-        mutableStateOf(restoredPlayerScreen == LastPlayerScreen.LYRICS)
+        mutableStateOf(!flatPage && restoredPlayerScreen == LastPlayerScreen.LYRICS)
     }
     val queueSlide = remember { mutableFloatStateOf(0f) }
     // Expensive, song-scoped preparation is deliberately staggered. The small
@@ -1049,8 +1101,35 @@ fun NowPlayingScreen(
     LaunchedEffect(lyricsOpen) { if (!lyricsOpen) lyricsScrolling = false }
     LaunchedEffect(queueOpen) { if (!queueOpen) queueScrolling = false }
     val panelScrolling = lyricsScrolling || queueScrolling
+    var pagePane by remember {
+        mutableStateOf(
+            when (restoredPlayerScreen) {
+                LastPlayerScreen.LYRICS -> PlayerPaneTab.LYRICS
+                LastPlayerScreen.RELATED -> PlayerPaneTab.RELATED
+                else -> PlayerPaneTab.UP_NEXT
+            },
+        )
+    }
+    // A restored lyrics or queue screen opens scrolled to its pane.
+    var pageFocus by remember {
+        mutableIntStateOf(
+            if (flatPage && restoredPlayerScreen != LastPlayerScreen.MAIN) 1 else 0,
+        )
+    }
+    val pageScroll = rememberScrollState()
+    LaunchedEffect(pageFocus) {
+        if (pageFocus > 0) pageScroll.animateScrollTo(pageScroll.maxValue)
+    }
+    // The panel-closed resets below never fire in page mode, so a pane change
+    // clears the scrolling flags itself.
+    LaunchedEffect(pagePane) {
+        if (flatPage) {
+            lyricsScrolling = false
+            queueScrolling = false
+        }
+    }
     var lyricsControlsOpen by remember {
-        mutableStateOf(restoredPlayerScreen == LastPlayerScreen.LYRICS)
+        mutableStateOf(!flatPage && restoredPlayerScreen == LastPlayerScreen.LYRICS)
     }
     var queueControlsOpen by remember { mutableStateOf(true) }
     // Shared with Spotify's title placement below. The deck and credits must
@@ -1061,9 +1140,13 @@ fun NowPlayingScreen(
     val playerDeckSettledOpen by remember(playerDeckReveal) {
         derivedStateOf { playerDeckReveal.value >= 0.999f }
     }
-    LaunchedEffect(lyricsOpen, queueOpen) {
+    LaunchedEffect(lyricsOpen, queueOpen, pagePane, pageFocus, flatPage) {
         PlayerSettings.setLastPlayerScreen(
             when {
+                flatPage && pagePane == PlayerPaneTab.LYRICS -> LastPlayerScreen.LYRICS
+                flatPage && pagePane == PlayerPaneTab.RELATED -> LastPlayerScreen.RELATED
+                flatPage && pageFocus > 0 -> LastPlayerScreen.QUEUE
+                flatPage -> LastPlayerScreen.MAIN
                 lyricsOpen -> LastPlayerScreen.LYRICS
                 queueOpen -> LastPlayerScreen.QUEUE
                 else -> LastPlayerScreen.MAIN
@@ -1078,18 +1161,31 @@ fun NowPlayingScreen(
     // open but the half-player was not, so every trip into lyrics briefly
     // started an exit animation and reversed it on the following frame.
     val openLyrics: () -> Unit = {
-        lyricsControlsOpen = true
-        lyricsOpen = true
-        queueOpen = false
+        if (flatPage) {
+            pagePane = PlayerPaneTab.LYRICS
+            pageFocus++
+        } else {
+            lyricsControlsOpen = true
+            lyricsOpen = true
+            queueOpen = false
+        }
     }
     val closeLyrics: () -> Unit = {
         lyricsControlsOpen = false
         lyricsOpen = false
     }
     val toggleLyrics: () -> Unit = {
-        if (lyricsOpen) closeLyrics() else openLyrics()
+        if (flatPage) {
+            pagePane = if (pagePane == PlayerPaneTab.LYRICS) PlayerPaneTab.UP_NEXT else PlayerPaneTab.LYRICS
+            pageFocus++
+        } else if (lyricsOpen) closeLyrics() else openLyrics()
     }
-    val toggleQueue: () -> Unit = {
+    val toggleQueue: () -> Unit = toggleQueue@{
+        if (flatPage) {
+            pagePane = PlayerPaneTab.UP_NEXT
+            pageFocus++
+            return@toggleQueue
+        }
         val opening = !queueOpen
         if (opening && lyricsOpen) queueSlide.floatValue = 1f
         // With the queue rather than after it, for the reason [openLyrics]
@@ -1098,6 +1194,26 @@ fun NowPlayingScreen(
         if (opening) queueControlsOpen = true
         queueOpen = opening
         if (opening) closeLyrics()
+    }
+    // The Related tab is the queue panel showing only its AutoPlay section.
+    var relatedTab by remember { mutableStateOf(restoredPlayerScreen == LastPlayerScreen.RELATED) }
+    LaunchedEffect(queueOpen) { if (!queueOpen) relatedTab = false }
+    val selectPane: (PlayerPaneTab) -> Unit = selectPane@{ tab ->
+        if (flatPage) {
+            pagePane = tab
+            return@selectPane
+        }
+        when (tab) {
+            PlayerPaneTab.UP_NEXT -> {
+                relatedTab = false
+                if (!queueOpen) toggleQueue()
+            }
+            PlayerPaneTab.RELATED -> {
+                relatedTab = true
+                if (!queueOpen) toggleQueue()
+            }
+            PlayerPaneTab.LYRICS -> if (!lyricsOpen) openLyrics()
+        }
     }
     val lyricsLoadingLines = stringArrayResource(Res.array.lyrics_loading_lines)
     val lyricsLoadingText = remember(song.videoId) { lyricsLoadingLines.random() }
@@ -1553,7 +1669,10 @@ fun NowPlayingScreen(
     // in three places — the strip itself,
     // the scrim drawn over it and the banner's own height — which all have to
     // agree or the artwork and the credits under it move.
-    val topStrip = DISMISS_STRIP_HEIGHT
+    // The Material player with a version switch grows the strip to hold the pill
+    // on top and the origin caption beneath it.
+    val versionPill = flatPlayer && onSelectVersion != null
+    val topStrip = if (versionPill) DISMISS_STRIP_HEIGHT + 52.dp else DISMISS_STRIP_HEIGHT
 
     // The band of the player a vertical drag belongs to rather than to whatever
     // is under it: from the top of the artwork to the bottom of the credits, in
@@ -1596,8 +1715,13 @@ fun NowPlayingScreen(
         if (playedBy != null) {
             onListenTogether()
         } else if (song.playbackSourceType == PlaybackSourceType.QUEUE) {
-            queueOpen = true
-            closeLyrics()
+            if (flatPage) {
+                pagePane = PlayerPaneTab.UP_NEXT
+                pageFocus++
+            } else {
+                queueOpen = true
+                closeLyrics()
+            }
         } else {
             onOpenPlaybackSource()
         }
@@ -1674,18 +1798,35 @@ fun NowPlayingScreen(
             onListenTogether = onListenTogether,
             onOpenListenTogetherMembers = openListenTogetherMembers,
         )
-        // Keep the current output caption visible in every state.
-        Spacer(Modifier.height(18.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth().height(20.dp),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            OutputCaption(
-                accountName = accountName,
-                onOpenOutput = openAudioOutput,
-                onOpenMembers = openListenTogetherMembers,
-            )
+        // Keep the current output caption visible in every state — except the
+        // Material player, whose Output chip carries the word itself.
+        if (!flatPlayer) {
+            Spacer(Modifier.height(18.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth().height(20.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                OutputCaption(
+                    accountName = accountName,
+                    onOpenOutput = openAudioOutput,
+                    onOpenMembers = openListenTogetherMembers,
+                )
+            }
         }
+    }
+
+    // The approved video player's bottom row — see [VideoPlayerActionRow]:
+    // bare glyphs and the output caption, the chips stay with the audio hero.
+    val videoPlayerActions: @Composable () -> Unit = {
+        VideoPlayerActionRow(
+            lyricsOpen = lyricsOpen,
+            queueOpen = queueOpen,
+            accountName = accountName,
+            onToggleLyrics = toggleLyrics,
+            onOpenOutput = openAudioOutput,
+            onOpenListenTogetherMembers = openListenTogetherMembers,
+            onToggleQueue = toggleQueue,
+        )
     }
 
     // The drawers and dialogs the player raises over itself. Mounted beside
@@ -1958,13 +2099,82 @@ fun NowPlayingScreen(
     DisposableEffect(Unit) { onDispose { reportLiveCanvas(false) } }
     val frostOff by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val frost = if (frostOff) null else PlayerPlatform.host.rememberPlayerFrost()
+    // v6: the panels are flat pages too, not a dark blurred cover - the queue and
+    // lyrics stand on the theme background in the flat player, so their chrome
+    // keeps following the theme instead of flipping to white.
+    // The approved video player follows the SYSTEM's dark or light, not the
+    // app's theme: backdrop and ink both key off the system here, so a forced
+    // app theme can never pair light ink with a light page (or the reverse) -
+    // contrast holds in all four app/system combinations. Audio keeps the app
+    // theme, no preference is written, and the scope is the video player only.
+    val videoSystemDark = isSystemInDarkTheme()
+    val appScheme = MaterialTheme.colorScheme
+    val videoSystemScheme = remember(videoSystemDark, videoMode, landscape, appScheme) {
+        if (!videoMode || landscape) {
+            null
+        } else {
+            // Start from the app scheme (already neutral greys for container
+            // roles) and force only what the approved video player owns: the
+            // page, the ink, and every accent role that could leak a hue -
+            // all keyed on the SYSTEM, so contrast holds in all four
+            // app/system combinations.
+            val page = if (videoSystemDark) Color.Black else Color.White
+            val ink = if (videoSystemDark) Color.White else Color.Black
+            // Paired container roles too: the app scheme leaves several to the
+            // Material defaults, which are purple, and a sheet's filled
+            // component would otherwise show it - or pair ink with ink.
+            val container = if (videoSystemDark) Color(0xFF1A1A1A) else Color(0xFFF0F0F0)
+            val onContainer = if (videoSystemDark) Color(0xFFF2F2F2) else Color(0xFF111111)
+            appScheme.copy(
+                background = page,
+                surface = page,
+                onBackground = ink,
+                onSurface = ink,
+                primary = ink,
+                onPrimary = page,
+                primaryContainer = container,
+                onPrimaryContainer = onContainer,
+                inversePrimary = page,
+                secondary = ink,
+                onSecondary = page,
+                secondaryContainer = container,
+                onSecondaryContainer = onContainer,
+                tertiary = ink,
+                onTertiary = page,
+                tertiaryContainer = container,
+                onTertiaryContainer = onContainer,
+                surfaceTint = ink,
+                inverseSurface = onContainer,
+                inverseOnSurface = container,
+                surfaceVariant = if (videoSystemDark) Color(0xFF2B2B2B) else Color(0xFFECECEC),
+                onSurfaceVariant = if (videoSystemDark) Color(0xFFB9B9B9) else Color(0xFF565656),
+                outline = if (videoSystemDark) Color(0xFF3A3A3A) else Color(0xFFD9D9D9),
+                outlineVariant = if (videoSystemDark) Color(0xFF2E2E2E) else Color(0xFFE4E4E4),
+                // The elevation scale too (m3 1.3.x): its defaults carry a
+                // purple hue, and a sheet or card raised over the page would
+                // show it.
+                surfaceDim = if (videoSystemDark) Color(0xFF0D0D0D) else Color(0xFFDEDEDE),
+                surfaceBright = if (videoSystemDark) Color(0xFF3A3A3A) else page,
+                surfaceContainerLowest = if (videoSystemDark) Color(0xFF0A0A0A) else page,
+                surfaceContainerLow = if (videoSystemDark) Color(0xFF141414) else Color(0xFFF7F7F7),
+                surfaceContainer = container,
+                surfaceContainerHigh = if (videoSystemDark) Color(0xFF242424) else Color(0xFFECECEC),
+                surfaceContainerHighest = if (videoSystemDark) Color(0xFF2E2E2E) else Color(0xFFE5E5E5),
+            )
+        }
+    }
+    val playerFrame: @Composable () -> Unit = {
+    CompositionLocalProvider(
+        LocalPlayerFlat provides (flatPlayer || (videoMode && !landscape)),
+        LocalPlayerInk provides flatPage,
+    ) {
     FrostedPlayerFrame(
         modifier = modifier,
         // Off where a music video is the backdrop: it can go bright under the
         // controls. On over a Canvas: the controls only show with its dim and
         // glass deck up, so the glyphs blend into the blurred, darkened clip.
         // And off everywhere with "Disable blend effects".
-        chrome = !disableBlendEffects && !(landscape && videoMode),
+        chrome = !disableBlendEffects && !(landscape && videoMode) && !flatPlayer,
         frost = frost,
         live = spotifyCanvasPresentation,
         // Not the host's ⋯ menu: that takes its own still, of everything.
@@ -2344,7 +2554,7 @@ fun NowPlayingScreen(
                     .fillMaxSize()
                     .onSizeChanged { playerBounds = it }
                     .then(dockHost)
-                    .background(Color.Black),
+                    .background(if (flatPlayer) MaterialTheme.colorScheme.background else Color.Black),
             ) {
                 // Three themes, one rule between them: a full-screen Spotify Canvas
                 // is its own backdrop until a panel opens.
@@ -2363,11 +2573,27 @@ fun NowPlayingScreen(
                 // blurred cover fading in over it for the lyrics and queue, which
                 // have no sleeve for a mesh to carry on from.
                 val legacyMeshBackdrop = !tabletArtworkBackdrop && !spotifyCanvasPresentation &&
-                    playerTheme == PlayerTheme.LEGACY
-                val artworkMeshBackdrop = !tabletArtworkBackdrop && playerTheme == PlayerTheme.DEFAULT
+                    playerTheme == PlayerTheme.LEGACY && !(videoMode && !landscape)
+                // The approved video player stands on the plain page colour, not
+                // on the artwork's colours: no mesh or gradient behind a video,
+                // whichever theme the audio side keeps.
+                val artworkMeshBackdrop = !tabletArtworkBackdrop && playerTheme == PlayerTheme.DEFAULT &&
+                    !(videoMode && !landscape)
+                if (videoMode && !landscape) {
+                    // Literal black or white following the SYSTEM itself (see
+                    // videoSystemScheme above): the approved video player is a
+                    // true solid, never the theme's near-black #1B1B1B or
+                    // near-white #F1F1F1, and never tinted by the artwork.
+                    val videoBackdrop = if (videoSystemDark) Color.Black else Color.White
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(videoBackdrop),
+                    )
+                }
                 val fullArtworkBackdropAlpha by animateFloatAsState(
                     targetValue = if (
-                        !legacyMeshBackdrop &&
+                        !legacyMeshBackdrop && !flatPlayer && !(videoMode && !landscape) &&
                         (tabletArtworkBackdrop || fullArtworkBlurImage != null) &&
                         (!spotifyCanvasPresentation || lyricsOpen || queueOpen) &&
                         (!artworkMeshBackdrop || lyricsOpen || queueOpen)
@@ -2668,6 +2894,49 @@ fun NowPlayingScreen(
                         .then(skipSwipeGesture),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    // The track menu, shared by the Material player's top strip and
+                    // the other themes' credits row. While the lyrics are up the glyph
+                    // becomes the share entry: the same pick mode a long-press on a
+                    // line opens, only on phones where a card can actually be made.
+                    // While picking it is the way back out again — the bar below
+                    // already holds Share. Only once the sleeve has fully collapsed:
+                    // the moment it starts coming back the glyph is the menu again.
+                    // And only while the half player under the lyrics is tucked away:
+                    // with it up, the screen is the player again and the glyph is its
+                    // menu. A pick in progress keeps its Close whichever way the
+                    // controls are.
+                    val menuGlyph: @Composable () -> Unit = {
+                        val lyricsShareGlyphVisible = lyricsOpen && collapseDone && lyricsShareEnabled &&
+                            !lyrics.isNullOrEmpty() && (!lyricsControlsOpen || lyricPicker.picking)
+                        CircleGlyph(
+                            icon = when {
+                                showRevertCue -> Icons.AutoMirrored.Rounded.Undo
+                                lyricsShareGlyphVisible && lyricPicker.picking -> Icons.Rounded.Close
+                                lyricsShareGlyphVisible -> Icons.Rounded.IosShare
+                                else -> Icons.Rounded.MoreHoriz
+                            },
+                            contentDescription = stringResource(
+                                when {
+                                    showRevertCue -> Res.string.more
+                                    lyricsShareGlyphVisible && lyricPicker.picking -> Res.string.cancel
+                                    lyricsShareGlyphVisible -> Res.string.share
+                                    else -> Res.string.more
+                                },
+                            ),
+                            onClick = when {
+                                showRevertCue -> onOpenMenu
+                                lyricsShareGlyphVisible && lyricPicker.picking -> lyricPicker.cancel
+                                lyricsShareGlyphVisible -> lyricPicker.beginPicking
+                                else -> onOpenMenu
+                            },
+                            haptic = if (lyricsShareGlyphVisible && !showRevertCue) {
+                                Haptic.Select
+                            } else {
+                                Haptic.Tap
+                            },
+                            modifier = Modifier.menuAnchor(),
+                        )
+                    }
                     // The only strip that passes drags through to the sheet, so the
                     // player closes from the handle and the space around it — not from
                     // a stray downward swipe on the artwork or the controls.
@@ -2699,27 +2968,29 @@ fun NowPlayingScreen(
                         // the top of the strip. As lyrics or the queue replace the
                         // album-cover player, it glides into the now-empty strip's
                         // vertical centre alongside the caption's fade.
-                        Box(
-                            Modifier
-                                .align(Alignment.TopCenter)
-                                .offset {
-                                    IntOffset(
-                                        x = 0,
-                                        y = lerp(
-                                            6.dp,
-                                            (topStrip - 5.dp).coerceAtLeast(0.dp) / 2,
-                                            p(),
-                                        ).roundToPx(),
-                                    )
-                                }
-                                .width(38.dp)
-                                .height(5.dp)
-                                .graphicsLayer { alpha = spotifyChromeAlpha }
-                                .shadow(2.dp, RoundedCornerShape(3.dp), clip = false)
-                                .clip(RoundedCornerShape(3.dp))
-                                .additiveChrome(LocalPlayerChrome.current)
-                                .background(chromeWhite(0.70f)),
-                        )
+                        if (!flatPlayer) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopCenter)
+                                    .offset {
+                                        IntOffset(
+                                            x = 0,
+                                            y = lerp(
+                                                6.dp,
+                                                (topStrip - 5.dp).coerceAtLeast(0.dp) / 2,
+                                                p(),
+                                            ).roundToPx(),
+                                        )
+                                    }
+                                    .width(38.dp)
+                                    .height(5.dp)
+                                    .graphicsLayer { alpha = spotifyChromeAlpha }
+                                    .shadow(2.dp, RoundedCornerShape(3.dp), clip = false)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .additiveChrome(LocalPlayerChrome.current)
+                                    .background(chromeWhite(0.70f)),
+                            )
+                        }
                         // [p] is the shared album-to-panel transition. Keeping this in
                         // composition until its final frame gives the caption a real
                         // fade on both entry and exit, but removes its click target
@@ -2734,6 +3005,40 @@ fun NowPlayingScreen(
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
                                         .graphicsLayer { alpha = (1f - p()) * spotifyChromeAlpha },
+                                )
+                            }
+                        }
+                        if (flatPlayer) {
+                            // The Material player's own strip: a collapse chevron at
+                            // the left and the track menu at the right, in place of
+                            // the drag handle the other themes show here.
+                            val stripHaptics = rememberHaptics()
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardArrowDown,
+                                contentDescription = stringResource(Res.string.close_player),
+                                tint = chromeWhite(1f),
+                                modifier = Modifier
+                                    .align(if (versionPill) Alignment.TopStart else Alignment.BottomStart)
+                                    .padding(bottom = 2.dp)
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        stripHaptics.play(Haptic.Tap)
+                                        onCollapse()
+                                    }
+                                    .padding(6.dp),
+                            )
+                            Box(Modifier.align(if (versionPill) Alignment.TopEnd else Alignment.BottomEnd)) {
+                                menuGlyph()
+                            }
+                            if (versionPill && onSelectVersion != null) {
+                                val pillAligning by PlayerSettings.versionAlignmentInProgress
+                                    .collectAsStateWithLifecycle()
+                                SongVideoPill(
+                                    video = videoMode,
+                                    enabled = versionSwitchEnabled && !pillAligning && !audioVersionSwitching && !controlsLocked,
+                                    onSelect = onSelectVersion,
+                                    modifier = Modifier.align(Alignment.TopCenter),
                                 )
                             }
                         }
@@ -2794,7 +3099,7 @@ fun NowPlayingScreen(
                                         bandTop = dismissBandTop
                                         bandBottom = dismissBandBottom
                                     }
-                                    if (y >= bandTop && y <= bandBottom) {
+                                    if (!flatPage && y >= bandTop && y <= bandBottom) {
                                         if (!panelUp) {
                                             dragQueueIn(
                                                 down = down,
@@ -2850,13 +3155,7 @@ fun NowPlayingScreen(
                     // controls at the foot of the screen. Filled in from inside the box,
                     // where the sleeve's real size is known; see [lastControlSpread].
                     var controlSpread by remember { mutableStateOf(lastControlSpread) }
-                    BoxWithConstraints(
-                        modifier = Modifier
-                            .weight(1f)
-                            .widthIn(max = PLAYER_MAX_WIDTH)
-                            .fillMaxWidth()
-                            .padding(top = ART_BOX_TOP_PAD, bottom = 18.dp),
-                    ) {
+                    val artworkBlock: @Composable BoxWithConstraintsScope.() -> Unit = {
                         if (spotifyCanvasPresentation && playerDeckSettledOpen &&
                             maxHeight != spotifyCanvasExpandedTopHeight
                         ) {
@@ -2962,21 +3261,35 @@ fun NowPlayingScreen(
                                 }
                             }
                         }
+                        // A music video's block is its own 16:9 card, not the
+                        // sleeve's square: centring the card inside the square's
+                        // slot stranded the credits a long blank below the
+                        // picture, so the [card + gap + credits] block is what
+                        // gets centred above the controls instead.
+                        val blockArt = if (videoMode && !squareVideo) {
+                            (maxWidth / videoAspectState.value.coerceIn(1f, 2.4f))
+                                .coerceAtLeast(THUMB_SIZE)
+                        } else {
+                            fullArt
+                        }
                         // Artwork and the title row travel together as one block, so
                         // the pair sits centred while the queue is closed — in whatever
                         // the controls couldn't take, which on all but the tallest
                         // screens is nothing.
-                        val groupTop = (maxHeight - fullArt - ART_TITLE_GAP - HEADER_HEIGHT)
+                        val groupTop = (maxHeight - blockArt - ART_TITLE_GAP - HEADER_HEIGHT)
                             .coerceAtLeast(0.dp) / 2
                         // Functions of the collapse, called at placement and measure
                         // — see [p]. Composition never reads them.
                         fun artSize(): Dp = lerp(fullArt, THUMB_SIZE, p())
                         fun artTop(): Dp = lerp(groupTop, 0.dp, p())
+                        // The video card's own height on the way to the thumbnail;
+                        // matches [artSize] for audio and square videos.
+                        fun blockArtSize(): Dp = lerp(blockArt, THUMB_SIZE, p())
                         // Expanded and height-bound, the sleeve is narrower than the
                         // player and has to be centred in it; collapsed, it belongs
                         // hard against the left edge with the credits beside it.
                         fun artStart(): Dp = lerp((maxWidth - fullArt) / 2, 0.dp, p())
-                        fun regularTitleTop(): Dp = lerp(groupTop + fullArt + ART_TITLE_GAP, 0.dp, p())
+                        fun regularTitleTop(): Dp = lerp(groupTop + blockArt + ART_TITLE_GAP, 0.dp, p())
                         // Once Spotify's control deck has left, keep the only remaining
                         // player chrome against the bottom edge instead of stranding it
                         // where the artwork's title normally sits near mid-screen.
@@ -3164,7 +3477,7 @@ fun NowPlayingScreen(
                         // it docks.
                         fun sleeveShown(): Float = bannerShown() * dockT()
                         fun sleeveCorner(): Dp {
-                            val corner = 8.dp * (1f - sleeveShown())
+                            val corner = (if (flatPlayer) 28.dp else 8.dp) * (1f - sleeveShown())
                             val t = dockT()
                             return if (dock == null || t >= 1f) corner else lerp(dock.miniArtCorner(), corner, t)
                         }
@@ -3364,7 +3677,7 @@ fun NowPlayingScreen(
                                     Icon(
                                         imageVector = BitChordIcons.MusicNote,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.35f),
+                                        tint = chromeWhite(0.35f),
                                         modifier = Modifier
                                             .size(40.dp)
                                             .graphicsLayer {
@@ -3562,7 +3875,7 @@ fun NowPlayingScreen(
                                                 )
                                             }
                                             val height = (boxWidthPx / aspect).roundToInt()
-                                            val centre = (artTop() + artSize() / 2).roundToPx()
+                                            val centre = (artTop() + blockArtSize() / 2).roundToPx()
                                             IntOffset(0, centre - height / 2)
                                         }
                                         .layout { measurable, _ ->
@@ -3626,11 +3939,11 @@ fun NowPlayingScreen(
                             Icon(
                                 imageVector = if (showNext) Icons.Rounded.FastForward else Icons.Rounded.FastRewind,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = chromeWhite(1f),
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .offset {
-                                        IntOffset(0, (artTop() + artSize() + (ART_TITLE_GAP - 16.dp) / 2).roundToPx())
+                                        IntOffset(0, (artTop() + blockArtSize() + (ART_TITLE_GAP - 16.dp) / 2).roundToPx())
                                     }
                                     .size(16.dp)
                                     .graphicsLayer {
@@ -3673,6 +3986,8 @@ fun NowPlayingScreen(
                                     ) { placeable.placeRelative(start, 0) }
                                 }
                                 .height(HEADER_HEIGHT)
+                                // The reference's title row is padded 20dp each side.
+                                .padding(horizontal = if (flatPage) 20.dp else 0.dp)
                                 // Where the dismiss band ends — see its top on the
                                 // artwork above. Taken from the row rather than added up
                                 // from the sleeve so the gap between the two is inside
@@ -3691,8 +4006,10 @@ fun NowPlayingScreen(
                                         val scale = 1f - 0.2f * p()
                                         scaleX = scale
                                         scaleY = scale
-                                        transformOrigin = TransformOrigin(0f, 0.5f)
+                                        transformOrigin = TransformOrigin(if (flatPlayer) 0.5f else 0f, 0.5f)
                                     },
+                                // The Material player centres its credits under the sleeve.
+                                horizontalAlignment = if (flatPlayer && !flatPage) Alignment.CenterHorizontally else Alignment.Start,
                             ) {
                                 // Only the title's own overflow gates the artist's stagger
                                 // below — an artist line that's long on its own has no
@@ -3729,13 +4046,16 @@ fun NowPlayingScreen(
                                 ) {
                                     val scrolling = scrolls()
                                     val artistColor = chromeWhite(0.55f)
-                                    Column {
+                                    Column(
+                                        horizontalAlignment = if (flatPlayer && !flatPage) Alignment.CenterHorizontally else Alignment.Start,
+                                    ) {
                                         MarqueeText(
                                             text = song.title,
                                             style = MaterialTheme.typography.titleLarge.copy(
-                                                fontSize = 20.sp,
+                                                fontWeight = if (flatPlayer) FontWeight.Bold else null,
+                                                fontSize = if (flatPage) 23.sp else if (flatPlayer) 28.sp else 20.sp,
                                             ),
-                                            color = Color.White,
+                                            color = chromeWhite(1f),
                                             enabled = scrolling,
                                             // Before the title, in the artist line's
                                             // colour.
@@ -3756,7 +4076,7 @@ fun NowPlayingScreen(
                                             },
                                             style = MaterialTheme.typography.titleLarge.copy(
                                                 fontWeight = FontWeight.W500,
-                                                fontSize = 20.sp,
+                                                fontSize = if (flatPage) 15.sp else if (flatPlayer) 16.sp else 20.sp,
                                             ),
                                             color = artistColor,
                                             enabled = scrolling,
@@ -3776,7 +4096,28 @@ fun NowPlayingScreen(
                             // there's no account to record it against — except on a
                             // local file or a finished download, whose star is the
                             // device's own Liked playlist and needs no account.
-                            if (signedIn || song.localUri != null) {
+                            if (flatPage && (signedIn || song.localUri != null)) {
+                                // The reference's heart chip at the row's end: 48dp,
+                                // ink on a faint wash, the same like action.
+                                val liked = likeStatus == LikeStatus.LIKE
+                                Icon(
+                                    imageVector = if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
+                                    contentDescription = stringResource(
+                                        if (liked) Res.string.remove_from_liked else Res.string.like,
+                                    ),
+                                    tint = chromeWhite(1f),
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(chromeWhite(0.08f))
+                                        .clickable {
+                                            haptics.play(if (liked) Haptic.ToggleOff else Haptic.ToggleOn)
+                                            onToggleLike()
+                                        }
+                                        .padding(13.dp),
+                                )
+                            }
+                            if (!flatPlayer && !videoMode && (signedIn || song.localUri != null)) {
                                 val liked = likeStatus == LikeStatus.LIKE
                                 CircleGlyph(
                                     icon = if (liked) BitChordIcons.StarFilled else BitChordIcons.Star,
@@ -3789,47 +4130,44 @@ fun NowPlayingScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                             }
-                            // While the lyrics are up the menu glyph becomes the share
-                            // entry: the same pick mode a long-press on a line opens,
-                            // only on phones where a card can actually be made. While
-                            // picking it is the way back out again — the bar below
-                            // already holds Share.
-                            // Only once the sleeve has fully collapsed: the moment it starts
-                            // coming back the glyph is the menu again.
-                            // And only while the half player under the lyrics is tucked
-                            // away: with it up, the screen is the player again and the
-                            // glyph is its menu. A pick in progress keeps its Close
-                            // whichever way the controls are.
-                            val lyricsShareGlyphVisible = lyricsOpen && collapseDone && lyricsShareEnabled &&
-                                !lyrics.isNullOrEmpty() && (!lyricsControlsOpen || lyricPicker.picking)
-                            CircleGlyph(
-                                icon = when {
-                                    showRevertCue -> Icons.AutoMirrored.Rounded.Undo
-                                    lyricsShareGlyphVisible && lyricPicker.picking -> Icons.Rounded.Close
-                                    lyricsShareGlyphVisible -> Icons.Rounded.IosShare
-                                    else -> Icons.Rounded.MoreHoriz
-                                },
-                                contentDescription = stringResource(
-                                    when {
-                                        showRevertCue -> Res.string.more
-                                        lyricsShareGlyphVisible && lyricPicker.picking -> Res.string.cancel
-                                        lyricsShareGlyphVisible -> Res.string.share
-                                        else -> Res.string.more
+                            if (!flatPlayer) {
+                                menuGlyph()
+                            }
+                        }
+
+                        if (flatPlayer && !flatPage && !videoMode && (signedIn || song.localUri != null)) {
+                            // The Material player's like star, centred under the
+                            // credits. Fades and folds away as a panel takes the
+                            // screen, measured once and shrunk at placement so the
+                            // collapse costs no recomposition.
+                            val liked = likeStatus == LikeStatus.LIKE
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer { alpha = 1f - p() }
+                                    .layout { measurable, constraints ->
+                                        val placeable = measurable.measure(constraints)
+                                        val folded = (placeable.height * (1f - p())).roundToInt()
+                                        layout(placeable.width, folded) { placeable.place(0, 0) }
                                     },
-                                ),
-                                onClick = when {
-                                    showRevertCue -> onOpenMenu
-                                    lyricsShareGlyphVisible && lyricPicker.picking -> lyricPicker.cancel
-                                    lyricsShareGlyphVisible -> lyricPicker.beginPicking
-                                    else -> onOpenMenu
-                                },
-                                haptic = if (lyricsShareGlyphVisible && !showRevertCue) {
-                                    Haptic.Select
-                                } else {
-                                    Haptic.Tap
-                                },
-                                modifier = Modifier.menuAnchor(),
-                            )
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = if (liked) BitChordIcons.StarFilled else BitChordIcons.Star,
+                                    contentDescription = stringResource(
+                                        if (liked) Res.string.remove_from_liked else Res.string.like,
+                                    ),
+                                    tint = chromeWhite(1f),
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            haptics.play(if (liked) Haptic.ToggleOff else Haptic.ToggleOn)
+                                            onToggleLike()
+                                        }
+                                        .padding(8.dp),
+                                )
+                            }
                         }
 
                         // [lyricsOpen] asked first: a close has already hidden the
@@ -3856,6 +4194,13 @@ fun NowPlayingScreen(
                                         // there was what made the collapse stutter.
                                         .graphicsLayer { alpha = if (lyricsPanelVisible) panelFade.value else 0f },
                                 ) { particleProgress ->
+                                    Column(Modifier.fillMaxSize()) {
+                                    if (flatPlayer) {
+                                        PlayerPaneTabRow(
+                                            selected = PlayerPaneTab.LYRICS,
+                                            onSelect = selectPane,
+                                        )
+                                    }
                                     LyricsPanel(
                                         lines = lyrics.orEmpty(),
                                         subLines = lyricsTranslation.subLines,
@@ -3875,8 +4220,9 @@ fun NowPlayingScreen(
                                         picked = lyricPicker.picks,
                                         onPickLine = lyricPicker.pick,
                                         onTogglePick = lyricPicker.toggle,
-                                        modifier = Modifier.fillMaxSize(),
+                                        modifier = Modifier.weight(1f).fillMaxWidth(),
                                     )
+                                    }
                                 }
 
                             // Floated over the foot of the lyrics rather than placed in
@@ -3898,31 +4244,67 @@ fun NowPlayingScreen(
                                 label = "translateFade",
                             )
                             if (translateFade > 0.01f && !lyricPicker.picking) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .graphicsLayer { alpha = translateFade },
-                                ) {
-                                    RomanizationToggleButton(
-                                        state = lyricsTranslation.romanizationState,
-                                        showingRomanization = lyricsTranslation.showingRomanization,
-                                        enabled = translateShown && !lyrics.isNullOrEmpty(),
-                                        onClick = lyricsTranslation.toggleRomanization,
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .graphicsLayer { alpha = translateFade },
-                                ) {
-                                    TranslationToggleButton(
-                                        state = lyricsTranslation.translationState,
-                                        showingTranslation = lyricsTranslation.showingTranslation,
-                                        // Not tappable on the way out: a disc at 20%
-                                        // opacity is on its way to gone, not a target.
-                                        enabled = translateShown && !lyrics.isNullOrEmpty(),
-                                        onClick = lyricsTranslation.toggleTranslation,
-                                    )
+                                if (flatPlayer) {
+                                    // The flat panel's Translate and Romanize chips,
+                                    // centred as a pair at its foot.
+                                    Row(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .graphicsLayer { alpha = translateFade },
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        FlatLyricsChip(
+                                            icon = Icons.Rounded.Language,
+                                            label = stringResource(Res.string.romanize),
+                                            contentDescription = stringResource(
+                                                if (lyricsTranslation.showingRomanization) Res.string.show_original_lyrics
+                                                else Res.string.romanize_lyrics,
+                                            ),
+                                            state = lyricsTranslation.romanizationState,
+                                            active = lyricsTranslation.showingRomanization,
+                                            enabled = translateShown && !lyrics.isNullOrEmpty(),
+                                            onClick = lyricsTranslation.toggleRomanization,
+                                        )
+                                        FlatLyricsChip(
+                                            icon = Icons.Rounded.Translate,
+                                            label = stringResource(Res.string.translate),
+                                            contentDescription = stringResource(
+                                                if (lyricsTranslation.showingTranslation) Res.string.show_original_lyrics
+                                                else Res.string.translate_lyrics,
+                                            ),
+                                            state = lyricsTranslation.translationState,
+                                            active = lyricsTranslation.showingTranslation,
+                                            enabled = translateShown && !lyrics.isNullOrEmpty(),
+                                            onClick = lyricsTranslation.toggleTranslation,
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .graphicsLayer { alpha = translateFade },
+                                    ) {
+                                        RomanizationToggleButton(
+                                            state = lyricsTranslation.romanizationState,
+                                            showingRomanization = lyricsTranslation.showingRomanization,
+                                            enabled = translateShown && !lyrics.isNullOrEmpty(),
+                                            onClick = lyricsTranslation.toggleRomanization,
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .graphicsLayer { alpha = translateFade },
+                                    ) {
+                                        TranslationToggleButton(
+                                            state = lyricsTranslation.translationState,
+                                            showingTranslation = lyricsTranslation.showingTranslation,
+                                            // Not tappable on the way out: a disc at 20%
+                                            // opacity is on its way to gone, not a target.
+                                            enabled = translateShown && !lyrics.isNullOrEmpty(),
+                                            onClick = lyricsTranslation.toggleTranslation,
+                                        )
+                                    }
                                 }
                             }
                             // The bar arrives and leaves without a transition of its own:
@@ -3977,7 +4359,15 @@ fun NowPlayingScreen(
                                         }
                                     },
                             ) {
+                                if (flatPlayer) {
+                                    PlayerPaneTabRow(
+                                        selected = if (relatedTab) PlayerPaneTab.RELATED else PlayerPaneTab.UP_NEXT,
+                                        onSelect = selectPane,
+                                    )
+                                }
                                 InlineQueue(
+                                    tabbed = flatPlayer,
+                                    relatedOnly = flatPlayer && relatedTab,
                                     queue = queue,
                                     currentIndex = queueIndex,
                                     autoplayEnabled = autoplayEnabled,
@@ -3996,29 +4386,21 @@ fun NowPlayingScreen(
                             }
                         }
                     }
+                    if (!flatPage) BoxWithConstraints(
+                        modifier = Modifier
+                            .weight(1f)
+                            .widthIn(max = PLAYER_MAX_WIDTH)
+                            .fillMaxWidth()
+                            .padding(top = ART_BOX_TOP_PAD, bottom = 18.dp),
+                        content = artworkBlock,
+                    )
 
                     // ---- Bottom: lyric strip, scrubber, transport, volume, toggles ----
                     // One block, measured at its natural height and pinned to the foot
                     // of the player. Whatever is left over above it is the artwork's,
                     // which is what keeps this row of controls in the same place on
                     // every screen instead of being shoved off the bottom of a tall one.
-                    SlidingPlayerDeck(
-                        // A pick owns the screen: the transport is hidden for as long
-                        // as it is on, and a scroll that would reveal it is refused
-                        // (see [LyricsPanel]'s bottom-half tap), so nothing brings the
-                        // player back under somebody choosing lines.
-                        visible = !lyricPicker.picking &&
-                            (!lyricsOpen || lyricsControlsOpen) &&
-                            (!queueOpen || queueControlsOpen) &&
-                            (!spotifyCanvasPresentation || spotifyCanvasControlsOpen || mixing),
-                        reveal = playerDeckReveal,
-                        // Back to the main player from lyrics or the queue with the
-                        // deck stood down: the sleeve is about to come back out, so
-                        // the deck has to hold its full height from the first frame.
-                        // Asked when the deck is shown rather than read here — [p]
-                        // read in this scope recomposes the whole player with it.
-                        fadeIn = { !lyricsOpen && !queueOpen && p() > 0f },
-                    ) {
+                    val deckBlock: @Composable () -> Unit = {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.onSizeChanged { size ->
@@ -4053,13 +4435,15 @@ fun NowPlayingScreen(
                     // loading, "not available", status and blank lines titleMedium's
                     // 24sp, taller again in Devanagari or Thai — so every track change
                     // (sung line → loading line) grew the deck and shrank the sleeve.
-                    Box(
+                    // Not in the page layout: the Lyrics tab replaces the one-line strip, and
+                    // its empty 32dp slot was the gap between the credits and the scrubber.
+                    if (!flatPage) Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(lyricSlotHeight),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                    if (!lyricsOpen && syncedLyricsEnabled) {
+                    if (!lyricsOpen && syncedLyricsEnabled && !videoMode) {
                         CurrentLyricStrip(
                             lines = lyricsTranslation.displayedLyrics,
                             trackKey = song.videoId,
@@ -4075,7 +4459,7 @@ fun NowPlayingScreen(
                             onClick = openLyrics,
                         )
                     }
-                    if (!lyricsOpen && !syncedLyricsEnabled) {
+                    if (!lyricsOpen && (!syncedLyricsEnabled || videoMode)) {
                         Text(
                             text = "\u00A0",
                             style = MaterialTheme.typography.titleMedium,
@@ -4102,6 +4486,7 @@ fun NowPlayingScreen(
                         shown = shown,
                         durationMs = durationMs,
                         loading = versionSwitching,
+                        neutral = videoMode,
                         mixing = mixing && !scrub.scrubbing,
                         // Hidden while scrubbing: the planner is still describing
                         // where the transition *would* be, and a marker sitting under
@@ -4132,9 +4517,18 @@ fun NowPlayingScreen(
                             onPrevious = onPrevious,
                             onPlayPause = onPlayPause,
                             onNext = onNext,
+                            // The page layout shows the reference's five-control row for video too.
+                            shuffleEnabled = shuffleEnabled.takeIf { flatPage || (flatPlayer && !videoMode) },
+                            repeatMode = repeatMode,
+                            onToggleShuffle = onToggleShuffle,
+                            onCycleRepeat = onCycleRepeat,
+                            barePlay = videoMode && !flatPage,
                         )
                     }
-                    if (!hideVolumeBar) {
+                    // The Material player drops the volume row (approved design):
+                    // the slider stays for the other themes and their setting.
+                    // The approved video player carries it in every theme.
+                    if (!hideVolumeBar && (!flatPlayer || videoMode || flatPage)) {
                         // The transport rides midway between the two blocks it
                         // separates: the scrubber above it, and the volume bar and
                         // toggle row below, which sit close enough together to read
@@ -4167,16 +4561,150 @@ fun NowPlayingScreen(
                         Spacer(Modifier.height(run / 2 + lift))
                     }
 
-                    playerActions()
+                    // The page layout has no row under the volume, for video either: lyrics
+                    // and the queue are its tabs, output/cast/party come in through the
+                    // track menu (PlayerMenuRequest). Fullscreen (sideways) and the
+                    // non-page themes keep their rows.
+                    if (!flatPage) {
+                        if (videoMode) videoPlayerActions() else playerActions()
+                    }
                     Spacer(Modifier.height(18.dp))
                     }
                     }
+                    }
+                    if (!flatPage) SlidingPlayerDeck(
+                        // A pick owns the screen: the transport is hidden for as long
+                        // as it is on, and a scroll that would reveal it is refused
+                        // (see [LyricsPanel]'s bottom-half tap), so nothing brings the
+                        // player back under somebody choosing lines.
+                        visible = !lyricPicker.picking &&
+                            (!lyricsOpen || lyricsControlsOpen) &&
+                            (!queueOpen || queueControlsOpen) &&
+                            (!spotifyCanvasPresentation || spotifyCanvasControlsOpen || mixing),
+                        reveal = playerDeckReveal,
+                        // Back to the main player from lyrics or the queue with the
+                        // deck stood down: the sleeve is about to come back out, so
+                        // the deck has to hold its full height from the first frame.
+                        // Asked when the deck is shown rather than read here — [p]
+                        // read in this scope recomposes the whole player with it.
+                        fadeIn = { !lyricsOpen && !queueOpen && p() > 0f },
+                        content = deckBlock,
+                    )
+
+                    // ---- Flat page: artwork, credits and transport, then the tab pane ----
+                    // One scrolling column. The artwork block is the same code the
+                    // weighted branch runs, given a fixed height (its own layout reads
+                    // maxHeight, which must be bounded here) and left expanded because
+                    // queueOpen/lyricsOpen stay false. The deck content is the same
+                    // lambda the sliding deck holds, shown in place. The pane under the
+                    // tabs has a fixed height so its lists have bounded constraints.
+                    if (flatPage) {
+                        val pageWidth = windowWidth.coerceAtMost(PLAYER_MAX_WIDTH)
+                        // Square sleeve with 16dp margins, as the reference: width - 32dp, plus the
+                        // box's own 8dp top and 18dp bottom padding, the gap and the credits row.
+                        val artHeight = pageWidth - 32.dp + HEADER_HEIGHT + ART_BOX_TOP_PAD + 14.dp + ART_TITLE_GAP
+                        // Bottom-aligned at full scroll, so every dp taken off the pane is a dp more of
+                        // the transport left above the tabs. 28dp keeps the scrubber thumb and its
+                        // time labels clear of the strip's caption and the viewport's clip edge.
+                        val paneHeight = (windowHeight - topStrip - 96.dp - 28.dp).coerceAtLeast(320.dp)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .widthIn(max = PLAYER_MAX_WIDTH)
+                                .fillMaxWidth()
+                                .verticalScroll(pageScroll),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            BoxWithConstraints(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(artHeight)
+                                    .padding(top = ART_BOX_TOP_PAD, bottom = 14.dp),
+                                content = artworkBlock,
+                            )
+                            deckBlock()
+                            PlayerPaneTabRow(selected = pagePane, onSelect = { pagePane = it; pageFocus++ })
+                            Box(Modifier.fillMaxWidth().height(paneHeight)) {
+                                when (pagePane) {
+                                    PlayerPaneTab.LYRICS -> {
+                                LyricsTranslationMotion(
+                                    trigger = lyricsTranslation.transition,
+                                    reduceMotion = lyricsTranslation.reduceMotion,
+                                    modifier = Modifier.fillMaxSize(),
+                                ) { particleProgress ->
+                                    LyricsPanel(
+                                        lines = lyrics.orEmpty(),
+                                        subLines = lyricsTranslation.subLines,
+                                        trackKey = song.videoId,
+                                        playhead = lyricsPlayhead,
+                                        looking = !lyricsUnavailable,
+                                        isPlaying = isPlaying && position.advancing,
+                                        active = pagePane == PlayerPaneTab.LYRICS,
+                                        onSeekToLine = seekToLyric,
+                                        controlsOpen = true,
+                                        onRevealControls = {},
+                                        onHideControls = {},
+                                        translationProgress = particleProgress,
+                                        onScrollingChange = { lyricsScrolling = it },
+                                        canPick = lyricsShareEnabled,
+                                        picking = lyricPicker.picking,
+                                        picked = lyricPicker.picks,
+                                        onPickLine = lyricPicker.pick,
+                                        onTogglePick = lyricPicker.toggle,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+
+                                    }
+                                    else -> InlineQueue(
+                                        tabbed = true,
+                                        relatedOnly = pagePane == PlayerPaneTab.RELATED,
+                                        queue = queue,
+                                        currentIndex = queueIndex,
+                                        autoplayEnabled = autoplayEnabled,
+                                        controlsLocked = controlsLocked,
+                                        onJumpTo = onJumpTo,
+                                        onRemove = onRemoveFromQueue,
+                                        onMove = onMoveInQueue,
+                                        onClear = onClearQueue,
+                                        onScrollingChange = { queueScrolling = it },
+                                        onDragActiveChange = onQueueDragActiveChange,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            }
+                        }
                     }
                     }
                 }
             }
         }
     }
+    }
+    }
+    // One wrapper either way: a conditional one would move the frame to a
+    // different composition site whenever videoMode or landscape flips and
+    // drop its remembered state and running animations.
+    // The landscape audio player is always drawn on a dark canvas, whatever the app
+    // theme, but the flat player's ink is the theme's onBackground: black in the
+    // light theme, so black glyphs and text on black. Give the landscape player the
+    // dark theme's ink and page. Only a light app theme changes (a dark one already
+    // matches), and only audio landscape: the portrait page, the video player and
+    // its fullscreen keep their own schemes. The purple accents stay as in dark.
+    val landscapeCanvasScheme = remember(appScheme, landscape, videoMode, flatPlayer) {
+        if (landscape && !videoMode && flatPlayer && appScheme.background.luminance() >= 0.5f) {
+            appScheme.copy(
+                background = Color.Black,
+                surface = Color.Black,
+                onBackground = Color.White,
+                onSurface = Color.White,
+                onSurfaceVariant = Color(0xFFB9B9B9),
+            )
+        } else {
+            null
+        }
+    }
+    MaterialTheme(colorScheme = videoSystemScheme ?: landscapeCanvasScheme ?: appScheme) { playerFrame() }
 }
 
 /**

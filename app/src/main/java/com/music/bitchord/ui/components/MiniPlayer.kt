@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,8 +39,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -62,6 +70,7 @@ import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.playback.MusicOnlyPlayback
+import com.music.bitchord.playback.PlaybackPosition
 import com.music.bitchord.ui.player.PlayerDock
 import com.music.bitchord.ui.player.AndroidMusicVideo
 import androidx.compose.ui.layout.ContentScale
@@ -83,6 +92,12 @@ import kotlin.math.sqrt
 private val GLYPH_SLOT = 40.dp
 
 /**
+ * The centre play/pause button's touch target: the approved 44dp, carrying
+ * the progress ring around it.
+ */
+private val PLAY_SLOT = 44.dp
+
+/**
  * The play and skip glyphs themselves.
  *
  * Deliberately grown inside [GLYPH_SLOT] rather than by growing the slot: the
@@ -91,7 +106,13 @@ private val GLYPH_SLOT = 40.dp
  * taller, which is not what a bigger glyph is being asked for. At 32 there is
  * still 4dp of clearance to the slot's edge on every side.
  */
-private val GLYPH_SIZE = 32.dp
+private val GLYPH_SIZE = 24.dp
+
+/** The play and pause glyphs inside the ringed centre button. */
+private val CENTER_GLYPH_SIZE = 26.dp
+
+/** The progress ring's stroke around the centre button. */
+private val RING_STROKE = 2.5.dp
 
 /** The spinner that stands in for the play glyph, kept in proportion to it. */
 private val SPINNER_SIZE = 22.dp
@@ -114,7 +135,7 @@ private val TRANSPORT_GAP = 8.dp
  * Vertical padding, which with the 40dp artwork sets the bar's height at 56dp
  * and so its pill radius at 28.
  */
-private val ROW_PADDING_VERTICAL = 8.dp
+private val ROW_PADDING_VERTICAL = 10.dp
 
 /**
  * Horizontal padding, deliberately larger than the vertical.
@@ -342,8 +363,11 @@ internal fun Modifier.playerDockArt(dock: PlayerDock?, corner: Dp): Modifier {
         .graphicsLayer { alpha = if (dock.coversMiniArt) 0f else 1f }
 }
 
-/** The mini player's cover for a music video: 16:9 at the cover's 40dp height. */
-private val VIDEO_ART_WIDTH = 71.dp
+/** The mini player's cover for a music video: 16:9 at the cover's 44dp height. */
+private val VIDEO_ART_WIDTH = 78.dp
+
+/** The square artwork's edge. */
+private val ART_SIZE = 44.dp
 
 /** Frosted mini player that rides just above the floating tab bar. */
 @OptIn(ExperimentalHazeMaterialsApi::class)
@@ -353,6 +377,9 @@ fun MiniPlayer(
     isPlaying: Boolean,
     isLoading: Boolean,
     hazeState: HazeState,
+    /** The playhead and the track's length, for the ring around play/pause. */
+    position: PlaybackPosition? = null,
+    durationMs: Long = 0L,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
@@ -366,16 +393,22 @@ fun MiniPlayer(
     pull: MiniPlayerPull? = null,
     modifier: Modifier = Modifier,
 ) {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     // percent rather than a dp figure, so the corner stays exactly half the
     // height if the row's contents ever change it — which is what keeps a pill
     // a pill instead of a rounded rectangle. Same idiom as [FloatingBottomBar]
     // directly below it, so the two shapes are the same family.
-    val shape = RoundedCornerShape(percent = 50)
+    // v6: the one elevated surface in the app - a flat 12dp card with a hairline,
+    // detached from the screen's edges and matched to the dock below it.
+    val shape = RoundedCornerShape(12.dp)
+    // The ring's two inks, captured here: the draw below runs in the draw
+    // phase, where reading the theme would recompose nothing but still be
+    // wrong to do per frame.
+    val ringTrack = MaterialTheme.colorScheme.outline
+    val ringInk = MaterialTheme.colorScheme.onSurface
     Box(
         modifier = modifier
-            .padding(horizontal = BAR_GUTTER)
+            .padding(horizontal = 12.dp)
             // Ahead of the surface, so a pull lifts the whole of it, frost and all.
             .miniPlayerGestures(
                 pull = pull,
@@ -390,18 +423,11 @@ fun MiniPlayer(
                 locked = controlsLocked,
                 onBlocked = onBlockedControl,
             )
+            // v6 shadow (low): the mini player is the one surface allowed lift.
+            .shadow(6.dp, shape)
             .clip(shape)
-            .then(
-                if (reduceDynamicBlur) {
-                    Modifier.background(MaterialTheme.colorScheme.surface)
-                } else {
-                    Modifier.optimizedHazeEffect(
-                        state = hazeState,
-                        style = HazeMaterials.thin(MaterialTheme.colorScheme.surface),
-                    )
-                },
-            )
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline, shape)
             // Deliberately silent: the whole bar is the target, so it catches
             // stray taps meant for the page behind it, and the sheet rising is
             // its own confirmation. The glyphs on it still buzz.
@@ -420,12 +446,12 @@ fun MiniPlayer(
             // mini player does, rather than cropped into the square cover.
             val showsPicture = song.isVideo && MusicOnlyPlayback.showsPicture(song.videoId)
             val artWidth by animateDpAsState(
-                targetValue = if (showsPicture && !VideoThumbnails.square) VIDEO_ART_WIDTH else 40.dp,
+                targetValue = if (showsPicture && !VideoThumbnails.square) VIDEO_ART_WIDTH else ART_SIZE,
                 label = "miniArtWidth",
             )
             Box(
                 modifier = Modifier
-                    .size(width = artWidth, height = 40.dp)
+                    .size(width = artWidth, height = ART_SIZE)
                     .playerDockArt(dock, ART_CORNER)
                     .clip(RoundedCornerShape(ART_CORNER))
                     .thumbnailBorder(RoundedCornerShape(ART_CORNER))
@@ -456,44 +482,98 @@ fun MiniPlayer(
                 // out at its end, as on the glass bar's mini player.
                 ExplicitSongTitle(
                     song = song,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onBackground,
                     badgeColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     fadeOverflow = true,
                 )
                 FadingLine(
                     text = song.artist,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (isLoading) {
-                Box(Modifier.size(GLYPH_SLOT), contentAlignment = Alignment.Center) {
+            Spacer(Modifier.width(TRANSPORT_GAP))
+            // Faded and inert rather than removed while the host holds the
+            // controls, so the card keeps its shape — see [controlsLocked].
+            val lockedAlpha = if (controlsLocked) 0.3f else 1f
+            IconButton(
+                onClick = {
+                    haptics.play(Haptic.SkipPrevious)
+                    onPrevious()
+                },
+                enabled = !controlsLocked,
+                modifier = Modifier.size(GLYPH_SLOT),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.SkipPrevious,
+                    contentDescription = stringResource(R.string.widget_previous),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = lockedAlpha),
+                    modifier = Modifier.size(GLYPH_SIZE),
+                )
+            }
+            Spacer(Modifier.width(TRANSPORT_GAP))
+            // Play/pause with the track's progress wrapped around it as a thin
+            // ring: neutral track, ink progress, rounded cap, starting at the
+            // top and running clockwise. The playhead is read in the draw
+            // phase, so the twice-a-second tick repaints this box and nothing
+            // else — see [PlaybackPosition].
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(PLAY_SLOT)
+                    .drawBehind {
+                        val duration = durationMs
+                        val pos = position ?: return@drawBehind
+                        if (duration <= 0L) return@drawBehind
+                        val fraction = (pos.positionMs.toFloat() / duration.toFloat())
+                            .coerceIn(0f, 1f)
+                        val strokePx = RING_STROKE.toPx()
+                        val diameter = minOf(size.width, size.height) - strokePx
+                        val topLeft = Offset(
+                            (size.width - diameter) / 2f,
+                            (size.height - diameter) / 2f,
+                        )
+                        val arcSize = Size(diameter, diameter)
+                        val style = Stroke(width = strokePx, cap = StrokeCap.Round)
+                        drawCircle(ringTrack, radius = diameter / 2f, style = style)
+                        if (fraction > 0f) {
+                            drawArc(
+                                color = ringInk,
+                                startAngle = -90f,
+                                sweepAngle = 360f * fraction,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = style,
+                            )
+                        }
+                    },
+            ) {
+                if (isLoading) {
                     CircularProgressIndicator(
                         color = MaterialTheme.colorScheme.onBackground,
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(SPINNER_SIZE),
                     )
-                }
-            } else {
-                IconButton(
-                    onClick = {
-                        haptics.play(if (isPlaying) Haptic.Pause else Haptic.Resume)
-                        onPlayPause()
-                    },
-                    modifier = Modifier.size(GLYPH_SLOT),
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = stringResource(if (isPlaying) R.string.pause else R.string.play),
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(GLYPH_SIZE),
-                    )
+                } else {
+                    IconButton(
+                        onClick = {
+                            haptics.play(if (isPlaying) Haptic.Pause else Haptic.Resume)
+                            onPlayPause()
+                        },
+                        modifier = Modifier.size(PLAY_SLOT),
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = stringResource(if (isPlaying) R.string.pause else R.string.play),
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(CENTER_GLYPH_SIZE),
+                        )
+                    }
                 }
             }
             Spacer(Modifier.width(TRANSPORT_GAP))
-            // Faded and inert rather than removed while the host holds the
-            // controls, so the bar keeps its shape — see [controlsLocked].
             IconButton(
                 onClick = {
                     haptics.play(Haptic.SkipNext)
@@ -503,8 +583,7 @@ fun MiniPlayer(
                 modifier = Modifier.size(GLYPH_SLOT),
             ) {
                 MiniPlayerNextGlyph(
-                    tint = MaterialTheme.colorScheme.onBackground
-                        .copy(alpha = if (controlsLocked) 0.3f else 1f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = lockedAlpha),
                 )
             }
         }

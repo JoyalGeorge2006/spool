@@ -53,10 +53,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
@@ -207,6 +210,18 @@ private fun voiceStyle(
  * it as far down as the panel does left the words ahead of the highlight hard
  * to read at a glance.
  */
+/**
+ * What a lyric line is drawn in where the line itself sets the colour: white
+ * over the other themes' dark backdrop, the theme's text colour in the flat
+ * player, whose page is light in the light theme. The word-synced path already
+ * takes [chromeWhite]; this is for the plain-synced line and the skeleton, which
+ * hard-coded white.
+ */
+@Composable
+@ReadOnlyComposable
+private fun lyricInk(): Color =
+    if (LocalPlayerFlat.current) MaterialTheme.colorScheme.onBackground else Color.White
+
 private const val UNSUNG_ALPHA = 0.45f
 private const val UNSUNG_ALPHA_STRIP = 0.55f
 
@@ -800,8 +815,9 @@ private fun SweptLyricLine(
     laneLocked: Boolean = false,
     translationProgress: State<Float>? = null,
     /** What the words are set in — see [PanelVoice] for which lines differ. */
-    color: Color = Color.White,
+    color: Color = Color.Unspecified,
 ) {
+    val color = if (color == Color.Unspecified) chromeWhite(1f) else color
     var layout by remember(line) { mutableStateOf<TextLayoutResult?>(null) }
 
     // Filled in and read back a letter at a time inside the draw lambdas, and
@@ -1467,7 +1483,7 @@ internal fun TranslationToggleButton(
     val chrome = LocalPlayerChrome.current
     val tint = when {
         !enabled || state is LyricsTranslationUiState.SameLanguage -> chromeWhite(0.42f)
-        active -> Color.White.copy(alpha = if (chrome) CHROME_FULL_ALPHA else 1f)
+        active -> chromeWhite(if (chrome) CHROME_FULL_ALPHA else 1f)
         else -> chromeWhite(0.78f)
     }
     val discAlpha by animateFloatAsState(
@@ -1479,7 +1495,7 @@ internal fun TranslationToggleButton(
             .size(34.dp)
             .clip(CircleShape)
             .additiveChrome(chrome)
-            .background(Color.White.copy(alpha = discAlpha))
+            .background(chromeWhite(discAlpha))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -1520,7 +1536,7 @@ internal fun RomanizationToggleButton(
     val chrome = LocalPlayerChrome.current
     val tint = when {
         !enabled || state is LyricsTranslationUiState.SameLanguage -> chromeWhite(0.42f)
-        active -> Color.White.copy(alpha = if (chrome) CHROME_FULL_ALPHA else 1f)
+        active -> chromeWhite(if (chrome) CHROME_FULL_ALPHA else 1f)
         else -> chromeWhite(0.78f)
     }
     val discAlpha by animateFloatAsState(
@@ -1532,7 +1548,7 @@ internal fun RomanizationToggleButton(
             .size(34.dp)
             .clip(CircleShape)
             .additiveChrome(chrome)
-            .background(Color.White.copy(alpha = discAlpha))
+            .background(chromeWhite(discAlpha))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -1558,6 +1574,65 @@ internal fun RomanizationToggleButton(
                 modifier = Modifier.size(19.dp),
             )
         }
+    }
+}
+
+/**
+ * The flat lyrics panel's mode chip: glyph and word on a neutral tonal pill,
+ * centred in a pair at the panel's foot where the other themes place their
+ * corner discs. Same four states as [TranslationToggleButton], including the
+ * request-in-flight spinner in the icon's place.
+ */
+@Composable
+internal fun FlatLyricsChip(
+    icon: ImageVector,
+    label: String,
+    contentDescription: String,
+    state: LyricsTranslationUiState,
+    active: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val loading = state is LyricsTranslationUiState.Loading
+    val tint = when {
+        !enabled || state is LyricsTranslationUiState.SameLanguage -> chromeWhite(0.42f)
+        else -> chromeWhite(1f)
+    }
+    Row(
+        modifier = Modifier
+            .semantics { this.contentDescription = contentDescription }
+            .clip(CircleShape)
+            .background(chromeWhite(if (active) 0.16f else 0.08f))
+            .clickable(
+                enabled = enabled,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                color = tint,
+                strokeWidth = 1.7.dp,
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Spacer(Modifier.width(7.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = tint,
+            maxLines = 1,
+        )
     }
 }
 
@@ -1656,15 +1731,25 @@ private fun Modifier.lyricParticles(
  * as it took to find out that it did.
  */
 @Composable
-private fun LyricsSkeleton(modifier: Modifier = Modifier) {
-    val sweep = rememberInfiniteTransition(label = "lyricsSkeleton").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(SKELETON_PERIOD_MS, easing = LinearEasing),
-        ),
-        label = "sweep",
-    )
+private fun LyricsSkeleton(modifier: Modifier = Modifier, animate: Boolean = true) {
+    // The sweep is an infinite animation, so it only runs while this is the
+    // visible, active panel and "Reduce animation" is off. A panel composed
+    // offscreen ahead of time, or under reduced motion, shows the bars still:
+    // an unending animation nobody can see keeps the frame clock busy (and a
+    // headless capture from ever going idle).
+    val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val sweep: State<Float> = if (animate && !reduceAnimation) {
+        rememberInfiniteTransition(label = "lyricsSkeleton").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(SKELETON_PERIOD_MS, easing = LinearEasing),
+            ),
+            label = "sweep",
+        )
+    } else {
+        remember { mutableFloatStateOf(0.35f) }
+    }
     BoxWithConstraints(
         // No gutter of its own: the list this stands in for bleeds out to the
         // panel's full width and puts the gutter back as content padding, so
@@ -1676,6 +1761,7 @@ private fun LyricsSkeleton(modifier: Modifier = Modifier) {
         // lights end to end in the time a long one takes to get halfway, and
         // the block reads as a row of separate things loading separately.
         val column = maxWidth
+        val ink = lyricInk()
         Column(verticalArrangement = Arrangement.spacedBy(SKELETON_BLOCK_GAP)) {
             SKELETON_BLOCKS.forEach { rows ->
                 Column(verticalArrangement = Arrangement.spacedBy(SKELETON_LEADING)) {
@@ -1695,9 +1781,9 @@ private fun LyricsSkeleton(modifier: Modifier = Modifier) {
                                     val startX = -band + sweep.value * (full + band * 2)
                                     val brush = Brush.horizontalGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.10f),
-                                            Color.White.copy(alpha = 0.26f),
-                                            Color.White.copy(alpha = 0.10f),
+                                            ink.copy(alpha = 0.10f),
+                                            ink.copy(alpha = 0.26f),
+                                            ink.copy(alpha = 0.10f),
                                         ),
                                         startX = startX,
                                         endX = startX + band,
@@ -2028,14 +2114,26 @@ internal fun LyricsPanel(
         // "None" is a finding, and it is only worth reporting once the lookup
         // has actually come back with it.
         if (looking) {
-            LyricsSkeleton(empty)
+            LyricsSkeleton(empty, animate = active)
         } else {
             Box(empty, contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(Res.string.no_lyrics_for_track),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.6f),
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.MusicNote,
+                        contentDescription = null,
+                        tint = chromeWhite(0.55f),
+                        modifier = Modifier.size(40.dp),
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = stringResource(Res.string.no_lyrics_for_track),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = chromeWhite(0.9f),
+                    )
+                }
             }
         }
         return
@@ -2082,7 +2180,7 @@ internal fun LyricsPanel(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White.copy(alpha = 0.14f))
+                            .background(chromeWhite(0.14f))
                             .padding(horizontal = 11.dp, vertical = 4.dp),
                     ) {
                         Text(
@@ -2092,7 +2190,7 @@ internal fun LyricsPanel(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp,
                             ),
-                            color = Color.White.copy(alpha = 0.9f),
+                            color = chromeWhite(0.9f),
                         )
                     }
                 }
@@ -2170,6 +2268,7 @@ internal fun LyricsPanel(
                     label = "gapSwell",
                 )
                 val instrumental = stringResource(Res.string.instrumental)
+                val gapDotInk = chromeWhite(1f)
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
@@ -2212,7 +2311,7 @@ internal fun LyricsPanel(
                                 // fills across it, so they light left to right.
                                 val lit = (through * GAP_DOTS - dot).coerceIn(0f, 1f)
                                 drawCircle(
-                                    color = Color.White.copy(
+                                    color = gapDotInk.copy(
                                         alpha = GAP_DOT_REST + (1f - GAP_DOT_REST) * lit,
                                     ),
                                     radius = radius,
@@ -2330,8 +2429,8 @@ internal fun LyricsPanel(
                     // is picked is read against what isn't.
                     .background(
                         when {
-                            index in picked -> Color.White.copy(alpha = 0.16f)
-                            picking -> Color.White.copy(alpha = 0.05f)
+                            index in picked -> chromeWhite(0.16f)
+                            picking -> chromeWhite(0.05f)
                             else -> Color.Transparent
                         },
                     )
@@ -2607,7 +2706,7 @@ private fun PanelVoice(
             alignEnd = alignEnd,
             laneLocked = laneLocked,
             translationProgress = translationProgress,
-            color = Color.White,
+            color = chromeWhite(1f),
         )
     } else if (line.isWordSynced) {
         // Browsing: keep the sweep so sung lines stay fully lit and unsung
@@ -2630,7 +2729,7 @@ private fun PanelVoice(
             alignEnd = alignEnd,
             laneLocked = laneLocked,
             translationProgress = translationProgress,
-            color = Color.White,
+            color = chromeWhite(1f),
         )
     } else {
         // No word timings, so there is no sweep to light the words as they are
@@ -2650,7 +2749,7 @@ private fun PanelVoice(
         Text(
             text = line.text,
             style = lyricStyle,
-            color = Color.White.copy(alpha = lit),
+            color = lyricInk().copy(alpha = lit),
             onTextLayout = { layout = it },
             modifier = modifier.lyricParticles(layout, translationProgress, room).padding(room),
         )
@@ -2968,6 +3067,23 @@ private fun CurrentLyricLine(
             }
         }
 
+        // The chevron shares the line's own fade: past a line's end the text
+        // goes to zero alpha (see [LYRIC_FADE_FRACTION]), and a lone disclosure
+        // glyph hanging over the scrubber read as a broken icon. Same math, all
+        // clock reads inside the draw-phase lambda, so this still costs no
+        // recomposition. Instrumental and intro lines never fade, matching the
+        // text's early return in its own graphicsLayer.
+        val chevronFade = Modifier.graphicsLayer {
+            if (instrumental) return@graphicsLayer
+            val start = current?.timeMs ?: 0L
+            val end = lines.getOrNull(index + 1)?.timeMs
+                ?: durationMs.takeIf { it > start }
+                ?: (start + 4_000L)
+            val fadeMs = ((end - start) * LYRIC_FADE_FRACTION)
+                .coerceIn(LYRIC_FADE_MIN_MS, LYRIC_FADE_MAX_MS)
+            val remaining = (end - clock.longValue).toFloat()
+            alpha = (remaining / fadeMs).coerceIn(0f, 1f)
+        }
         if (!stripRtl) {
             Spacer(Modifier.width(6.dp))
             // Disclosure hint: this strip opens the full lyrics screen.
@@ -2975,7 +3091,9 @@ private fun CurrentLyricLine(
                 imageVector = BitChordIcons.ChevronRight,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.5f),
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier
+                    .size(14.dp)
+                    .then(chevronFade),
             )
         } else {
             Spacer(Modifier.width(6.dp))
@@ -2985,7 +3103,8 @@ private fun CurrentLyricLine(
                 tint = Color.White.copy(alpha = 0.5f),
                 modifier = Modifier
                     .size(14.dp)
-                    .graphicsLayer { scaleX = -1f },
+                    .graphicsLayer { scaleX = -1f }
+                    .then(chevronFade),
             )
         }
     }

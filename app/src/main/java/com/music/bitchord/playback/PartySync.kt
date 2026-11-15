@@ -239,6 +239,10 @@ class PartySync(
         jobs.clear()
         publishJob?.cancel()
         startJob?.cancel()
+        // If the UI died mid-drag, its endQueueDrag never comes; without this
+        // reset every later intent would keep parking for a drop that isn't.
+        queueDragActive = false
+        queueDragDirty = false
     }
 
     /**
@@ -277,9 +281,18 @@ class PartySync(
         // it crosses — see [beginQueueDrag]. Parked here rather than published,
         // so the party hears about the reorder once, when the row lands.
         if (queueDragActive) {
-            queueDragDirty = true
-            publishJob?.cancel()
-            return
+            // The UI ends drags reliably, but if its controller died mid-drag
+            // the end never arrives: past the bound, treat the row as dropped
+            // rather than parking every later intent forever.
+            if (SystemClock.elapsedRealtime() - queueDragStartedAt > QUEUE_DRAG_MAX_MS) {
+                Log.w(TAG, "queue drag outlived ${QUEUE_DRAG_MAX_MS}ms; flushing")
+                queueDragActive = false
+                queueDragDirty = false
+            } else {
+                queueDragDirty = true
+                publishJob?.cancel()
+                return
+            }
         }
         publishJob?.cancel()
         publishJob = scope.launch {
@@ -294,8 +307,12 @@ class PartySync(
     /** Whether a move landed while [queueDragActive] was true, awaiting [endQueueDrag]. */
     private var queueDragDirty = false
 
+    /** When the current drag began; see the bound in [onLocalIntent]. */
+    private var queueDragStartedAt = 0L
+
     fun beginQueueDrag() {
         queueDragActive = true
+        queueDragStartedAt = SystemClock.elapsedRealtime()
     }
 
     /** The row was dropped (or the drag cancelled). Flushes anything parked by [onLocalIntent]. */
@@ -1013,6 +1030,9 @@ class PartySync(
          * ExoPlayer, no binder call and no allocation on the quiet path.
          */
         const val TICK_MS = 700L
+
+        /** Longest a queue drag may park party intents before it is treated as dropped. */
+        const val QUEUE_DRAG_MAX_MS = 60_000L
 
         /**
          * How far out of step is worth an audible seek.

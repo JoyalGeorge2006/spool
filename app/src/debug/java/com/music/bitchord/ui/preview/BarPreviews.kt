@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.ui.components.BottomFadeScrim
 import com.music.bitchord.ui.components.BottomTab
+import com.music.bitchord.playback.PlaybackPosition
 import com.music.bitchord.ui.components.FloatingBottomBar
 import com.music.bitchord.ui.components.FrostedTopBar
 import com.music.bitchord.ui.components.MiniPlayer
@@ -159,6 +160,8 @@ private fun ChromeStack(scrolled: Boolean, withMiniPlayer: Boolean) {
                     isPlaying = true,
                     isLoading = false,
                     hazeState = hazeState,
+                    position = remember { PlaybackPosition().apply { report(65_000) } },
+                    durationMs = 200_000,
                     onPlayPause = {},
                     onNext = {},
                     onPrevious = {},

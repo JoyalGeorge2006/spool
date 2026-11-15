@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,17 +36,20 @@ import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 
 /**
- * The iOS 26 switch: a wide green capsule and a white pill of a thumb, which
- * stretches a little toward where it is going while pressed.
+ * The v6 switch: a small pill track with a round knob, which stretches a
+ * little toward where it is going while pressed. Approved 21:06 with the
+ * settings redesign: ON is the page accent (near-white on dark, near-black on
+ * light) with an on-accent knob; OFF is a faint neutral fill with a tertiary
+ * knob. State reads from both the knob's side and the track's contrast, never
+ * from colour alone - and never green.
  *
- * Plain drawing only — a track, a thumb, a shadow. Every settings page has a
+ * Plain drawing only — a track, a knob, a shadow. Every settings page has a
  * column of these, and anything heavier per switch is paid that many times
  * over on every scroll frame.
  *
  * It takes Material3's `Switch` call shape so a settings row adopts it by name
- * alone. [thumbContent] and [colors] are accepted and ignored: on is iOS green
- * whatever the theme's accent — the one place the platform keeps its own
- * colour, and the reason it reads as a switch.
+ * alone. [thumbContent] and [colors] are accepted and ignored: the switch
+ * keeps the one approved treatment whatever the theme's accent.
  *
  * A null [onCheckedChange] makes it a read-out, the way M3's does: the row
  * around it owns the tap.
@@ -58,6 +62,8 @@ import com.music.bitchord.ui.haptics.rememberHaptics
  * toggle from their own `onClick`, which never passes through here, and the
  * value changing is the one thing every path has in common.
  */
+val LocalNeutralSwitchMetrics = staticCompositionLocalOf { false }
+
 @Composable
 fun IosSwitch(
     checked: Boolean,
@@ -67,6 +73,12 @@ fun IosSwitch(
     enabled: Boolean = true,
     @Suppress("UNUSED_PARAMETER") colors: SwitchColors? = null,
 ) {
+    val modern = LocalNeutralSwitchMetrics.current
+    val trackWidth = if (modern) 48.dp else TrackWidth
+    val trackHeight = if (modern) 29.dp else TrackHeight
+    val thumbWidth = if (modern) 24.dp else ThumbWidth
+    val thumbHeight = if (modern) 24.dp else ThumbHeight
+    val thumbPadding = if (modern) 2.5.dp else ThumbPadding
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -82,11 +94,25 @@ fun IosSwitch(
     )
     val track by animateColorAsState(
         targetValue = when {
-            checked && dark -> Color(0xFF30D158)
-            checked -> Color(0xFF34C759)
-            else -> Color(0xFF8E8E93).copy(alpha = if (dark) 0.36f else 0.22f)
+            checked && dark -> Color(0xFFF1F1F1)
+            checked -> Color(0xFF1B1B1B)
+            modern && dark -> Color.White.copy(alpha = 0.17f)
+            modern -> Color.Black.copy(alpha = 0.12f)
+            dark -> Color.White.copy(alpha = 0.10f)
+            else -> Color.Black.copy(alpha = 0.06f)
         },
         label = "iosSwitchTrack",
+    )
+    val knob by animateColorAsState(
+        targetValue = when {
+            checked && dark -> Color(0xFF111111)
+            checked -> Color.White
+            modern && dark -> Color(0xFFD8D5DE)
+            modern -> Color.White
+            dark -> Color(0xFF7D7D7D)
+            else -> Color(0xFF919191)
+        },
+        label = "iosSwitchKnob",
     )
     val ltr = LocalLayoutDirection.current == LayoutDirection.Ltr
 
@@ -115,7 +141,7 @@ fun IosSwitch(
                     Modifier
                 },
             )
-            .size(TrackWidth, TrackHeight)
+            .size(trackWidth, trackHeight)
             .clip(CircleShape)
             .background(track),
         contentAlignment = Alignment.CenterStart,
@@ -123,23 +149,23 @@ fun IosSwitch(
         Box(
             Modifier
                 .graphicsLayer {
-                    val travel = (TrackWidth - ThumbWidth - ThumbPadding * 2).toPx()
-                    val x = ThumbPadding.toPx() + travel * position
+                    val travel = (trackWidth - thumbWidth - thumbPadding * 2).toPx()
+                    val x = thumbPadding.toPx() + travel * position
                     translationX = if (ltr) x else -x
                     // Grows from the edge it is leaving, so the stretch reads
                     // as reaching toward the other side.
                     transformOrigin = TransformOrigin(if (checked == ltr) 1f else 0f, 0.5f)
                     scaleX = stretch
                 }
-                .size(ThumbWidth, ThumbHeight)
+                .size(thumbWidth, thumbHeight)
                 .shadow(2.dp, CircleShape)
-                .background(Color.White, CircleShape),
+                .background(knob, CircleShape),
         )
     }
 }
 
-private val TrackWidth = 64.dp
-private val TrackHeight = 28.dp
-private val ThumbWidth = 40.dp
-private val ThumbHeight = 24.dp
-private val ThumbPadding = 2.dp
+private val TrackWidth = 44.dp
+private val TrackHeight = 26.dp
+private val ThumbWidth = 20.dp
+private val ThumbHeight = 20.dp
+private val ThumbPadding = 3.dp

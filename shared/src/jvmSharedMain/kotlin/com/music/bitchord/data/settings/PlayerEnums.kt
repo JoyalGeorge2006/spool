@@ -37,6 +37,9 @@ enum class PlayerTheme {
 
     /** The cover blurred across the whole screen, as the lyrics and queue are. */
     SIMPLE,
+
+    /** spool's flat look: the theme background, artwork as a rounded card, ink chrome. */
+    FLAT,
 }
 
 /** The surface that was last open inside the expanded player. */
@@ -44,4 +47,5 @@ enum class LastPlayerScreen {
     MAIN,
     LYRICS,
     QUEUE,
+    RELATED,
 }

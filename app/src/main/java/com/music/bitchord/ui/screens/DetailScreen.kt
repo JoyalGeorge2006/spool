@@ -1,6 +1,6 @@
 package com.music.bitchord.ui.screens
 
-import com.music.bitchord.ui.components.trackArtSize
+import com.music.bitchord.ui.components.RowArtwork
 import android.os.Build
 import com.music.bitchord.R
 
@@ -193,6 +193,29 @@ private const val ARTIST_ROW_MAX_ITEMS = 5
 
 /** The artist photo, very slightly taller than it is wide. */
 private const val ARTIST_PHOTO_RATIO = 0.95f
+
+/** The framed artist banner's width:height. */
+private const val ARTIST_BANNER_RATIO = 1.9f
+
+/** The corner of the card a playlist's rows sit in. */
+private val PLAYLIST_CARD_CORNER = 24.dp
+
+/** A playlist card's hairline, starting under the row's title text. */
+private val PLAYLIST_ROW_DIVIDER_INSET = 80.dp
+
+/** A suggested row's inset inside the playlist card. */
+private val PLAYLIST_CARD_INSET = 14.dp
+
+/**
+ * The card corners for the row at [position] of a [lastIndex]-long list:
+ * rounded on the outer edge, square where the rows meet.
+ */
+private fun playlistCardShape(position: Int, lastIndex: Int): RoundedCornerShape = when {
+    lastIndex == 0 -> RoundedCornerShape(PLAYLIST_CARD_CORNER)
+    position == 0 -> RoundedCornerShape(topStart = PLAYLIST_CARD_CORNER, topEnd = PLAYLIST_CARD_CORNER)
+    position == lastIndex -> RoundedCornerShape(bottomStart = PLAYLIST_CARD_CORNER, bottomEnd = PLAYLIST_CARD_CORNER)
+    else -> RoundedCornerShape(0.dp)
+}
 
 /** The framed sleeve on a release page, as a fraction of the page width. */
 private const val SLEEVE_FRACTION = 0.76f
@@ -433,9 +456,17 @@ fun DetailScreen(
             if (signature != null) return@LaunchedEffect
         }
     }
-    val palette = rememberArtworkPalette(
-        imageUrl = appleArt?.heroUrl ?: page.thumbnailUrl,
-        keyColors = appleArt?.keyColors(),
+    // v6: detail pages are flat cream (or ink), not artwork-tinted - the
+    // palette the page draws with is the theme's, so the sleeve/photograph is
+    // the only colour on it, as in the mockups.
+    val palette = ArtworkPalette(
+        background = MaterialTheme.colorScheme.background,
+        wash = MaterialTheme.colorScheme.background,
+        elevated = MaterialTheme.colorScheme.surfaceVariant,
+        accent = MaterialTheme.colorScheme.primary,
+        onBackground = MaterialTheme.colorScheme.onBackground,
+        onBackgroundVariant = MaterialTheme.colorScheme.onSurfaceVariant,
+        divider = MaterialTheme.colorScheme.outline,
     )
 
     // Narrowing the running order in place — the release equivalent of the
@@ -487,6 +518,8 @@ fun DetailScreen(
     // Animated cover art on the header, the same feature the player has.
     // Albums only: a playlist's artwork is a collage and an artist page's is a
     // photograph, and neither is something a label publishes a canvas for.
+    // Tracks with a genuine .mp3 copy exported carry the row's MP3 badge.
+    val mp3ExportedIds by AppSettings.mp3ExportedIds.collectAsStateWithLifecycle()
     val canvasEnabled by AppSettings.animatedCanvas.collectAsStateWithLifecycle()
     val fullBleedArtwork by AppSettings.fullBleedDetailArtwork.collectAsStateWithLifecycle()
     val prioritizeSpotifyCanvas by AppSettings.prioritizeSpotifyCanvas.collectAsStateWithLifecycle()
@@ -551,41 +584,36 @@ fun DetailScreen(
                 // Capping against the window's own height is what keeps the ratio's
                 // math honest once the width it's fed is no longer guaranteed to be
                 // the narrow one it was written for.
-                val artHeight = (maxWidth / ARTIST_PHOTO_RATIO).coerceAtMost(maxHeight * 0.6f)
+                // The framed artist banner's height at about 1.9:1, capped so a
+                // wide window can't push the list below the fold.
+                val artHeight = ((maxWidth - ARTIST_CONTENT_GUTTER * 2) / ARTIST_BANNER_RATIO)
+                    .coerceAtMost(maxHeight * 0.45f)
                 val sleeveSize = (maxWidth * SLEEVE_FRACTION).coerceAtMost(maxHeight * SLEEVE_MAX_HEIGHT)
-                val fullBleedSleeve = fullBleedArtwork && maxWidth <= maxHeight * FULL_BLEED_MAX_HEIGHT
+                // v6: the sleeve sits framed, never bled off the top edge.
+                val fullBleedSleeve = false
                 // A folder's grid view: the same column count the Library's
                 // "Show all" grids reach at this width.
                 val gridColumns = libraryGrid(maxWidth - PAGE_GUTTER * 2).columns
 
-                // The artist photo is drawn behind the list rather than in it, so
-                // both need to agree on its height without being able to ask each
-                // other — see [artHeight]. A release has no such layer: its sleeve
-                // is an ordinary item at the top of the list.
-                if (isArtist) {
-                    PageBackground(
-                        page = page,
-                        palette = palette,
-                        canvas = canvas,
-                        artHeight = artHeight,
-                        listState = listState,
-                        heroUrl = appleArt?.heroUrl,
-                        modifier = Modifier.matchParentSize(),
-                    )
-                }
+                // v6: the artist photo is a framed banner inside the header,
+                // an ordinary list item like a release's framed sleeve; nothing
+                // is painted behind the list any more.
 
                 if (reorder != null) {
                     reorder(palette)
                 } else LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    // The artist photo runs edge-to-edge up under the glass bar;
-                    // a release header clears the bar itself, see [ReleaseHeader].
-                    contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
+                    // The artist's framed banner starts clear of the floating
+                    // bar, as a release header does inside itself.
+                    contentPadding = PaddingValues(
+                        top = if (isArtist) topBarContentPadding() else 0.dp,
+                        bottom = contentPadding.calculateBottomPadding(),
+                    ),
                 ) {
             item(key = "header") {
                 if (isArtist) {
-                    ArtistHeader(page = page, palette = palette, artHeight = artHeight, appleArt = appleArt, signature = signature)
+                    ArtistHeader(page = page, palette = palette, artHeight = artHeight, canvas = canvas, appleArt = appleArt, signature = signature)
                 } else {
                     ReleaseHeader(
                         page = page,
@@ -600,6 +628,7 @@ fun DetailScreen(
                         onArtistClick = onArtistClick.takeIf { folder == null },
                         onToggleLibrary = onToggleLibrary,
                         onDownloadAll = folder?.onDownload?.let { download -> { download(songs) } },
+                        folderPage = folder != null,
                     )
                 }
             }
@@ -628,7 +657,6 @@ fun DetailScreen(
                         subscription = page.subscription?.takeIf { onToggleSubscription != null },
                         onToggleSubscription = onToggleSubscription,
                         bottomSpace = 22.dp,
-                        playColor = appleArt?.keyColor?.let { Color(it) },
                     )
                 }
             }
@@ -720,6 +748,7 @@ fun DetailScreen(
                         onSongClick = onSongClick,
                         onSongLongPress = onSongLongPress,
                         onSongSwipe = onSongSwipe,
+                        mp3ExportedIds = mp3ExportedIds,
                     )
                 } else if (isArtist) {
                     // An artist's full song list would bury the album shelves, so
@@ -732,38 +761,28 @@ fun DetailScreen(
                             palette = palette,
                             horizontalPadding = ARTIST_CONTENT_GUTTER,
                         )
-                        BoxWithConstraints {
-                            val columnWidth = trackColumnWidth(maxWidth)
-                            val topSongsState = rememberLazyListState()
-                            LazyRow(
-                                state = topSongsState,
-                                contentPadding = PaddingValues(horizontal = ARTIST_CONTENT_GUTTER),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                flingBehavior = rememberSnapFlingBehavior(lazyListState = topSongsState),
-                            ) {
-                                items(top.chunked(SONGS_PER_COLUMN)) { column ->
-                                    Column(Modifier.width(columnWidth)) {
-                                        column.forEach { song ->
-                                            CompactSongRow(
-                                                song = song,
-                                                palette = palette,
-                                                onClick = { onSongClick(top, top.indexOf(song)) },
-                                                onLongPress = { onSongLongPress(song) },
-                                                downloadedTint = downloadedTint,
-                                                isCurrent = isCurrentRow(song),
-                                                isPlaying = isCurrentRow(song) && isPlaying,
-                                            )
-                                        }
-                                    }
-                                }
+                        // v6: Top Songs run down the page as full-width rows,
+                        // not a sideways pager - the next column's peek read as
+                        // a stray sliver against the approved vertical list.
+                        Column(Modifier.padding(horizontal = ARTIST_CONTENT_GUTTER)) {
+                            top.forEach { song ->
+                                CompactSongRow(
+                                    song = song,
+                                    palette = palette,
+                                    onClick = { onSongClick(top, top.indexOf(song)) },
+                                    onLongPress = { onSongLongPress(song) },
+                                    downloadedTint = downloadedTint,
+                                    isCurrent = isCurrentRow(song),
+                                    isPlaying = isCurrentRow(song) && isPlaying,
+                                )
                             }
                         }
                     }
                 } else {
-                    // Every row on an album carries the same sleeve, which is
-                    // already the largest thing on the page — Apple Music
-                    // numbers those rows instead, and so does this.
-                    val numbered = page.type == BrowseType.ALBUM
+                    // v6: album rows carry the sleeve thumbnail like every other
+                    // list, rather than a track number in its place.
+                    val numbered = false
+                    val isPlaylist = page.type == BrowseType.PLAYLIST
                     val isCurrentRow = playingRowMatcher(matches.map { it.value }, currentSong)
                     if (matches.isEmpty() && state.data.isNotEmpty()) {
                         item(key = "no-matches") {
@@ -776,36 +795,51 @@ fun DetailScreen(
                     ) { position, entry ->
                         val song = entry.value
                         val isCurrent = isCurrentRow(song)
-                        SongRow(
-                            song = if (numbered) {
-                                song
+                        // v6: a playlist's rows sit together in one rounded
+                        // card, a hairline between them; an album's lie on the
+                        // page itself.
+                        Column(
+                            if (isPlaylist) {
+                                Modifier
+                                    .padding(horizontal = PAGE_GUTTER)
+                                    .clip(playlistCardShape(position, matches.lastIndex))
+                                    .background(palette.elevated)
                             } else {
-                                song.copy(thumbnailUrl = song.thumbnailUrl ?: page.thumbnailUrl)
+                                Modifier
                             },
-                            onClick = {
-                                onSongClick(queue, position)
-                            },
-                            onLongPress = { onSongLongPress(song) },
-                            onSwipeToQueue = { onSongSwipe(song) },
-                            rowBackground = Color.Transparent,
-                            // The track's place on the release, not its place in
-                            // what the filter — or a sort — left standing.
-                            trackNumber = originalTrackNumbers[song.videoId].takeIf { numbered },
-                            subtitleColor = palette.onBackgroundVariant,
-                            downloadedTint = downloadedTint,
-                            isCurrent = isCurrent,
-                            isPlaying = isCurrent && isPlaying,
-                            activeTint = palette.accent,
-                            searchPlayingStyle = true,
-                        )
-                        if (position < matches.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(
-                                    start = if (numbered) NUMBERED_ROW_DIVIDER_INSET else ROW_DIVIDER_INSET,
-                                ),
-                                thickness = 0.5.dp,
-                                color = palette.divider,
+                        ) {
+                            SongRow(
+                                song = if (numbered) {
+                                    song
+                                } else {
+                                    song.copy(thumbnailUrl = song.thumbnailUrl ?: page.thumbnailUrl)
+                                },
+                                onClick = {
+                                    onSongClick(queue, position)
+                                },
+                                onLongPress = { onSongLongPress(song) },
+                                onSwipeToQueue = { onSongSwipe(song) },
+                                rowBackground = if (isPlaylist) palette.elevated else Color.Transparent,
+                                // The track's place on the release, not its place in
+                                // what the filter — or a sort — left standing.
+                                trackNumber = originalTrackNumbers[song.videoId].takeIf { numbered },
+                                // Approved album rows carry a 44dp thumb; every
+                                // other list keeps the standard 52dp artwork.
+                                artHeight = if (isPlaylist) 52.dp else 44.dp,
+                                subtitleColor = palette.onBackgroundVariant,
+                                downloadedTint = downloadedTint,
+                                isCurrent = isCurrent,
+                                isPlaying = isCurrent && isPlaying,
+                                activeTint = palette.accent,
+                                searchPlayingStyle = true,
                             )
+                            if (isPlaylist && position < matches.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(start = PLAYLIST_ROW_DIVIDER_INSET),
+                                    thickness = 0.5.dp,
+                                    color = palette.divider,
+                                )
+                            }
                         }
                     }
                 }
@@ -822,22 +856,31 @@ fun DetailScreen(
                     suggested,
                     key = { _, song -> "suggested-${song.videoId}" },
                 ) { index, song ->
-                    SuggestedSongRow(
-                        song = song,
-                        palette = palette,
-                        onClick = { onSongClick(suggested, index) },
-                        onLongPress = { onSongLongPress(song) },
-                        onAdd = { onAddSuggested(song) },
-                        downloadedTint = downloadedTint,
-                        isCurrent = isSuggestedCurrent(song),
-                        isPlaying = isSuggestedCurrent(song) && isPlaying,
-                    )
-                    if (index < suggested.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = ROW_DIVIDER_INSET),
-                            thickness = 0.5.dp,
-                            color = palette.divider,
+                    // The same card the playlist's own rows sit in.
+                    Column(
+                        Modifier
+                            .padding(horizontal = PAGE_GUTTER)
+                            .clip(playlistCardShape(index, suggested.lastIndex))
+                            .background(palette.elevated),
+                    ) {
+                        SuggestedSongRow(
+                            song = song,
+                            palette = palette,
+                            onClick = { onSongClick(suggested, index) },
+                            onLongPress = { onSongLongPress(song) },
+                            onAdd = { onAddSuggested(song) },
+                            downloadedTint = downloadedTint,
+                            isCurrent = isSuggestedCurrent(song),
+                            isPlaying = isSuggestedCurrent(song) && isPlaying,
+                            contentInset = PLAYLIST_CARD_INSET,
                         )
+                        if (index < suggested.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = PLAYLIST_ROW_DIVIDER_INSET),
+                                thickness = 0.5.dp,
+                                color = palette.divider,
+                            )
+                        }
                     }
                 }
             }
@@ -930,8 +973,15 @@ private fun ReleaseHeader(
     onToggleLibrary: (() -> Unit)?,
     /** The Cached songs folder's: saves every track on it to Downloads. Null hides it. */
     onDownloadAll: (() -> Unit)? = null,
+    /**
+     * A device folder bills itself the v6 way: the page's name as a small-caps
+     * overline — "DOWNLOADS" — and what it holds as the big title beneath it,
+     * rather than the name twice.
+     */
+    folderPage: Boolean = false,
 ) {
-    val (credit, meta) = page.headerLines(songs.size, songs.playtime())
+    val parts = page.headerParts(songs.size, songs.playtime())
+    val isPlaylist = page.type == BrowseType.PLAYLIST
     // Every row on a release carries the same credit — see [pageCredit] — so
     // the first one speaks for the whole page, the same source the rows'
     // own long-press "Open artist" already reads from.
@@ -1041,8 +1091,48 @@ private fun ReleaseHeader(
         }
 
         Spacer(Modifier.height(20.dp))
+        // The overline says the page's name only when the title beneath it
+        // says something else — "DOWNLOADS" over "Downloaded songs". Where
+        // they would repeat each other ("LOCAL MUSIC" over "Local Music")
+        // the title alone carries the page.
+        if (folderPage && parts.credit.isNotBlank()) {
+            Text(
+                text = page.title.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.W700,
+                letterSpacing = 2.sp,
+                color = palette.onBackgroundVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = HEADER_GUTTER),
+            )
+            Spacer(Modifier.height(6.dp))
+        }
+        if (!folderPage && isPlaylist) {
+            // v6: a playlist bills itself the folder way, kind and year in
+            // small caps over the title — "PLAYLIST · 2023".
+            Text(
+                text = listOfNotNull(
+                    parts.kind,
+                    parts.credit.takeIf { it.isNotBlank() },
+                    parts.year,
+                ).joinToString(" · ").uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.W700,
+                letterSpacing = 2.sp,
+                color = palette.onBackgroundVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = HEADER_GUTTER),
+            )
+            Spacer(Modifier.height(6.dp))
+        }
         Text(
-            text = page.title,
+            // A folder's headline is what it holds ("Downloaded songs"), its
+            // name already said by the overline above; the credit carries it.
+            text = if (folderPage) parts.credit.ifBlank { page.title } else page.title,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.onBackground,
             textAlign = TextAlign.Center,
@@ -1050,42 +1140,75 @@ private fun ReleaseHeader(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = HEADER_GUTTER),
         )
-        if (credit.isNotBlank()) {
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = credit,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 19.sp,
-                ),
-                color = palette.onBackgroundVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(horizontal = HEADER_GUTTER)
-                    .let { m ->
-                        val id = artist?.artistId
-                        if (id == null || onArtistClick == null) {
-                            m
-                        } else {
-                            m.clip(RoundedCornerShape(6.dp))
-                                .clickable { onArtistClick(id, artist.artist) }
-                        }
-                    },
-            )
+        if (!folderPage && !isPlaylist) {
+            // v6: one line of kind, credit and year — "Album · Nova Rae · 2024".
+            val kindLine = listOfNotNull(
+                parts.kind,
+                parts.credit.takeIf { it.isNotBlank() },
+                parts.year,
+            ).joinToString(" · ")
+            if (kindLine.isNotBlank()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = kindLine,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 19.sp,
+                    ),
+                    color = palette.onBackgroundVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(horizontal = HEADER_GUTTER)
+                        .let { m ->
+                            val id = artist?.artistId
+                            if (id == null || onArtistClick == null) {
+                                m
+                            } else {
+                                m.clip(RoundedCornerShape(6.dp))
+                                    .clickable { onArtistClick(id, artist.artist) }
+                            }
+                        },
+                )
+            }
         }
-        if (meta.isNotBlank()) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = meta,
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.onBackgroundVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = HEADER_GUTTER),
-            )
+        if (folderPage) {
+            // A folder keeps its one-line billing — kind, year, tracks, time.
+            val folderMeta = listOfNotNull(
+                parts.kind,
+                parts.year,
+                parts.tracks,
+                parts.playtime,
+            ).joinToString(" · ")
+            if (folderMeta.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = folderMeta,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = palette.onBackgroundVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = HEADER_GUTTER),
+                )
+            }
+        } else {
+            // v6: the count and playtime on a line of their own, under the
+            // billing — "8 tracks · 31 min".
+            val trackLine = listOfNotNull(parts.tracks, parts.playtime).joinToString(" · ")
+            if (trackLine.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = trackLine,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = palette.onBackgroundVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = HEADER_GUTTER),
+                )
+            }
         }
 
         if (songs.isNotEmpty()) {
@@ -1323,11 +1446,40 @@ private fun ArtistHeader(
     page: DetailPage,
     palette: ArtworkPalette,
     artHeight: Dp,
+    /** Animated cover art, played inside the framed banner when one exists. */
+    canvas: CanvasArtwork?,
     appleArt: AppleArtistArt?,
     signature: ArtistSignature?,
 ) {
-    Box(Modifier.fillMaxWidth()) {
-        Spacer(Modifier.fillMaxWidth().height(artHeight + HEADER_DROP - ARTIST_HEADER_LIFT))
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // v6: the photograph sits framed on the flat page — gutters and 12px
+        // corners, as the release sleeve is — in place of the old full-bleed
+        // dissolve and its scroll-following layer.
+        Box(
+            Modifier
+                .padding(horizontal = ARTIST_CONTENT_GUTTER)
+                .fillMaxWidth()
+                .height(artHeight)
+                .clip(RoundedCornerShape(12.dp))
+                .background(palette.elevated),
+        ) {
+            AsyncImage(
+                model = appleArt?.heroUrl ?: page.thumbnailUrl.artworkAt(HEADER_ART_PX),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+            canvas?.let { clip ->
+                CanvasArtworkPlayer(
+                    canvas = clip,
+                    isPlaying = true,
+                    modifier = Modifier.matchParentSize(),
+                )
+            }
+        }
         val logoUrl = appleArt?.logoUrl
         // Secondary provider: drawn only when Apple has no title logo.
         val signatureUrl = signature?.imageUrl.takeIf { logoUrl == null }
@@ -1388,10 +1540,7 @@ private fun ArtistHeader(
             val isSignature = logoUrl == null && signature != null
             val sizeFactor = if (isSignature) SIGNATURE_SCALE else 1f
             val maxLogoHeight = artHeight * ARTIST_LOGO_MAX_HEIGHT * sizeFactor
-            Column(
-                modifier = Modifier.align(Alignment.BottomCenter),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
             AsyncImage(
                 model = request,
                 contentDescription = page.title,
@@ -1432,13 +1581,12 @@ private fun ArtistHeader(
         }
         if (!logoShown) Text(
             text = page.title,
-            style = MaterialTheme.typography.displayLarge,
+            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.W600),
             color = palette.onBackground,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 // Bottom is half the top inset — the stats pills (or, absent
                 // those, the action row) sit closer under the name than the
                 // name sits under the artwork.
@@ -1593,8 +1741,6 @@ private fun ActionRow(
     /** The artist header's subscribe state, or null where it isn't offered. */
     subscription: SubscriptionState? = null,
     onToggleSubscription: (() -> Unit)? = null,
-    /** Apple's fill for the Play circle; null leaves it white. */
-    playColor: Color? = null,
 ) {
     Row(
         modifier = Modifier
@@ -1611,11 +1757,14 @@ private fun ActionRow(
             size = ARTIST_SIDE_BUTTON,
         )
 
-        PlayCircle(
+        // v6: the same labelled Play pill the release page's row centres on.
+        ActionPill(
+            icon = BitChordIcons.Play,
+            label = stringResource(R.string.play),
             onClick = onPlay,
-            size = ARTIST_PLAY_BUTTON,
-            iconScale = ARTIST_PLAY_ICON_SCALE,
-            containerColor = playColor ?: Color.White,
+            filled = true,
+            size = ARTIST_SIDE_BUTTON,
+            modifier = Modifier.weight(1f),
         )
 
         if (subscription != null) {
@@ -1642,10 +1791,11 @@ private fun ActionRow(
 }
 
 /**
- * A labelled pill in the release page's action row. [filled] is Play: white
+ * A labelled action button in the release page's action row, the approved
+ * 12dp rounded rect (never a stadium pill). [filled] is Play: white
  * with black content, so the primary action survives every palette, filling
- * whatever width the row leaves it. Otherwise it wears the light veil and glass
- * rim of the circles beside it — Shuffle, on a page with no Add to sit opposite.
+ * whatever width the row leaves it. Otherwise it wears the light veil —
+ * Shuffle, on a page with no Add to sit opposite.
  */
 @Composable
 private fun ActionPill(
@@ -1659,19 +1809,17 @@ private fun ActionPill(
     // Resume rather than a flat tap: both start a queue, and the rising pair
     // says so.
     val haptics = rememberHaptics()
-    val content = if (filled) Color.Black else MaterialTheme.colorScheme.onSurface
+    // Filled is the theme's own ink, inverted: black on light, white on dark.
+    val content = if (filled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = modifier
             .height(size)
-            .clip(CircleShape)
+            .clip(PILL_SHAPE)
             .then(
                 if (filled) {
-                    Modifier.background(Color.White)
+                    Modifier.background(MaterialTheme.colorScheme.onSurface)
                 } else {
-                    Modifier
-                        .background(Color.White.copy(alpha = LIGHT_FILL_ALPHA), CircleShape)
-                        .liquidGlassRim(CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA), CircleShape)
+                    Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), PILL_SHAPE)
                 },
             )
             .clickable {
@@ -1775,11 +1923,8 @@ private fun CircleIconButton(
             .size(size)
             .alpha(if (enabled) 1f else DISABLED_ACTION_ALPHA)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = LIGHT_FILL_ALPHA), CircleShape)
-            // The glass rim the floating bars wear, with Liquid Glass on. Rim
-            // only: over the page's flat tint a blurred fill would look the same.
-            .liquidGlassRim(CircleShape)
-            .border(1.dp, Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA), CircleShape)
+            // v6: a flat tonal circle on the neutral page, no glass rim.
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), CircleShape)
             .clickable(enabled = enabled) {
                 haptics.play(haptic)
                 onClick()
@@ -2054,17 +2199,13 @@ private fun CompactSongRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.trackArtSize(48.dp, song.isVideo)) {
-            AsyncImage(
-                model = song.artworkAt(ROW_ART_PX),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(7.dp))
-                    .thumbnailBorder(RoundedCornerShape(7.dp))
-                    .background(palette.elevated),
-            )
+        RowArtwork(
+            model = song.artworkAt(ROW_ART_PX),
+            isVideo = song.isVideo,
+            size = 48.dp,
+            cornerRadius = 7.dp,
+            placeholder = palette.elevated,
+        ) {
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         }
         Spacer(Modifier.width(12.dp))
@@ -2106,6 +2247,8 @@ private fun SuggestedSongRow(
     downloadedTint: Color? = null,
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
+    /** The row's own inset inside whatever card it sits in. */
+    contentInset: Dp = PAGE_GUTTER,
 ) {
     Row(
         modifier = Modifier
@@ -2115,20 +2258,16 @@ private fun SuggestedSongRow(
                 onLongClick = onLongPress,
                 liftPadding = PaddingValues(horizontal = PAGE_GUTTER),
             )
-            .padding(horizontal = PAGE_GUTTER, vertical = 4.dp),
+            .padding(horizontal = contentInset, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.trackArtSize(52.dp, song.isVideo)) {
-            AsyncImage(
-                model = song.artworkAt(ROW_ART_PX),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(8.dp))
-                    .thumbnailBorder(RoundedCornerShape(8.dp))
-                    .background(palette.elevated),
-            )
+        RowArtwork(
+            model = song.artworkAt(ROW_ART_PX),
+            isVideo = song.isVideo,
+            size = 52.dp,
+            cornerRadius = 8.dp,
+            placeholder = palette.elevated,
+        ) {
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         }
         Spacer(Modifier.width(14.dp))
@@ -2155,14 +2294,15 @@ private fun SuggestedSongRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(palette.accent.copy(alpha = 0.16f))
+                // v6: a neutral tonal circle, not an artwork-tinted one.
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 .clickable(onClick = onAdd),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Rounded.Add,
                 contentDescription = stringResource(R.string.add_to_playlist),
-                tint = palette.accent,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -2437,14 +2577,21 @@ private fun ArtistShelfGridPage(
  * it: the player knows an album's artist but not its year, search knows both,
  * and a home card frequently knows neither.
  */
+/** A release header's billing, split so the page can lay the parts out. */
+private class HeaderParts(
+    val kind: String?,
+    val year: String?,
+    val credit: String,
+    val tracks: String?,
+    val playtime: String?,
+)
+
 @Composable
-private fun DetailPage.headerLines(trackCount: Int, playtime: String? = null): Pair<String, String> {
+private fun DetailPage.headerParts(trackCount: Int, playtime: String? = null): HeaderParts {
     val parts = subtitle.split("•", "·").map { it.trim() }.filter { it.isNotEmpty() }
     val year = parts.lastOrNull { it.length == 4 && it.all(Char::isDigit) }
     val kind = parts.firstOrNull { it.lowercase(Locale.ROOT) in KIND_WORDS }
     val credit = parts.filter { it != year && it != kind }.joinToString(", ")
-    // Title case, "Playlist · 2022 · 10 Tracks · 38 min" — except the
-    // playtime, whose "min" and "1h 25m" are units, not words.
     // An artist grouped out of a device folder is a plain track list, not an
     // artist page, but it is still billed as the artist it is.
     // A device directory plays like a playlist, but it is billed as a folder.
@@ -2453,15 +2600,29 @@ private fun DetailPage.headerLines(trackCount: Int, playtime: String? = null): P
         LocalGroups.isDirectory(browseId) -> stringResource(R.string.folder)
         else -> null
     }
-    val meta = listOfNotNull(
-        (kind ?: localKind ?: type.localizedLabel())?.capitalizeWords(),
-        year,
-        trackCount.takeIf { it > 0 }?.let {
-            pluralStringResource(R.plurals.track_count_plural, it, it).capitalizeWords()
+    return HeaderParts(
+        kind = (kind ?: localKind ?: type.localizedLabel())?.capitalizeWords(),
+        year = year,
+        credit = credit,
+        tracks = trackCount.takeIf { it > 0 }?.let {
+            pluralStringResource(R.plurals.track_count_plural, it, it)
         },
-        playtime,
+        playtime = playtime,
+    )
+}
+
+@Composable
+private fun DetailPage.headerLines(trackCount: Int, playtime: String? = null): Pair<String, String> {
+    val parts = headerParts(trackCount, playtime)
+    // Title case, "Playlist · 2022 · 10 Tracks · 38 min" — except the
+    // playtime, whose "min" and "1h 25m" are units, not words.
+    val meta = listOfNotNull(
+        parts.kind,
+        parts.year,
+        parts.tracks?.capitalizeWords(),
+        parts.playtime,
     ).joinToString(" · ")
-    return credit to meta
+    return parts.credit to meta
 }
 
 /** The glyph on a release page's placeholder sleeve: what kind of thing has no cover. */

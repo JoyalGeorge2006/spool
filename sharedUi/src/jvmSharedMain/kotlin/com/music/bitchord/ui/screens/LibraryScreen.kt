@@ -5,6 +5,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -134,7 +134,7 @@ fun LibraryScreen(
                 item {
                     Text(
                         text = stringResource(Res.string.library),
-                        style = MaterialTheme.typography.displayLarge,
+                        style = com.music.bitchord.ui.components.v6PageTitleStyle(),
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
                     )
@@ -234,21 +234,27 @@ fun LibraryScreen(
 data class LibraryLink(val item: ShelfItem, val icon: ImageVector, val logo: DrawableResource? = null)
 
 /**
- * The folders as a plain list — icon, name, chevron, hairlines between — the
- * way a music app's library has always opened, rather than as cards that all
- * look alike because none of them has artwork.
+ * The folders as one rounded card of rows — icon, name and what the folder
+ * holds, a chevron at the end and hairlines between — the container the
+ * app's other row groups use. Which folders exist is the platform's call;
+ * see `libraryLinks`.
  */
 @Composable
 private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
-    Column(Modifier.padding(top = 4.dp, bottom = 22.dp)) {
+    Column(
+        Modifier
+            .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 4.dp, bottom = 22.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
         links.forEachIndexed { index, link ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 54.dp)
                     .clickable { onClick(link.item) }
-                    .padding(horizontal = PAGE_GUTTER),
+                    .padding(horizontal = LINK_ROW_PADDING, vertical = 12.dp),
             ) {
                 if (link.logo != null) {
                     // A mark, not a glyph: white on dark, black on light, with
@@ -263,19 +269,30 @@ private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Un
                     Icon(
                         imageVector = link.icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(LINK_ICON_SIZE),
                     )
                 }
                 Spacer(Modifier.width(LINK_ICON_GAP))
-                Text(
-                    text = link.item.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = link.item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (link.item.subtitle.isNotBlank()) {
+                        Text(
+                            text = link.item.subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
                 Icon(
                     imageVector = BitChordIcons.ChevronRight,
                     contentDescription = null,
@@ -285,7 +302,7 @@ private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Un
             }
             if (index < links.lastIndex) {
                 HorizontalDivider(
-                    modifier = Modifier.padding(start = PAGE_GUTTER + LINK_ICON_SIZE + LINK_ICON_GAP),
+                    modifier = Modifier.padding(start = LINK_ROW_PADDING + LINK_ICON_SIZE + LINK_ICON_GAP),
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -293,6 +310,8 @@ private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Un
         }
     }
 }
+
+private val LINK_ROW_PADDING = 16.dp
 
 private val LINK_ICON_SIZE = 24.dp
 private val LINK_ICON_GAP = 16.dp

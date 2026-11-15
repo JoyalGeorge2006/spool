@@ -2,9 +2,18 @@ package com.music.bitchord.ui.player
 
 import com.music.bitchord.ui.components.trackArtSize
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import com.music.bitchord.sharedui.resources.*
 import com.music.bitchord.ui.components.ExplicitSongTitle
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -38,6 +47,7 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +83,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Velocity
 import coil3.compose.AsyncImage
 import com.music.bitchord.ui.components.thumbnailBorder
@@ -235,8 +246,18 @@ internal fun InlineQueue(
     collapsePlayerOnScroll: Boolean = false,
     onRevealPlayer: () -> Unit = {},
     onHidePlayer: () -> Unit = {},
+    /**
+     * Drawn under the player's tab row: the page title row is dropped (the tab
+     * names the page), and [relatedOnly] shows just the AutoPlay section — the
+     * Related tab — from the same rows, indices and entry keys as the queue.
+     */
+    tabbed: Boolean = false,
+    relatedOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    // Under the page's tabs the list is already inside the page width: the reference
+    // pads it 16dp, with no bleed.
+    val sideGutter = if (tabbed) 16.dp else PLAYER_GUTTER
     val listState = rememberLazyListState()
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collect(onScrollingChange)
@@ -260,10 +281,11 @@ internal fun InlineQueue(
     // Keep Now playing in view; history is available by scrolling upwards.
     // Include the entry key because trimming history can leave the index unchanged.
     var hasScrolledOnce by remember { mutableStateOf(false) }
-    LaunchedEffect(currentIndex, nowPlaying?.key, showHistory) {
+    LaunchedEffect(relatedOnly) { if (relatedOnly) listState.scrollToItem(0) }
+    LaunchedEffect(currentIndex, nowPlaying?.key, showHistory, relatedOnly) {
         val nowPlayingRow = if (tracks.history.isEmpty()) 0 else tracks.history.size + 1
         val scrolledAway = listState.firstVisibleItemIndex != nowPlayingRow || listState.firstVisibleItemScrollOffset != 0
-        if (drag.held == null && nowPlaying != null && scrolledAway) {
+        if (!relatedOnly && drag.held == null && nowPlaying != null && scrolledAway) {
             if (hasScrolledOnce) {
                 listState.animateScrollToItem(nowPlayingRow)
             } else {
@@ -274,25 +296,32 @@ internal fun InlineQueue(
     }
 
     Column(modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(Res.string.queue),
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-                modifier = Modifier.weight(1f),
-            )
-            if (tracks.user.isNotEmpty()) {
-                QueueClearButton(MaterialTheme.typography.titleMedium, controlsLocked, onClear)
+        if (!tabbed) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.queue),
+                    // The flat theme's queue header reads as a page title.
+                    style = if (LocalPlayerFlat.current) {
+                        MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                    } else {
+                        MaterialTheme.typography.titleLarge
+                    },
+                    color = chromeWhite(1f),
+                    modifier = Modifier.weight(1f),
+                )
+                if (tracks.user.isNotEmpty()) {
+                    QueueClearButton(MaterialTheme.typography.titleMedium, controlsLocked, onClear)
+                }
             }
         }
         Spacer(Modifier.height(4.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .bleedHorizontally(PLAYER_GUTTER)
+                .then(if (tabbed) Modifier else Modifier.bleedHorizontally(PLAYER_GUTTER))
                 .fadingEdges(),
         ) {
             LazyColumn(
@@ -303,9 +332,9 @@ internal fun InlineQueue(
                     // drag on itself and slides the whole player away.
                     .nestedScroll(keepScroll)
                     .then(if (collapsePlayerOnScroll) Modifier.nestedScroll(controlsOnScroll) else Modifier),
-                contentPadding = PaddingValues(horizontal = PLAYER_GUTTER),
+                contentPadding = PaddingValues(horizontal = sideGutter),
             ) {
-                if (tracks.history.isNotEmpty()) {
+                if (!relatedOnly && tracks.history.isNotEmpty()) {
                     item(key = "header-history") {
                         QueueHeading(
                             title = stringResource(Res.string.previously_played),
@@ -323,7 +352,7 @@ internal fun InlineQueue(
                         )
                     }
                 }
-                if (nowPlaying != null) {
+                if (!relatedOnly && nowPlaying != null) {
                     item(key = "header-now-playing") {
                         QueueHeading(
                             title = stringResource(Res.string.now_playing),
@@ -341,7 +370,7 @@ internal fun InlineQueue(
                         )
                     }
                 }
-                if (tracks.user.isNotEmpty()) {
+                if (!relatedOnly && tracks.user.isNotEmpty()) {
                     item(key = "header-user-queue") {
                         QueueHeading(
                             title = stringResource(Res.string.next_in_queue),
@@ -352,7 +381,7 @@ internal fun InlineQueue(
                     }
                     queueSection(tracks.user, QueueSection.USER, drag, controlsLocked, onJumpTo, onRemove)
                 }
-                if (tracks.context.isNotEmpty()) {
+                if (!relatedOnly && tracks.context.isNotEmpty()) {
                     item(key = "header-context") {
                         QueueHeading(
                             title = if (contextTitle != null) {
@@ -369,14 +398,14 @@ internal fun InlineQueue(
                     item(key = "autoplay-heading") {
                         AutoplayHeading(hasTracks = tracks.autoplay.isNotEmpty(), modifier = queueMotion())
                     }
-                    queueSection(tracks.autoplay, QueueSection.AUTOPLAY, drag, controlsLocked, onJumpTo, onRemove)
+                    queueSection(tracks.autoplay, QueueSection.AUTOPLAY, drag, controlsLocked, onJumpTo, onRemove, reorderable = !relatedOnly)
                 }
             }
             // The held row, drawn over the list where the finger is. Positioned
             // from the finger alone, so nothing the list does underneath — a
             // swap, a relayout, a scroll — can move it.
             drag.held?.let { held ->
-                Box(Modifier.matchParentSize().padding(horizontal = PLAYER_GUTTER)) {
+                Box(Modifier.matchParentSize().padding(horizontal = sideGutter)) {
                     InlineQueueRow(
                         song = held.song,
                         isCurrent = false,
@@ -405,6 +434,8 @@ private fun LazyListScope.queueSection(
     locked: Boolean,
     onJumpTo: (Int) -> Unit,
     onRemove: (Int) -> Unit,
+    /** False under the Related tab, which the reference draws without handles. */
+    reorderable: Boolean = true,
 ) {
     items(rows, key = { it.key }) { track ->
         val held = drag.held?.key == track.key
@@ -419,7 +450,7 @@ private fun LazyListScope.queueSection(
             onClick = { onJumpTo(track.timelineIndex) },
             onRemove = { onRemove(track.timelineIndex) },
             locked = locked,
-            draggable = !locked,
+            draggable = !locked && reorderable,
             onDragStart = { drag.start(track.key, section) },
             onDrag = drag::drag,
             onDragEnd = { drag.end(track.key) },
@@ -436,10 +467,16 @@ private fun QueueHeading(
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White.copy(alpha = 0.75f),
-            modifier = Modifier.weight(1f),
+            // Small label like the reference's section headings (11.5sp bold,
+            // tracked). Uppercase via the locale-aware String call.
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+            ),
+            color = chromeWhite(0.6f),
+            modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
         )
         trailing()
     }
@@ -450,7 +487,7 @@ private fun QueueClearButton(style: TextStyle, locked: Boolean, onClear: () -> U
     Text(
         text = stringResource(Res.string.clear),
         style = style,
-        color = Color.White.copy(alpha = if (locked) 0.25f else 0.75f),
+        color = chromeWhite(if (locked) 0.25f else 0.75f),
         modifier = Modifier
             .clip(RoundedCornerShape(percent = 50))
             .clickable(enabled = !locked, onClick = onClear)
@@ -460,33 +497,38 @@ private fun QueueClearButton(style: TextStyle, locked: Boolean, onClear: () -> U
 
 @Composable
 private fun AutoplayHeading(hasTracks: Boolean, modifier: Modifier = Modifier) {
-    Row(
+    // Compact and neutral, as the reference's AutoPlay section: a small tracked
+    // label with a 16dp glyph and a one-line description, no title-sized type.
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp),
     ) {
-        Icon(
-            BitChordIcons.Infinity,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.75f),
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                BitChordIcons.Infinity,
+                contentDescription = null,
+                tint = chromeWhite(0.6f),
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(7.dp))
             Text(
                 text = stringResource(Res.string.autoplay),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-            )
-            Text(
-                text = stringResource(
-                    if (hasTracks) Res.string.autoplay_queue_description else Res.string.autoplay_empty_description,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
                 ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = chromeWhite(0.6f),
             )
         }
+        Text(
+            text = stringResource(
+                if (hasTracks) Res.string.autoplay_queue_description else Res.string.autoplay_empty_description,
+            ),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+            color = chromeWhite(0.6f),
+            modifier = Modifier.padding(top = 3.dp),
+        )
     }
 }
 
@@ -736,27 +778,147 @@ private fun InlineQueueRow(
     onDrag: (Float) -> Unit = {},
     onDragEnd: () -> Unit = {},
 ) {
+    // Swipe either way to remove, through the same onRemove as the close button.
+    // Horizontal only, so vertical scroll and the handle-only reorder drag are
+    // untouched (the handle consumes its own drag first, which cancels this
+    // gesture). The offset is plain gesture state; only the settle animates.
+    // Latest callbacks/flags are read at use, and the detector is keyed on the
+    // gate so a lock or lift mid-gesture cancels it and the offset resets.
+    val currentOnRemove by rememberUpdatedState(onRemove)
+    val currentLocked by rememberUpdatedState(locked)
+    val swipeEnabled = !locked && !lifted
+    var swipeX by remember { mutableFloatStateOf(0f) }
+    var rowWidthPx by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(swipeEnabled) { if (!swipeEnabled) swipeX = 0f }
+    val swipeModifier = if (!swipeEnabled) Modifier else Modifier.pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val slop = awaitHorizontalTouchSlopOrCancellation(down.id) { change, over ->
+                change.consume()
+                swipeX += over
+            } ?: run { swipeX = 0f; return@awaitEachGesture }
+            val finished = horizontalDrag(slop.id) { change ->
+                swipeX += change.positionChange().x
+                change.consume()
+            }
+            val limit = rowWidthPx * 0.4f
+            // Locked is re-checked at release: a party lock taken mid-swipe
+            // must not remove. A refused/ignored removal leaves the row, which
+            // settles back to rest below.
+            if (finished && !currentLocked && limit > 0f && abs(swipeX) >= limit) {
+                currentOnRemove()
+            }
+            swipeX = 0f
+        }
+    }
+    val swipeRest by animateFloatAsState(
+        targetValue = swipeX,
+        animationSpec = if (swipeX == 0f) tween(180) else snap(),
+        label = "queueSwipe",
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (lifted) Color.White.copy(alpha = 0.06f) else Color.Transparent)
+            .onSizeChanged { rowWidthPx = it.width.toFloat() }
+            .offset { IntOffset(swipeRest.roundToInt(), 0) }
+            .graphicsLayer {
+                alpha = if (rowWidthPx > 0f) (1f - abs(swipeRest) / rowWidthPx).coerceIn(0.3f, 1f) else 1f
+            }
+            .then(swipeModifier)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                when {
+                    lifted -> chromeWhite(0.06f)
+                    // Reference: a faint card (#f7f6f4 on white, #1c1a20 on black).
+                    isCurrent -> chromeWhite(if (LocalPlayerInk.current) 0.03f else 0.05f)
+                    else -> Color.Transparent
+                },
+            )
             // Disabled rather than ignored: a tap that ripples and then does
             // nothing reads as the app having missed it.
             .clickable(enabled = !locked, onClick = onClick)
-            .padding(vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(contentAlignment = Alignment.Center) {
+            AsyncImage(
+                model = rememberRemoteArtworkUrl(song),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .trackArtSize(52.dp, song.isVideo)
+                    .clip(RoundedCornerShape(8.dp))
+                    .thumbnailBorder(RoundedCornerShape(8.dp))
+                    .background(chromeWhite(0.08f)),
+            )
+            if (isCurrent && LocalPlayerInk.current) {
+                // The reference's `.playingeq`: the whole thumbnail dimmed, a white
+                // waveform on it, no inner disc. Static, so nothing to gate.
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x70000000)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Rounded.GraphicEq,
+                        contentDescription = stringResource(Res.string.now_playing),
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+            } else if (isCurrent) {
+                // Static glyph over a dim: the app-wide reduce-motion policy
+                // never has to gate it because nothing here animates.
+                Icon(
+                    Icons.Rounded.GraphicEq,
+                    contentDescription = stringResource(Res.string.now_playing),
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(26.dp)
+                        .background(Color(0x66000000), CircleShape)
+                        .padding(3.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            ExplicitSongTitle(
+                song = song,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (isCurrent) chromeWhite(1f) else chromeWhite(0.92f),
+            )
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodyMedium,
+                color = chromeWhite(0.55f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // Only the song's own duration text, as the reference's `.qdur`. Absent
+        // when the data has none (a fixture or a stream with no length); nothing
+        // is made up in its place.
+        song.durationText?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                color = chromeWhite(0.6f),
+                maxLines = 1,
+            )
+        }
         if (draggable) {
             Icon(
                 Icons.Rounded.DragHandle,
                 contentDescription = stringResource(Res.string.drag_to_reorder),
-                tint = Color.White.copy(alpha = 0.4f),
+                tint = chromeWhite(0.4f),
                 modifier = Modifier
-                    .size(20.dp)
-                    // The glyph sits well inset in its own box; this pulls it
-                    // back to the row's edge.
-                    .offset(x = (-4).dp)
+                    // 48dp touch target around the 20dp glyph, at the row's end
+                    // as the reference draws it.
+                    .size(48.dp)
+                    .padding(14.dp)
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragStart = { onDragStart() },
@@ -769,57 +931,7 @@ private fun InlineQueueRow(
                         )
                     },
             )
-            Spacer(Modifier.width(4.dp))
         }
-        AsyncImage(
-            model = rememberRemoteArtworkUrl(song),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .trackArtSize(44.dp, song.isVideo)
-                .clip(RoundedCornerShape(6.dp))
-                .thumbnailBorder(RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.08f)),
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            ExplicitSongTitle(
-                song = song,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.92f),
-            )
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.55f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (isCurrent) {
-            Icon(
-                Icons.Rounded.GraphicEq,
-                contentDescription = stringResource(Res.string.now_playing),
-                tint = Color.White,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(10.dp))
-        }
-        if (!locked) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onRemove),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Rounded.Close,
-                    contentDescription = stringResource(Res.string.remove_from_queue),
-                    tint = Color.White.copy(alpha = 0.55f),
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
+
     }
 }

@@ -1513,7 +1513,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // A leftover APK only means "Install Now" for the session that
             // downloaded it — see AppUpdateChecker.clearCache.
             AppUpdateChecker.clearCache(getApplication())
-            AppUpdateChecker.check()
+            // Parked: spool's only release channel today is timestamped,
+            // debug-signed test builds - their tags are not versions the
+            // comparer can read, and one cannot install over a differently
+            // signed build. The checker now points at the spool repo so a
+            // future signed channel can switch it on; before the repoint it
+            // offered this app's users UPSTREAM's APK.
+            // AppUpdateChecker.check()
         }
     }
 

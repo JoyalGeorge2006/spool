@@ -244,6 +244,15 @@ object AppSettings {
      */
     val exportDownloads = MutableStateFlow(false)
 
+    /** Whether each finished download is also written as .mp3 into [mp3ExportFolder]. */
+    val mp3Export = MutableStateFlow(false)
+
+    /** Tracks with a finished .mp3 copy in [mp3ExportFolder], by videoId - Home's MP3 badge. */
+    val mp3ExportedIds = MutableStateFlow<Set<String>>(emptySet())
+
+    /** SAF tree uri of the folder MP3 copies go to; blank until the listener picks one. */
+    val mp3ExportFolder = MutableStateFlow("")
+
     /**
      * Check the playlists downloaded whole for newly added songs and download
      * them, in the background. Off by default: it spends data and storage
@@ -605,7 +614,11 @@ object AppSettings {
      * its cost (blobs that drift are a full-screen blur redrawn while they move,
      * where a mesh is drawn once per track and then composited).
      */
-    val playerTheme = MutableStateFlow(PlayerTheme.DEFAULT)
+    // The shipped default (the prefs fallback below agrees): the approved
+    // Material player is FLAT - M3 lavender FAB, tonal Lyrics/Output/Up Next
+    // chips. DEFAULT is the older artwork-mesh look the Material player
+    // replaced; it stays selectable in Settings.
+    val playerTheme = MutableStateFlow(PlayerTheme.FLAT)
 
     /** Restores the expanded player to the surface the listener left open. */
     val lastPlayerScreen = MutableStateFlow(LastPlayerScreen.MAIN)
@@ -971,6 +984,9 @@ object AppSettings {
         downloadQuality.value = readDownloadQuality()
         wifiOnlyDownloads.value = prefs.getBoolean(KEY_WIFI_ONLY_DOWNLOADS, true)
         exportDownloads.value = prefs.getBoolean(KEY_EXPORT_DOWNLOADS, false)
+        mp3Export.value = prefs.getBoolean(KEY_MP3_EXPORT, false)
+        mp3ExportedIds.value = prefs.getStringSet(KEY_MP3_EXPORTED_IDS, emptySet()).orEmpty()
+        mp3ExportFolder.value = prefs.getString(KEY_MP3_EXPORT_FOLDER, "").orEmpty()
         syncDownloadedPlaylists.value = prefs.getBoolean(KEY_SYNC_DOWNLOADED_PLAYLISTS, false)
         crossfadeSeconds.value = prefs.getInt(KEY_CROSSFADE, 0)
         smartFadeEnabled.value = prefs.getBoolean(KEY_SMART_FADE, false)
@@ -1066,7 +1082,7 @@ object AppSettings {
         playerTheme.value = runCatching {
             PlayerTheme.valueOf(prefs.getString(KEY_PLAYER_THEME, null).orEmpty())
         }.getOrElse {
-            if (prefs.getBoolean(KEY_LEGACY_MESH_GRADIENT, false)) PlayerTheme.LEGACY else PlayerTheme.DEFAULT
+            if (prefs.getBoolean(KEY_LEGACY_MESH_GRADIENT, false)) PlayerTheme.LEGACY else PlayerTheme.FLAT
         }
         lastPlayerScreen.value = runCatching {
             LastPlayerScreen.valueOf(
@@ -1832,6 +1848,25 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_EXPORT_DOWNLOADS, value).apply()
     }
 
+    /** Marks [videoId]'s .mp3 copy as written. Called from the download worker. */
+    @Synchronized
+    fun addMp3Exported(videoId: String) {
+        if (videoId in mp3ExportedIds.value) return
+        val next = mp3ExportedIds.value + videoId
+        mp3ExportedIds.value = next
+        prefs.edit().putStringSet(KEY_MP3_EXPORTED_IDS, next).apply()
+    }
+
+    fun setMp3Export(value: Boolean) {
+        mp3Export.value = value
+        prefs.edit().putBoolean(KEY_MP3_EXPORT, value).apply()
+    }
+
+    fun setMp3ExportFolder(value: String) {
+        mp3ExportFolder.value = value
+        prefs.edit().putString(KEY_MP3_EXPORT_FOLDER, value).apply()
+    }
+
     fun setSyncDownloadedPlaylists(value: Boolean) {
         syncDownloadedPlaylists.value = value
         prefs.edit().putBoolean(KEY_SYNC_DOWNLOADED_PLAYLISTS, value).apply()
@@ -2222,6 +2257,9 @@ object AppSettings {
         "downloaded_tracks_metadata",
         "downloaded_collections",
         KEY_LOCAL_MUSIC_FOLDER_URI,
+        // A SAF tree grant lives on the device that made it; restored elsewhere
+        // it names a folder this app cannot write to.
+        KEY_MP3_EXPORT_FOLDER,
         KEY_LAST_VERSION_CODE,
         KEY_ONBOARDING_COMPLETE,
     )
@@ -2254,6 +2292,9 @@ object AppSettings {
     private const val KEY_QUALITY_DOWNLOAD = "audio_quality_download"
     private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
     private const val KEY_EXPORT_DOWNLOADS = "export_downloads"
+    private const val KEY_MP3_EXPORT = "mp3_export"
+    private const val KEY_MP3_EXPORTED_IDS = "mp3_exported_ids"
+    private const val KEY_MP3_EXPORT_FOLDER = "mp3_export_folder"
     private const val KEY_SYNC_DOWNLOADED_PLAYLISTS = "sync_downloaded_playlists"
     private const val KEY_CROSSFADE = "crossfade_seconds"
     private const val KEY_SMART_FADE = "smart_fade_enabled"

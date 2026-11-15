@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,6 +49,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -79,16 +81,16 @@ data class BottomTab(
 internal val PILL_INSET = 4.dp
 
 /**
- * The tab bar's margin at either side of the screen: Apple's is 19pt, wider
- * than the page's own [BAR_GUTTER].
+ * The dock's margin at either side of the screen: the approved 12dp, level
+ * with the mini player card riding above it.
  */
-internal val NAV_BAR_GUTTER = 19.dp
+internal val NAV_BAR_GUTTER = 12.dp
 
 /**
- * How far above [floatingBarInsets] the bar sits: on a gesture inset of 15dp
- * this puts its foot 21dp off the screen's edge, where Apple's is.
+ * How far above [floatingBarInsets] the dock sits: the approved 10dp between
+ * the system inset and the dock's foot.
  */
-internal val NAV_BAR_LIFT = 6.dp
+internal val NAV_BAR_LIFT = 10.dp
 
 /**
  * How far the floating bars stand off the bottom edge: the system navigation
@@ -106,31 +108,27 @@ internal val floatingBarInsets: WindowInsets
 private val GESTURE_BAR_FLOOR = 15.dp
 
 /**
- * Each tab's own vertical padding, and the counterweight to [PILL_INSET].
- *
- * The pill has no height of its own — it is whatever its contents come to — so
- * taking 2dp off the inset above would have shortened the whole bar by 4. The
- * same 2dp is added back here instead, which leaves the bar's outer height
- * exactly where it was and moves the boundary rather than the bar. The two
- * numbers are a pair: change one and the bar's height moves unless the other
- * moves against it.
+ * Each tab's own vertical padding. With the 20dp glyph, the 10sp label and
+ * [PILL_INSET] this puts the dock's outer height at the approved 62dp.
  */
-internal val TAB_VERTICAL_PADDING = 6.5.dp
+internal val TAB_VERTICAL_PADDING = 10.dp
 
 /** The gap between a tab's glyph and its label, in both bars. */
 internal val TAB_ICON_LABEL_GAP = 1.dp
 
 /**
- * A tab's glyph box. Apple's glyphs stand 21 to 24pt in a bar 61pt tall, a
- * larger share of it than these had at 25dp in 70; at 28 they come out at
- * Apple's sizes, and with the padding above the bar is 62dp.
+ * A tab's glyph box: the approved 20dp outline glyph.
  */
-internal val TAB_ICON_SIZE = 28.dp
+internal val TAB_ICON_SIZE = 20.dp
 
-/** A tab's label: Apple's 10pt, letter-spaced as SF Pro Text sets it. */
+/** A tab's label: 10sp semibold, as approved. */
 @Composable
 internal fun tabLabelStyle(): TextStyle =
-    MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.5.sp)
+    MaterialTheme.typography.labelSmall.copy(
+        fontSize = 10.sp,
+        letterSpacing = 0.5.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
 
 /**
  * The spring the selection indicator and the tab glyphs both travel on.
@@ -182,10 +180,10 @@ fun FloatingBottomBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
-    val pillShape = RoundedCornerShape(percent = 50)
+    // The approved dock: a rounded rectangle detached from the screen's
+    // edges rather than the capsule pill it replaces.
+    val dockShape = RoundedCornerShape(16.dp)
     val container = MaterialTheme.colorScheme.surface
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
     val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
     // The glass settle is exactly the motion "reduce animation" promises to
     // drop — snapping both the indicator's travel and the glyph's pop to
@@ -252,20 +250,11 @@ fun FloatingBottomBar(
             .padding(horizontal = NAV_BAR_GUTTER)
             .padding(bottom = NAV_BAR_LIFT)
             .fillMaxWidth()
-            .clip(pillShape)
-            .then(
-                if (reduceDynamicBlur) {
-                    Modifier.background(container)
-                } else if (useGlass) {
-                    Modifier.liquidGlass(shape = pillShape)
-                } else {
-                    Modifier.optimizedHazeEffect(
-                        state = hazeState,
-                        style = HazeMaterials.regular(container),
-                    )
-                },
-            )
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
+            .shadow(8.dp, dockShape)
+            .clip(dockShape)
+            // v6: flat surface with a hairline - no frost, no glass.
+            .background(container)
+            .border(GLASS_EDGE_WIDTH, MaterialTheme.colorScheme.outline, dockShape)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET),
     ) {
         if (tabWidthPx > 0f) {
@@ -283,8 +272,9 @@ fun FloatingBottomBar(
                         scaleX = 1f + lag * STRETCH
                         scaleY = 1f - lag * STRETCH * SQUASH
                     }
-                    .clip(pillShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                    .clip(RoundedCornerShape(12.dp))
+                    // The approved selection: a soft neutral tonal highlight.
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
             )
         }
 
@@ -341,8 +331,7 @@ fun FloatingBottomBar(
             // contrast against it. Glass mode reads luminance off the surface
             // color instead and picks pure black or white, same as the tint
             // Echo's floating nav bar uses for its own liquid glass.
-            val glassTint = glassContentColor()
-            val adaptiveTint = if (useGlass) glassTint else null
+            val adaptiveTint: Color? = null
             tabs.forEachIndexed { index, tab ->
                 BottomBarItem(
                     tab = tab,
@@ -379,7 +368,7 @@ private fun BottomBarItem(
     val haptics = rememberHaptics()
     val tint by animateColorAsState(
         targetValue = if (selected) {
-            selectedTint ?: MaterialTheme.colorScheme.primary
+            selectedTint ?: MaterialTheme.colorScheme.onSurface
         } else {
             unselectedTint ?: MaterialTheme.colorScheme.onSurfaceVariant
         },
@@ -390,7 +379,7 @@ private fun BottomBarItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .clip(RoundedCornerShape(percent = 50))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

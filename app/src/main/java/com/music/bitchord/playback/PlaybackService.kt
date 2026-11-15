@@ -261,6 +261,14 @@ internal class ManualUpgradeThrottle(private val cooldownMs: Long) {
  * party publish those moves would otherwise trigger one at a time, so a jam
  * hears about the reorder once, when the row is dropped, not mid-drag.
  */
+const val ACTION_REMOVE_QUEUE_UNDO = "app.spool.music.REMOVE_QUEUE_UNDO"
+const val ACTION_RESTORE_QUEUE_UNDO = "app.spool.music.RESTORE_QUEUE_UNDO"
+const val EXTRA_QUEUE_UNDO_TOKEN = "spool.undo.token"
+const val EXTRA_QUEUE_UNDO_INDEX = "spool.undo.index"
+const val EXTRA_QUEUE_UNDO_ENTRY = "spool.undo.entry"
+const val EXTRA_QUEUE_UNDO_MEDIA = "spool.undo.media"
+const val EXTRA_QUEUE_UNDO_SNAPSHOT = "spool.undo.snapshot"
+
 const val ACTION_QUEUE_DRAG = "com.music.bitchord.action.QUEUE_DRAG"
 const val EXTRA_QUEUE_DRAG_ACTIVE = "bitchord.queueDrag.active"
 
@@ -791,6 +799,91 @@ class PlaybackService : MediaLibraryService() {
     private val upgradeQualityCommand = SessionCommand(ACTION_UPGRADE_QUALITY, Bundle.EMPTY)
     private val swapVersionCommand = SessionCommand(ACTION_SWAP_VERSION, Bundle.EMPTY)
     private val queueDragCommand = SessionCommand(ACTION_QUEUE_DRAG, Bundle.EMPTY)
+    private val removeQueueUndoCommand = SessionCommand(ACTION_REMOVE_QUEUE_UNDO, Bundle.EMPTY)
+    private val restoreQueueUndoCommand = SessionCommand(ACTION_RESTORE_QUEUE_UNDO, Bundle.EMPTY)
+    private data class QueueRemoval(
+        val token: String,
+        val item: MediaItem,
+        val before: String?,
+        val after: String?,
+        val current: String?,
+        val expiresAt: Long,
+        val wasHistory: Boolean,
+        val wasCurrent: Boolean,
+    )
+    private var lastQueueRemoval: QueueRemoval? = null
+
+    /** Runs on the session thread, so the identity check and edit are one operation. */
+    private fun removeQueueWithUndo(session: MediaSession, args: Bundle): SessionResult {
+        if (ListenTogether.state.value.controlsLocked) return SessionResult(SessionError.ERROR_PERMISSION_DENIED)
+        val p = session.player
+        val index = args.getInt(EXTRA_QUEUE_UNDO_INDEX, -1)
+        if (index !in 0 until p.mediaItemCount) return SessionResult(SessionError.ERROR_BAD_VALUE)
+        val item = p.getMediaItemAt(index)
+        val expectedEntry = args.getString(EXTRA_QUEUE_UNDO_ENTRY)
+        if (item.mediaId != args.getString(EXTRA_QUEUE_UNDO_MEDIA) ||
+            (expectedEntry != null && item.queueEntryId != expectedEntry)) {
+            return SessionResult(SessionError.ERROR_BAD_VALUE)
+        }
+        val matching = (0 until p.mediaItemCount).count { i ->
+            p.getMediaItemAt(i).queueEntryId == expectedEntry
+        }
+        if (expectedEntry == null || matching != 1) {
+            // Legacy queues can contain the same song twice without entry IDs.
+            // Validate the complete displayed timeline before using its index.
+            // A concurrent insertion/reorder makes this fail, never remove a neighbor.
+            val shown = args.getStringArrayList(EXTRA_QUEUE_UNDO_SNAPSHOT)
+            val live = (0 until p.mediaItemCount).map { i -> p.getMediaItemAt(i).let {
+                "${it.queueEntryId.orEmpty()}|${it.mediaId}|${it.queueTier.name}"
+            } }
+            if (shown != live) return SessionResult(SessionError.ERROR_BAD_VALUE)
+        }
+        fun neighbor(i: Int): String? = if (i in 0 until p.mediaItemCount) {
+            p.getMediaItemAt(i).takeIf { it.queueTier == item.queueTier }?.queueEntryId
+        } else null
+        val token = java.util.UUID.randomUUID().toString()
+        val wasHistory = index < p.currentMediaItemIndex
+        val wasCurrent = index == p.currentMediaItemIndex
+        val before = neighbor(index - 1)
+        val after = neighbor(index + 1)
+        p.removeMediaItem(index)
+        lastQueueRemoval = QueueRemoval(token, item, before, after, p.currentMediaItem?.queueEntryId,
+            android.os.SystemClock.elapsedRealtime() + 120_000L, wasHistory, wasCurrent)
+        return SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putString(EXTRA_QUEUE_UNDO_TOKEN, token) })
+    }
+
+    /** Restore the entry near its live same-section neighbors, never seek or restart it. */
+    private fun restoreQueueWithUndo(session: MediaSession, args: Bundle): SessionResult {
+        if (ListenTogether.state.value.controlsLocked) return SessionResult(SessionError.ERROR_PERMISSION_DENIED)
+        val removal = lastQueueRemoval ?: return SessionResult(SessionError.ERROR_BAD_VALUE)
+        if (removal.token != args.getString(EXTRA_QUEUE_UNDO_TOKEN) ||
+            android.os.SystemClock.elapsedRealtime() > removal.expiresAt) return SessionResult(SessionError.ERROR_BAD_VALUE)
+        val p = session.player
+        // Undo is a queue edit, never a request to pause the whole party.
+        // Restoring into an empty/ended local player must pause before add to
+        // prevent auto-start; while the party plays that would publish a pause.
+        // Refuse this divergent state rather than alter group transport.
+        val party = ListenTogether.state.value
+        if (!canRestoreQueueWithoutPartyPause(party.inParty, party.playback.isPlaying,
+                p.mediaItemCount, p.playbackState)) {
+            return SessionResult(SessionError.ERROR_INVALID_STATE)
+        }
+        val items = (0 until p.mediaItemCount).map(p::getMediaItemAt)
+        val entry = removal.item.queueEntryId
+        if (entry != null && items.any { it.queueEntryId == entry }) return SessionResult(SessionError.ERROR_BAD_VALUE)
+        val index = QueueUndoPosition.choose(
+            items.map { QueueUndoPosition.Entry(it.queueEntryId, it.queueTier) },
+            p.currentMediaItemIndex, removal.item.queueTier,
+            removal.before, removal.after, removal.current, removal.wasHistory, removal.wasCurrent,
+        ) ?: return SessionResult(SessionError.ERROR_BAD_VALUE)
+        // An ended/empty player may auto-start a newly added item when
+        // playWhenReady was left true. Stop that BEFORE adding, not afterwards.
+        // A normally playing queue keeps playing its current track unchanged.
+        p.restoreRemovedQueueItem(index, removal.item)
+        lastQueueRemoval = null
+        return SessionResult(SessionResult.RESULT_SUCCESS)
+    }
+
 
     private var favoriteActionJob: Job? = null
     private var stationActionJob: Job? = null
@@ -8639,6 +8732,8 @@ class PlaybackService : MediaLibraryService() {
                 .add(upgradeQualityCommand)
                 .add(swapVersionCommand)
                 .add(queueDragCommand)
+                .add(removeQueueUndoCommand)
+                .add(restoreQueueUndoCommand)
                 .build()
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
@@ -8664,6 +8759,8 @@ class PlaybackService : MediaLibraryService() {
             args: Bundle,
         ): ListenableFuture<SessionResult> {
             when (customCommand.customAction) {
+                ACTION_REMOVE_QUEUE_UNDO -> return Futures.immediateFuture(removeQueueWithUndo(session, args))
+                ACTION_RESTORE_QUEUE_UNDO -> return Futures.immediateFuture(restoreQueueWithUndo(session, args))
                 ACTION_START_BOUNDED_CONTEXT -> startBoundedContext(args)
                 ACTION_CLEAR_BOUNDED_CONTEXT -> clearBoundedContext()
                 ACTION_TOGGLE_AUTOPLAY -> toggleAutoplayFromNotification()

@@ -1,6 +1,9 @@
 package com.music.bitchord.ui.components
 
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -122,13 +125,14 @@ fun AppLanguageDialog(
         return
     }
 
-    val shape = RoundedCornerShape(ALERT_CORNER)
+    val shape = RoundedCornerShape(20.dp)
     // Full script tag (zh-Hant / zh-Hans preserved); legacy bare "zh" reads as Simplified.
     val currentLanguage = com.music.bitchord.data.LocaleTags.normalizeAppTag(
         AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag()
             ?: Locale.getDefault().toLanguageTag(),
     )
 
+    com.music.bitchord.ui.screens.SpoolSettingsSurface {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -144,16 +148,7 @@ fun AppLanguageDialog(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
-                        Modifier.background(MaterialTheme.colorScheme.surface)
-                    } else {
-                        Modifier.optimizedHazeEffect(
-                            state = hazeState,
-                            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-                        )
-                    },
-                )
+                .background(MaterialTheme.colorScheme.surface)
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
                 .clickable(
@@ -180,8 +175,8 @@ fun AppLanguageDialog(
                         if (titleTaps >= TESTER_TAPS) showTesterCode = true
                     },
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.W600,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.W700,
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
@@ -202,7 +197,7 @@ fun AppLanguageDialog(
             // [TranslationLanguageDialog] — sixteen rows is short enough not
             // to need that dialog's filter field, but still taller than the
             // card should get to stay centred on a phone.
-            LazyColumn(modifier = Modifier.heightIn(max = LANGUAGE_LIST_MAX_HEIGHT)) {
+            LazyColumn(modifier = Modifier.heightIn(max = LANGUAGE_LIST_MAX_HEIGHT).selectableGroup()) {
                 items(SUPPORTED_LANGUAGES, key = { it.tag }) { language ->
                     AlertRule()
                     LanguageRow(
@@ -219,6 +214,7 @@ fun AppLanguageDialog(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -228,11 +224,13 @@ private fun LanguageRow(language: AppLanguage, selected: Boolean, onClick: () ->
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = ACTION_HEIGHT)
+            .heightIn(min = 48.dp)
             .background(
                 if (pressed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f) else Color.Transparent,
             )
-            .clickable(
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
                 indication = null,
                 interactionSource = interactionSource,
                 onClick = onClick,

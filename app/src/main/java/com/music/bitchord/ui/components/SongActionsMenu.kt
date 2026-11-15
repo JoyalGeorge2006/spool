@@ -21,6 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.ThumbDown
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Cast
+import com.music.bitchord.sharedui.resources.Res
+import com.music.bitchord.sharedui.resources.audio_output
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
@@ -164,6 +171,10 @@ fun SongActionsMenu(
      */
     audioVersionMissing: Boolean = false,
     onShare: (() -> Unit)? = null,
+    /** Player-only routes. Null means this host cannot offer the action. */
+    onCast: (() -> Unit)? = null,
+    onAudioOutput: (() -> Unit)? = null,
+    onPartyMembers: (() -> Unit)? = null,
     /**
      * Copies what the app logged while starting this track. Null everywhere
      * except the player, where "this track" means something.
@@ -215,7 +226,7 @@ fun SongActionsMenu(
             IosMenuQuickActions {
                 if (canRate) {
                     IosMenuQuickAction(
-                        icon = if (liked) SfIcons.StarFill else SfIcons.Star,
+                        icon = if (LocalSpoolPlayerMenu.current) Icons.Outlined.ThumbUp else if (liked) SfIcons.StarFill else SfIcons.Star,
                         label = stringResource(R.string.like),
                         tint = if (liked) palette.accent else null,
                         onClick = onToggleLike,
@@ -225,14 +236,14 @@ fun SongActionsMenu(
                 // feed on the device for one to steer.
                 if (signedIn && !isOffline) {
                     IosMenuQuickAction(
-                        icon = if (disliked) BrokenHeart.Fill else BrokenHeart.Outline,
+                        icon = if (LocalSpoolPlayerMenu.current) Icons.Outlined.ThumbDown else if (disliked) BrokenHeart.Fill else BrokenHeart.Outline,
                         label = stringResource(R.string.dislike),
                         tint = if (disliked) palette.accent else null,
                         onClick = onToggleDislike,
                     )
                 }
                 shareAction?.let {
-                    IosMenuQuickAction(icon = SfIcons.Share, label = stringResource(R.string.share), onClick = it)
+                    IosMenuQuickAction(icon = if (LocalSpoolPlayerMenu.current) Icons.Outlined.Share else SfIcons.Share, label = stringResource(R.string.share), onClick = it)
                 }
             }
         }
@@ -268,7 +279,7 @@ fun SongActionsMenu(
             // into it.
             onToggleAudioVersion?.let {
                 ActionRow(
-                    icon = if (isAudioVersion) SfIcons.Video else SfIcons.MusicNote,
+                    icon = if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Swap else if (isAudioVersion) SfIcons.Video else SfIcons.MusicNote,
                     label = stringResource(
                         when {
                             audioVersionMissing && isAudioVersion -> R.string.no_video_version
@@ -279,6 +290,7 @@ fun SongActionsMenu(
                     ),
                     accent = palette.accent,
                     enabled = !audioVersionMissing,
+                    description = if (LocalSpoolPlayerMenu.current) stringResource(R.string.spool_switch_versions_hint) else null,
                     onClick = it,
                 )
             }
@@ -347,31 +359,35 @@ fun SongActionsMenu(
             )
         }
 
+        onCast?.let { ActionRow(Icons.Outlined.Cast, stringResource(R.string.cast_dialog_title), accent = palette.accent, onClick = it) }
+        onAudioOutput?.let { ActionRow(SfIcons.VolumeUp, org.jetbrains.compose.resources.stringResource(Res.string.audio_output), accent = palette.accent, onClick = it) }
+        onPartyMembers?.let { ActionRow(SfIcons.Person, stringResource(R.string.listen_together), accent = palette.accent, onClick = it) }
+
         if (startsGroup()) IosMenuSeparator()
         // Names where each one leads under it, as a menu's "Go to" does.
         when (val id = song.albumId) {
             null -> if (resolvingLinks) {
-                LoadingActionRow(SfIcons.Album, stringResource(R.string.open_album), palette)
+                LoadingActionRow(if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Album else SfIcons.Album, stringResource(R.string.open_album), palette)
             }
             else -> ActionRow(
-                SfIcons.Album,
+                if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Album else SfIcons.Album,
                 stringResource(R.string.open_album),
                 accent = palette.accent,
-                description = song.albumName,
+                description = if (LocalSpoolPlayerMenu.current) null else song.albumName,
             ) { onOpenAlbum(id) }
         }
         when (val id = song.artistId) {
             null -> if (resolvingLinks) {
-                LoadingActionRow(SfIcons.Artist, stringResource(R.string.open_artist), palette)
+                LoadingActionRow(if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Artist else SfIcons.Artist, stringResource(R.string.open_artist), palette)
             }
             else -> ActionRow(
-                SfIcons.Artist,
+                if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Artist else SfIcons.Artist,
                 stringResource(R.string.open_artist),
                 accent = palette.accent,
-                description = song.artist.takeIf { it.isNotBlank() },
+                description = if (LocalSpoolPlayerMenu.current) null else song.artist.takeIf { it.isNotBlank() },
             ) { onOpenArtist(id) }
         }
-        ActionRow(SfIcons.Info, stringResource(R.string.song_info), accent = palette.accent) {
+        ActionRow(SfIcons.Info, stringResource(if (LocalSpoolPlayerMenu.current) R.string.spool_song_info else R.string.song_info), accent = palette.accent) {
             showingSongInfo = true
         }
 
@@ -381,7 +397,7 @@ fun SongActionsMenu(
             if (startsGroup()) IosMenuSeparator()
             if (showSleepTimer) {
                 ActionRow(
-                    icon = SfIcons.SleepTimer,
+                    icon = if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Moon else SfIcons.SleepTimer,
                     label = stringResource(R.string.sleep_timer),
                     value = sleepTimerStatus(),
                     accent = palette.accent,
@@ -402,7 +418,7 @@ fun SongActionsMenu(
             // control just as much as streamed songs do.
             onLyricsOffset?.let {
                 ActionRow(
-                    icon = SfIcons.Sliders,
+                    icon = if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Offset else SfIcons.Sliders,
                     label = stringResource(R.string.lyrics_offset),
                     accent = palette.accent,
                     onClick = it,
@@ -410,7 +426,7 @@ fun SongActionsMenu(
             }
             // Last: the one row here nobody reaches for by accident.
             onCopyLog?.let {
-                ActionRow(SfIcons.Bug, stringResource(R.string.copy_log), accent = palette.accent, onClick = it)
+                ActionRow(if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Copy else SfIcons.Bug, stringResource(R.string.copy_log), accent = palette.accent, onClick = it)
             }
         }
     }
@@ -443,8 +459,8 @@ internal val LocalActionRowStyle = staticCompositionLocalOf { ActionRowStyle.She
  */
 @Composable
 private fun neutralMenuPalette(): ArtworkPalette {
-    val accent = MaterialTheme.colorScheme.primary
     val colors = iosMenuColors()
+    val accent = if (LocalSpoolPlayerMenu.current) colors.label else MaterialTheme.colorScheme.primary
     return remember(accent, colors) {
         ArtworkPalette(
             background = colors.fill,

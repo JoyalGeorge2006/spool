@@ -58,6 +58,10 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
     @kotlin.OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
         super.onCreate()
+        // Old icon aliases still launch after upgrade and already carry spool's
+        // single logo. Normalize them only after enabling the default entry.
+        runCatching { AppIcon.ensureSingleLogo(this) }
+            .onFailure { android.util.Log.w("spool", "Launcher migration will retry on next start", it) }
         // The player is drawn by the shared UI module; this is what it reads
         // underneath — settings, the Canvas decoder, outputs, the party.
         AndroidStreamHooks.installEarly()
@@ -142,6 +146,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
             CoroutineScope(Dispatchers.IO).launch { Innertube.ensureSessionScope() }
         }
         AppSettings.init(this, authStore)
+        com.music.bitchord.ui.SpoolMotionPolicy.install(this)
         // Restores the addon token, so the first search after a process restart
         // doesn't have to attest the device again.
         com.music.bitchord.data.sources.addon.AddonAuth.init(this)
@@ -198,8 +203,6 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         }
         // Initialize LastFM with saved settings if available
         initLastfm()
-        // The public "apps open right now" count; see Presence.
-        com.music.bitchord.data.presence.AndroidPresence.install(this)
         backgroundInit.join()
     }
 

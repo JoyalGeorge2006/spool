@@ -2,6 +2,8 @@ package com.music.bitchord.ui.screens
 
 import com.music.bitchord.ui.icons.SfIcons
 import com.music.bitchord.auth.clearSpotifyWebSession
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.HorizontalDivider
 import com.music.bitchord.sharedui.resources.Res
@@ -67,9 +69,11 @@ fun AccountAndScrobblingScreen(
     val discordRpcEnabled by AppSettings.discordRpcEnabled.collectAsStateWithLifecycle()
     val spotifyConnected by AppSettings.spotifySpdcToken.collectAsStateWithLifecycle()
 
+    SpoolSettingsSurface {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
     ) {
@@ -321,6 +325,7 @@ fun AccountAndScrobblingScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+    }
     }
 }
 

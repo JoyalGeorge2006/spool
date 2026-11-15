@@ -16,6 +16,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -114,7 +115,8 @@ fun GlassNavBar(
     // this shape, and a fresh RoundedCornerShape each pass means a fresh factory
     // lambda, which the tab bar sees as a changed argument and recomposes on.
     val pillShape = remember { RoundedCornerShape(percent = 50) }
-    val contentColor = glassContentColor()
+    // v6: flat ink-on-surface content - no glass luminance sampling.
+    val contentColor = MaterialTheme.colorScheme.onSurface
     val selectedColor = contentColor
     val unselectedColor = contentColor.copy(alpha = 0.65f)
     val haptics = rememberHaptics()
@@ -131,10 +133,15 @@ fun GlassNavBar(
     // order, which is where the shape wants it anyway.
     val standaloneIndex = tabs.lastIndex
 
-    // A factory, not a value — see the note in FloatingTabBar's header. Each of
-    // the three surfaces gets its own glass modifier and so its own shape cache.
-    // The theme's own glass tint, as the liquid top bar has it — no white wash.
-    val glassSurface: @Composable () -> Modifier = { Modifier.liquidGlass(shape = pillShape) }
+    // v6: flat surface with a hairline - no liquid glass.
+    val outline = MaterialTheme.colorScheme.outline
+    val container = MaterialTheme.colorScheme.surface
+    val glassSurface: @Composable () -> Modifier = {
+        Modifier
+            .clip(pillShape)
+            .background(container)
+            .border(GLASS_EDGE_WIDTH, outline, pillShape)
+    }
 
     FloatingTabBar(
         selectedTabKey = selectedIndex,

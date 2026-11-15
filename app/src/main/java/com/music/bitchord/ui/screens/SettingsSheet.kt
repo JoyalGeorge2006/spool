@@ -93,9 +93,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import com.music.bitchord.ui.components.IosSwitch
+import com.music.bitchord.ui.components.v6PageTitleStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -118,9 +125,13 @@ import androidx.compose.ui.input.pointer.positionChanged
 import kotlin.math.abs
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -129,7 +140,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
-import com.music.bitchord.AppIcon
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -141,6 +151,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
@@ -281,6 +292,8 @@ fun SettingsScreen(
     val downloadQuality by AppSettings.downloadQuality.collectAsStateWithLifecycle()
     val wifiOnlyDownloads by AppSettings.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val exportDownloads by AppSettings.exportDownloads.collectAsStateWithLifecycle()
+    val mp3Export by AppSettings.mp3Export.collectAsStateWithLifecycle()
+    val mp3ExportFolder by AppSettings.mp3ExportFolder.collectAsStateWithLifecycle()
     val syncDownloadedPlaylists by AppSettings.syncDownloadedPlaylists.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by AppSettings.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val hideVolumeBar by AppSettings.hideVolumeBar.collectAsStateWithLifecycle()
@@ -365,6 +378,21 @@ fun SettingsScreen(
         }
         AppSettings.setLocalMusicFolderUri(folder.toString())
     }
+    val mp3ExportFolderPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { folder ->
+        if (folder == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                folder,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        }
+        AppSettings.setMp3ExportFolder(folder.toString())
+        // Picking the folder is the clearest "yes" there is; turning the copy
+        // on with it saves a second tap nobody meant to withhold.
+        if (!mp3Export) AppSettings.setMp3Export(true)
+    }
 
     /**
      * Both halves go through the system document picker rather than a path of
@@ -441,9 +469,40 @@ fun SettingsScreen(
         }
     }
 
+    // Only pages whose new references have been approved opt into these tokens.
+    // Unseen Settings categories retain the existing presentation and behavior.
+    val approvedDetail = section in setOf(
+        SettingsCategory.DOWNLOADS, SettingsCategory.PLAYBACK,
+        SettingsCategory.CONTENT_PREFERENCES, SettingsCategory.PERFORMANCE,
+        SettingsCategory.APPEARANCE, SettingsCategory.ADVANCED_VISUALS,
+        SettingsCategory.LOCAL_MUSIC, SettingsCategory.STORAGE, SettingsCategory.YOUR_DATA,
+        SettingsCategory.MISCELLANEOUS, SettingsCategory.LANGUAGE,
+    )
+    val approvedStyle = section == null || approvedDetail
+    val rootDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val rootColors = MaterialTheme.colorScheme.let { base ->
+        if (!approvedStyle) base else base.copy(
+            background = if (rootDark) Color.Black else Color(0xFFF7F6F4),
+            surface = if (rootDark) Color(0xFF1C1A20) else Color.White,
+            surfaceVariant = if (rootDark) Color(0xFF1C1A20) else Color.White,
+            primary = if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+            onPrimary = if (rootDark) Color(0xFF14121A) else Color.White,
+            onSurface = if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+            onBackground = if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+            onSurfaceVariant = if (rootDark) Color(0xFFA29AA8) else Color(0xFF6B6873),
+            outline = (if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A))
+                .copy(alpha = if (rootDark) 0.07f else 0.06f),
+        )
+    }
+    CompositionLocalProvider(
+        LocalApprovedSettingsDetail provides approvedDetail,
+        com.music.bitchord.ui.components.LocalNeutralSwitchMetrics provides approvedStyle,
+    ) {
+    MaterialTheme(colorScheme = rootColors) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .padding(contentPadding),
     ) {
@@ -454,10 +513,11 @@ fun SettingsScreen(
                 onQueryChange = { searchQuery = it },
                 onSubmit = {},
                 placeholder = stringResource(R.string.settings_search_hint),
+                cornerRadius = 12.dp,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
             )
 
-            SearchableSettingsGroup(search) {
+            SearchableSettingsGroup(search, shape = HomeGroupShape, dividerInset = BARE_TEXT_INSET) {
                 val accountTitle = stringResource(R.string.account_integrations)
                 // What the row opens is the scrobbling screen, so the services it
                 // signs into are worth typing at this field even though none of
@@ -465,6 +525,8 @@ fun SettingsScreen(
                 row(accountTitle, "scrobbling", "last.fm", "listenbrainz") {
                     val avatarUrl = account?.thumbnailUrl?.takeIf { signedIn }
                     SettingsRow(
+                        iconTile = false,
+                        monochromeBadge = true,
                         icon = SfIcons.Person,
                         iconContent = avatarUrl?.let { url ->
                             {
@@ -472,7 +534,9 @@ fun SettingsScreen(
                                     model = url,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(ICON_SIZE).clip(CircleShape),
+                                    modifier = Modifier
+                                        .size(ICON_TILE_SIZE)
+                                        .clip(RoundedCornerShape(ICON_TILE_CORNER)),
                                 )
                             }
                         },
@@ -488,6 +552,8 @@ fun SettingsScreen(
                 val listenTogetherTitle = stringResource(R.string.listen_together)
                 row(listenTogetherTitle, "jam", "party", "sync", "friends") {
                     SettingsRow(
+                        iconTile = false,
+                        monochromeBadge = true,
                         icon = SfIcons.Groups,
                         title = listenTogetherTitle,
                         subtitle = party.code?.let {
@@ -505,36 +571,48 @@ fun SettingsScreen(
             // above lists that as the module's own row now. Lossless itself is no
             // longer a setting at all — see
             // [SourceResolver.requestForNow][com.music.bitchord.data.sources.SourceResolver.requestForNow].
-            SearchableSettingsGroup(search, header = stringResource(R.string.audio_quality)) {
+            SearchableSettingsGroup(
+                search, header = stringResource(R.string.audio_quality), eyebrow = true,
+                shape = HomeGroupShape, dividerInset = BARE_TEXT_INSET,
+            ) {
                 val sourceTitle = stringResource(R.string.source)
                 val sourceSubtitle = stringResource(R.string.sources_subtitle)
                 row(sourceTitle, sourceSubtitle, "addon", "lossless") {
                     SettingsRow(
+                        iconTile = false,
+                        monochromeBadge = true,
                         icon = SfIcons.Extension,
                         title = sourceTitle,
                         subtitle = sourceSubtitle,
                         onClick = onSources,
                     )
                 }
-                // One line on purpose: it qualifies the row above rather than
-                // being a setting of its own, so it reads as part of Sources.
                 val directSourceTitle = stringResource(R.string.direct_source_stream)
-                // Drawn like the animated-cover cellular line: no icon, no divider.
-                row(directSourceTitle, "addon", "direct", "prefetch", "read-ahead", divided = false) {
+                row(directSourceTitle, "addon", "direct", "prefetch", "read-ahead") {
                     // Off for the length of a party: holding every fetch until a
                     // track is about to play would leave this phone behind the
                     // others at each sync — see [DirectSourceGate.isActive].
-                    SettingsSubRow(
+                    SettingsRow(
+                        icon = DirectSourceBolt,
+                        iconTile = false,
                         title = directSourceTitle,
-                        checked = directSourceStream && !party.inParty,
-                        onCheckedChange = AppSettings::setDirectSourceStream,
                         subtitle = stringResource(R.string.direct_source_stream_in_party).takeIf { party.inParty },
                         enabled = !party.inParty,
+                        onClick = { AppSettings.setDirectSourceStream(!directSourceStream) },
+                        trailing = {
+                            IosSwitch(
+                                checked = directSourceStream && !party.inParty,
+                                onCheckedChange = AppSettings::setDirectSourceStream,
+                                enabled = !party.inParty,
+                            )
+                        },
                     )
                 }
                 val onWifiTitle = stringResource(R.string.on_wifi)
                 row(onWifiTitle, "wi-fi", "streaming quality") {
                     SettingsRow(
+                        iconTile = false,
+                        monochromeBadge = true,
                         icon = SfIcons.Wifi,
                         title = onWifiTitle,
                         badge = stringResource(R.string.in_use).takeIf { metered == false },
@@ -545,6 +623,8 @@ fun SettingsScreen(
                 val onMobileDataTitle = stringResource(R.string.on_mobile_data)
                 row(onMobileDataTitle, "cellular", "streaming quality") {
                     SettingsRow(
+                        iconTile = false,
+                        monochromeBadge = true,
                         icon = SfIcons.SignalCellularAlt,
                         title = onMobileDataTitle,
                         badge = stringResource(R.string.in_use).takeIf { metered == true },
@@ -566,6 +646,8 @@ fun SettingsScreen(
                 row(dolbyAtmosTitle, "surround", "e-ac-3") {
                     BypassedByBitPerfect(bitPerfectReady) {
                         SettingsRow(
+                        iconTile = false,
+                        monochromeBadge = true,
                             iconPainter = painterResource(R.drawable.ic_dolby_atmos),
                             title = dolbyAtmosTitle,
                             subtitle = stringResource(
@@ -594,8 +676,11 @@ fun SettingsScreen(
             if (!searching) {
                 SettingsCategoryList(onOpen = onOpenSection)
                 if (watchAvailable) {
-                    SettingsGroup {
-                        WearOsSettingsRow(onClick = onWearOs)
+                    SettingsGroup(
+                        header = stringResource(R.string.settings_section_devices),
+                        eyebrow = true, shape = HomeGroupShape,
+                    ) {
+                        WearOsSettingsRow(onClick = onWearOs, iconTile = false)
                     }
                 }
             }
@@ -621,7 +706,7 @@ fun SettingsScreen(
             // of its own — same treatment as Play animated cover over
             // cellular gets under Animated cover art.
             val downloadWifiOnlyTitle = stringResource(R.string.download_wifi_only)
-            row(downloadWifiOnlyTitle, "wi-fi", "cellular", divided = false) {
+            row(downloadWifiOnlyTitle, "wi-fi", "cellular", divided = LocalApprovedSettingsDetail.current) {
                 SettingsSubRow(
                     title = downloadWifiOnlyTitle,
                     checked = wifiOnlyDownloads,
@@ -635,7 +720,28 @@ fun SettingsScreen(
                     title = exportDownloadsTitle,
                     checked = exportDownloads,
                     onCheckedChange = AppSettings::setExportDownloads,
-                    subtitle = "Music/BitChord".takeIf { exportDownloads },
+                    subtitle = "Music/spool".takeIf { exportDownloads },
+                )
+            }
+            val mp3ExportTitle = "Save MP3 copy"
+            row(mp3ExportTitle, "mp3", "folder", "chosen folder") {
+                SettingsSubRow(
+                    title = mp3ExportTitle,
+                    checked = mp3Export,
+                    onCheckedChange = AppSettings::setMp3Export,
+                    subtitle = if (mp3ExportFolder.isBlank()) {
+                        "Choose a folder below"
+                    } else {
+                        mp3ExportFolder.substringAfterLast(':').ifBlank { "Chosen folder" }
+                    },
+                )
+            }
+            row("MP3 folder", "chosen folder", "mp3") {
+                SettingsRow(
+                    icon = SfIcons.Folder,
+                    title = "MP3 folder",
+                    subtitle = "Every download also lands here as a real .mp3",
+                    onClick = { mp3ExportFolderPicker.launch(null) },
                 )
             }
             val syncPlaylistsTitle = stringResource(R.string.sync_downloaded_playlists)
@@ -651,8 +757,8 @@ fun SettingsScreen(
 
         if (shows(SettingsCategory.PLAYBACK)) SearchableSettingsGroup(
             search,
-            header = stringResource(R.string.playback),
-            footer = stringResource(R.string.bit_perfect_bypassed_footer).takeIf { bitPerfectReady },
+            header = stringResource(R.string.settings_section_output),
+            keepPageHeader = true,
         ) {
             val outputPrecisionTitle = stringResource(R.string.output_precision)
             row(outputPrecisionTitle, "pcm", "bit depth", "sample rate", "dac") {
@@ -754,6 +860,13 @@ fun SettingsScreen(
                     )
                 }
             }
+        }
+        if (shows(SettingsCategory.PLAYBACK)) SearchableSettingsGroup(
+            search,
+            header = stringResource(R.string.playback),
+            keepPageHeader = true,
+            footer = stringResource(R.string.bit_perfect_bypassed_footer).takeIf { bitPerfectReady },
+        ) {
             val loudnessTitle = stringResource(R.string.loudness_normalization)
             row(loudnessTitle, "loudness", "volume", "normalize", "replaygain", "lufs") {
                 BypassedByBitPerfect(bitPerfectReady) {
@@ -998,7 +1111,7 @@ fun SettingsScreen(
             }
         }
 
-        if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.appearance)) {
+        if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.appearance), keepPageHeader = true) {
             val themeTitle = stringResource(R.string.theme)
             row(themeTitle, "dark mode", "light mode") {
                 SettingsRow(icon = Icons.Rounded.Brightness4, title = themeTitle)
@@ -1019,6 +1132,149 @@ fun SettingsScreen(
                     onClick = { onOpenChoice(SettingsChoiceKind.FONT) },
                 )
             }
+        }
+
+        if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.settings_section_player), keepPageHeader = true) {
+            val playerThemeTitle = stringResource(R.string.player_theme)
+            row(playerThemeTitle, "background", "player", "mesh", "gradient", "legacy", "simple", "blur") {
+                SettingsRow(
+                    icon = SfIcons.Gradient,
+                    title = playerThemeTitle,
+                    subtitle = playerTheme.description(),
+                )
+                SegmentedControl(
+                    options = PlayerTheme.entries.map { it.localizedLabel() },
+                    selectedIndex = PlayerTheme.entries.indexOf(playerTheme),
+                    onSelect = { AppSettings.setPlayerTheme(PlayerTheme.entries[it]) },
+                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                )
+            }
+            val animatedCoverArtTitle = stringResource(R.string.animated_cover_art)
+            // Carries the keywords of the rows that only appear once it is on,
+            // so searching "spotify" with animated covers switched off turns up
+            // the switch that brings the Spotify row back rather than nothing.
+            row(animatedCoverArtTitle, "canvas", "video", "spotify") {
+                SettingsRow(
+                    icon = SfIcons.Animation,
+                    title = animatedCoverArtTitle,
+                    subtitle = stringResource(R.string.animated_cover_art_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = animatedCanvas,
+                            onCheckedChange = AppSettings::setAnimatedCanvas,
+                        )
+                    },
+                    onClick = { AppSettings.setAnimatedCanvas(!animatedCanvas) },
+                )
+            }
+            // Reads as part of the Animated cover art option above it, not
+            // as a separate setting. Nothing to narrow while the clip itself
+            // is off. Defaults to off: a clip loops for as long as its track
+            // plays, so on cellular this is not a one-time video cost but
+            // that cost repeated on every loop — see AppSettings.canvasOverCellular.
+            if (animatedCanvas) {
+                val coverCellularTitle = stringResource(R.string.animated_cover_cellular)
+                row(coverCellularTitle, "canvas", "cellular", divided = false) {
+                    SettingsSubRow(
+                        title = coverCellularTitle,
+                        checked = canvasOverCellular,
+                        onCheckedChange = AppSettings::setCanvasOverCellular,
+                    )
+                }
+                val spotifyCanvasTitle = stringResource(R.string.integrate_spotify_canvas)
+                row(spotifyCanvasTitle, "spotify", "canvas", divided = false) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onSpotifyCanvasAuth)
+                            .padding(start = ROW_INSET, end = ROW_INSET, top = 4.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = spotifyCanvasTitle,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Chevron()
+                    }
+                }
+            }
+            val syncedLyricsTitle = stringResource(R.string.synced_lyrics)
+            // Same reasoning as Animated cover art above: the lyrics source and
+            // translation rows are only here while this is on.
+            row(syncedLyricsTitle, "lyrics", "translation", "lrclib", "musixmatch") {
+                SettingsRow(
+                    icon = SfIcons.Notes,
+                    title = syncedLyricsTitle,
+                    subtitle = stringResource(R.string.synced_lyrics_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = syncedLyrics,
+                            onCheckedChange = AppSettings::setSyncedLyrics,
+                        )
+                    },
+                    onClick = { AppSettings.setSyncedLyrics(!syncedLyrics) },
+                )
+            }
+            // Nothing to choose between while the feature is off, and the
+            // sources are third-party services being reached on the user's
+            // connection — which is the part worth being able to narrow.
+            if (syncedLyrics) {
+                val lyricsBlurTitle = stringResource(R.string.blur_unfocused_lyrics)
+                row(lyricsBlurTitle, "lyrics", "blur") {
+                    SettingsRow(
+                        icon = SfIcons.BlurOn,
+                        title = lyricsBlurTitle,
+                        subtitle = stringResource(R.string.blur_unfocused_lyrics_subtitle),
+                        trailing = {
+                            IosSwitch(
+                                checked = lyricsBlur,
+                                onCheckedChange = AppSettings::setLyricsBlur,
+                            )
+                        },
+                        onClick = { AppSettings.setLyricsBlur(!lyricsBlur) },
+                    )
+                }
+                val lyricsSourcesTitle = stringResource(R.string.lyrics_sources)
+                row(lyricsSourcesTitle, "lyrics", "lrclib", "musixmatch") {
+                    SettingsRow(
+                        icon = SfIcons.Language,
+                        title = lyricsSourcesTitle,
+                        // The full list lives on the providers page; the row
+                        // only needs a two-line taste of it.
+                        subtitle = lyricsSources
+                            .sortedBy { it.ordinal }
+                            .joinToString(", ") { it.label }
+                            .ifEmpty { stringResource(R.string.no_lyrics_sources_enabled) },
+                        subtitleMaxLines = 2,
+                        trailing = { Chevron() },
+                        onClick = onLyricsSources,
+                    )
+                }
+                val translationLanguageTitle = stringResource(R.string.translation_language)
+                row(translationLanguageTitle, "lyrics", "translate") {
+                    SettingsRow(
+                        icon = SfIcons.Translate,
+                        title = translationLanguageTitle,
+                        subtitle = if (translationLanguage.isBlank()) {
+                            stringResource(R.string.translation_language_subtitle)
+                        } else {
+                            translationLanguageName(
+                                translationLanguage,
+                                AppCompatDelegate.getApplicationLocales().get(0) ?: Locale.getDefault(),
+                            )
+                        },
+                        trailing = { Chevron() },
+                        onClick = onTranslationLanguage,
+                    )
+                }
+            }
+        }
+
+        if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.settings_section_accessibility), keepPageHeader = true) {
             val reduceAnimationTitle = stringResource(R.string.reduce_animation)
             row(reduceAnimationTitle, "motion") {
                 SettingsRow(
@@ -1049,6 +1305,15 @@ fun SettingsScreen(
                     onClick = { AppSettings.setReduceDynamicBlur(!reduceDynamicBlur) },
                 )
             }
+        }
+
+        if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.settings_section_more), keepPageHeader = true) {
+            row(stringResource(R.string.advanced_visuals), "glass", "blend", "artwork", "signatures") {
+                SettingsRow(title = stringResource(R.string.advanced_visuals), subtitle = stringResource(R.string.advanced_visuals_subtitle), onClick = { onOpenSection(SettingsCategory.ADVANCED_VISUALS) })
+            }
+        }
+
+        if (shows(SettingsCategory.ADVANCED_VISUALS)) SearchableSettingsGroup(search, header = stringResource(R.string.advanced_visuals), keepPageHeader = true) {
             val disableBlendEffectsTitle = stringResource(R.string.disable_blend_effects)
             row(disableBlendEffectsTitle, "blend", "blending", "colour", "color", "tint", "player", "menu") {
                 SettingsRow(
@@ -1148,73 +1413,6 @@ fun SettingsScreen(
                     onClick = { AppSettings.setFullBleedDetailArtwork(!fullBleedDetailArtwork) },
                 )
             }
-            val playerThemeTitle = stringResource(R.string.player_theme)
-            row(playerThemeTitle, "background", "player", "mesh", "gradient", "legacy", "simple", "blur") {
-                SettingsRow(
-                    icon = SfIcons.Gradient,
-                    title = playerThemeTitle,
-                    subtitle = playerTheme.description(),
-                )
-                SegmentedControl(
-                    options = PlayerTheme.entries.map { it.localizedLabel() },
-                    selectedIndex = PlayerTheme.entries.indexOf(playerTheme),
-                    onSelect = { AppSettings.setPlayerTheme(PlayerTheme.entries[it]) },
-                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
-                )
-            }
-            val animatedCoverArtTitle = stringResource(R.string.animated_cover_art)
-            // Carries the keywords of the rows that only appear once it is on,
-            // so searching "spotify" with animated covers switched off turns up
-            // the switch that brings the Spotify row back rather than nothing.
-            row(animatedCoverArtTitle, "canvas", "video", "spotify") {
-                SettingsRow(
-                    icon = SfIcons.Animation,
-                    title = animatedCoverArtTitle,
-                    subtitle = stringResource(R.string.animated_cover_art_subtitle),
-                    trailing = {
-                        IosSwitch(
-                            checked = animatedCanvas,
-                            onCheckedChange = AppSettings::setAnimatedCanvas,
-                        )
-                    },
-                    onClick = { AppSettings.setAnimatedCanvas(!animatedCanvas) },
-                )
-            }
-            // Reads as part of the Animated cover art option above it, not
-            // as a separate setting. Nothing to narrow while the clip itself
-            // is off. Defaults to off: a clip loops for as long as its track
-            // plays, so on cellular this is not a one-time video cost but
-            // that cost repeated on every loop — see AppSettings.canvasOverCellular.
-            if (animatedCanvas) {
-                val coverCellularTitle = stringResource(R.string.animated_cover_cellular)
-                row(coverCellularTitle, "canvas", "cellular", divided = false) {
-                    SettingsSubRow(
-                        title = coverCellularTitle,
-                        checked = canvasOverCellular,
-                        onCheckedChange = AppSettings::setCanvasOverCellular,
-                    )
-                }
-                val spotifyCanvasTitle = stringResource(R.string.integrate_spotify_canvas)
-                row(spotifyCanvasTitle, "spotify", "canvas", divided = false) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onSpotifyCanvasAuth)
-                            .padding(start = ROW_INSET, end = ROW_INSET, top = 4.dp, bottom = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = spotifyCanvasTitle,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Chevron()
-                    }
-                }
-            }
             val artistSignaturesTitle = stringResource(R.string.artist_signatures)
             row(artistSignaturesTitle, "signature", "artist", "logo") {
                 SettingsRow(
@@ -1252,73 +1450,6 @@ fun SettingsScreen(
                         )
                         Chevron()
                     }
-                }
-            }
-            val syncedLyricsTitle = stringResource(R.string.synced_lyrics)
-            // Same reasoning as Animated cover art above: the lyrics source and
-            // translation rows are only here while this is on.
-            row(syncedLyricsTitle, "lyrics", "translation", "lrclib", "musixmatch") {
-                SettingsRow(
-                    icon = SfIcons.Notes,
-                    title = syncedLyricsTitle,
-                    subtitle = stringResource(R.string.synced_lyrics_subtitle),
-                    trailing = {
-                        IosSwitch(
-                            checked = syncedLyrics,
-                            onCheckedChange = AppSettings::setSyncedLyrics,
-                        )
-                    },
-                    onClick = { AppSettings.setSyncedLyrics(!syncedLyrics) },
-                )
-            }
-            // Nothing to choose between while the feature is off, and the
-            // sources are third-party services being reached on the user's
-            // connection — which is the part worth being able to narrow.
-            if (syncedLyrics) {
-                val lyricsBlurTitle = stringResource(R.string.blur_unfocused_lyrics)
-                row(lyricsBlurTitle, "lyrics", "blur") {
-                    SettingsRow(
-                        icon = SfIcons.BlurOn,
-                        title = lyricsBlurTitle,
-                        subtitle = stringResource(R.string.blur_unfocused_lyrics_subtitle),
-                        trailing = {
-                            IosSwitch(
-                                checked = lyricsBlur,
-                                onCheckedChange = AppSettings::setLyricsBlur,
-                            )
-                        },
-                        onClick = { AppSettings.setLyricsBlur(!lyricsBlur) },
-                    )
-                }
-                val lyricsSourcesTitle = stringResource(R.string.lyrics_sources)
-                row(lyricsSourcesTitle, "lyrics", "lrclib", "musixmatch") {
-                    SettingsRow(
-                        icon = SfIcons.Language,
-                        title = lyricsSourcesTitle,
-                        subtitle = lyricsSources
-                            .sortedBy { it.ordinal }
-                            .joinToString(", ") { it.label }
-                            .ifEmpty { stringResource(R.string.no_lyrics_sources_enabled) },
-                        trailing = { Chevron() },
-                        onClick = onLyricsSources,
-                    )
-                }
-                val translationLanguageTitle = stringResource(R.string.translation_language)
-                row(translationLanguageTitle, "lyrics", "translate") {
-                    SettingsRow(
-                        icon = SfIcons.Translate,
-                        title = translationLanguageTitle,
-                        subtitle = if (translationLanguage.isBlank()) {
-                            stringResource(R.string.translation_language_subtitle)
-                        } else {
-                            translationLanguageName(
-                                translationLanguage,
-                                AppCompatDelegate.getApplicationLocales().get(0) ?: Locale.getDefault(),
-                            )
-                        },
-                        trailing = { Chevron() },
-                        onClick = onTranslationLanguage,
-                    )
                 }
             }
         }
@@ -1702,67 +1833,6 @@ fun SettingsScreen(
                     onClick = { AppSettings.setShowNerdStats(!nerdStats) },
                 )
             }
-            val appIconTitle = stringResource(R.string.app_icon)
-            row(appIconTitle, "icon", "launcher", "logo") {
-                var selectedIcon by remember { mutableStateOf(AppIcon.current(context)) }
-                SettingsRow(icon = SfIcons.Apps, title = appIconTitle)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    AppIcon.entries.forEach { option ->
-                        val selected = option == selectedIcon
-                        Column(
-                            modifier = Modifier
-                                .width(84.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .clickable {
-                                    selectedIcon = option
-                                    AppIcon.apply(context, option)
-                                }
-                                .padding(vertical = 6.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            // A glass foreground holds the finished icon in its own shape on the
-                            // central 72 of 108 dp: scaled 1.5× it fills the tile as designed.
-                            // Only the default goes through an adaptive mask.
-                            val preview = option.previewRes
-                            if (preview == null) {
-                                AndroidView(
-                                    factory = { ctx ->
-                                        android.widget.ImageView(ctx).apply { setImageResource(option.iconRes) }
-                                    },
-                                    modifier = Modifier
-                                        .size(68.dp)
-                                        .clip(RoundedCornerShape(22.dp)),
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(preview),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier
-                                        .size(68.dp)
-                                        .scale(1.5f),
-                                )
-                            }
-                            Text(
-                                text = stringResource(option.labelRes),
-                                textAlign = TextAlign.Center,
-                                maxLines = 2,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier.padding(top = 6.dp),
-                            )
-                        }
-                    }
-                }
-            }
         }
 
         if (shows(SettingsCategory.LANGUAGE)) SearchableSettingsGroup(search, header = stringResource(R.string.language)) {
@@ -1790,14 +1860,16 @@ fun SettingsScreen(
         if (section == null && searchQuery.isBlank()) {
         Text(
             text = buildAnnotatedString {
-                append("bitchord $version  ")
+                // The fork's own name and repo; the Developer, Discord and
+                // Website links still credit and reach upstream BitChord.
+                append("spool $version  ")
                 val linkStyles = TextLinkStyles(
                     style = SpanStyle(
                         color = MaterialTheme.colorScheme.primary,
                         textDecoration = TextDecoration.Underline,
                     ),
                 )
-                withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
+                withLink(LinkAnnotation.Url("https://github.com/JoyalGeorge2006/spool", linkStyles)) {
                     append("GitHub")
                 }
                 append("  ")
@@ -1824,9 +1896,16 @@ fun SettingsScreen(
         }
     }
 
+    } // The palette and detail metrics remain scoped to this Settings list.
+    }
+
     // Everything in the Cached songs folder goes with it, so say so first.
     if (confirmClearSongCache) {
         AlertDialog(
+            shape = RoundedCornerShape(20.dp),
+            containerColor = rootColors.surface,
+            titleContentColor = rootColors.onSurface,
+            textContentColor = rootColors.onSurfaceVariant,
             onDismissRequest = { confirmClearSongCache = false },
             title = { Text(stringResource(R.string.clear_song_cache_title)) },
             text = { Text(stringResource(R.string.clear_song_cache_warning)) },
@@ -1853,6 +1932,10 @@ fun SettingsScreen(
     // thrown away, and that is true whichever file gets picked.
     if (confirmImport) {
         AlertDialog(
+            shape = RoundedCornerShape(20.dp),
+            containerColor = rootColors.surface,
+            titleContentColor = rootColors.onSurface,
+            textContentColor = rootColors.onSurfaceVariant,
             onDismissRequest = { confirmImport = false },
             title = { Text(stringResource(R.string.import_backup_title)) },
             text = {
@@ -1876,11 +1959,16 @@ fun SettingsScreen(
 
     if (showPerformanceWarning) {
         AlertDialog(
+            shape = RoundedCornerShape(20.dp),
+            containerColor = rootColors.surface,
+            titleContentColor = rootColors.onSurface,
+            textContentColor = rootColors.onSurfaceVariant,
             onDismissRequest = { showPerformanceWarning = false },
             title = { Text(stringResource(R.string.high_performance_before_enabling)) },
             text = { Text(stringResource(R.string.high_performance_battery_warning)) },
             confirmButton = {
                 TextButton(
+                    modifier = Modifier.heightIn(min = 48.dp),
                     onClick = {
                         showPerformanceWarning = false
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -1896,7 +1984,7 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPerformanceWarning = false }) {
+                TextButton(modifier = Modifier.heightIn(min = 48.dp), onClick = { showPerformanceWarning = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -1905,11 +1993,16 @@ fun SettingsScreen(
 
     if (showPerformanceConfirmation) {
         AlertDialog(
+            shape = RoundedCornerShape(20.dp),
+            containerColor = rootColors.surface,
+            titleContentColor = rootColors.onSurface,
+            textContentColor = rootColors.onSurfaceVariant,
             onDismissRequest = { showPerformanceConfirmation = false },
             title = { Text(stringResource(R.string.enable_high_performance_title)) },
             text = { Text(stringResource(R.string.enable_high_performance_confirmation)) },
             confirmButton = {
                 TextButton(
+                    modifier = Modifier.heightIn(min = 48.dp),
                     onClick = {
                         showPerformanceConfirmation = false
                         AppSettings.setHighPerformanceMode(true)
@@ -1919,7 +2012,7 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPerformanceConfirmation = false }) {
+                TextButton(modifier = Modifier.heightIn(min = 48.dp), onClick = { showPerformanceConfirmation = false }) {
                     Text(stringResource(R.string.not_yet))
                 }
             },
@@ -2076,6 +2169,7 @@ private fun PlayerTheme.localizedLabel(): String = stringResource(
         PlayerTheme.DEFAULT -> R.string.player_theme_default
         PlayerTheme.LEGACY -> R.string.player_theme_legacy
         PlayerTheme.SIMPLE -> R.string.player_theme_simple
+        PlayerTheme.FLAT -> R.string.player_theme_flat
     },
 )
 
@@ -2085,6 +2179,7 @@ private fun PlayerTheme.description(): String = stringResource(
         PlayerTheme.DEFAULT -> R.string.player_theme_default_subtitle
         PlayerTheme.LEGACY -> R.string.player_theme_legacy_subtitle
         PlayerTheme.SIMPLE -> R.string.player_theme_simple_subtitle
+        PlayerTheme.FLAT -> R.string.player_theme_flat_subtitle
     },
 )
 
@@ -2343,14 +2438,25 @@ private fun bitPerfectSubtitle(mode: BitPerfectMode, status: BitPerfectOutput.St
 
 // ---- Building blocks --------------------------------------------------------
 
-internal val GroupShape = RoundedCornerShape(14.dp)
+internal val GroupShape = RoundedCornerShape(20.dp)
+
+/** The approved (22:11) Settings home card: a tighter corner than the old group. */
+internal val HomeGroupShape = RoundedCornerShape(16.dp)
+private val LocalApprovedSettingsDetail = staticCompositionLocalOf { false }
 internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
+
+/** The approved settings row tile: a neutral rounded square behind the glyph. */
+internal val ICON_TILE_SIZE = 34.dp
+internal val ICON_TILE_CORNER = 10.dp
 internal val ICON_GAP = 14.dp
 
-/** Where a row's text starts — dividers are inset to match, as on iOS. */
-internal val TEXT_INSET = ROW_INSET + ICON_SIZE + ICON_GAP
+/** Where a row's text starts — past the tile, not the glyph; dividers match. */
+internal val TEXT_INSET = ROW_INSET + ICON_TILE_SIZE + ICON_GAP
+
+/** The approved home draws bare glyphs, no tile: its text inset is past the glyph. */
+internal val BARE_TEXT_INSET = ROW_INSET + ICON_SIZE + ICON_GAP
 
 /**
  * What is typed into the field under the Settings title, and whether anything
@@ -2431,6 +2537,11 @@ private inline fun SearchableSettingsGroup(
     header: String? = null,
     footer: String? = null,
     topSpacing: Dp = 26.dp,
+    keepPageHeader: Boolean = false,
+    dividerInset: Dp = if (LocalApprovedSettingsDetail.current) ROW_INSET else TEXT_INSET,
+    eyebrow: Boolean = LocalApprovedSettingsDetail.current,
+    shape: Shape = if (LocalApprovedSettingsDetail.current) HomeGroupShape else GroupShape,
+    cardColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     content: @Composable SettingsGroupScope.() -> Unit,
 ) {
     val scope = SettingsGroupScope(search, header)
@@ -2439,15 +2550,18 @@ private inline fun SearchableSettingsGroup(
     // A category's page is titled by its large heading; the header over its
     // first card would only say the same word again. The card takes the
     // header's place, straight under the heading, as on Account's page.
-    val inPageHeader = header != null && search.inPage
+    val inPageHeader = header != null && search.inPage && !keepPageHeader
     SettingsGroup(
         header = header.takeUnless { inPageHeader },
         footer = footer,
         topSpacing = if (inPageHeader) 0.dp else topSpacing,
+        eyebrow = eyebrow,
+        shape = shape,
+        cardColor = cardColor,
     ) {
         scope.entries.forEachIndexed { index, entry ->
             when {
-                index > 0 && entry.divided -> RowDivider()
+                index > 0 && entry.divided -> RowDivider(inset = dividerInset)
                 // An undivided row is drawn tight to the top because something
                 // it belongs to is usually above it. Filtered down to itself it
                 // has nothing to sit under, so it is given that room back.
@@ -2462,11 +2576,37 @@ private inline fun SearchableSettingsGroup(
  * The large heading a Settings page leads with, under the bar's own small one —
  * the main page's "Settings", and every page opened from it.
  */
+/** Shared neutral surface for the app's settings-family pages. */
+@Composable
+internal fun SpoolSettingsSurface(content: @Composable () -> Unit) {
+    val rootDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val rootColors = MaterialTheme.colorScheme.let { base ->
+        base.copy(
+            background = if (rootDark) Color.Black else Color(0xFFF7F6F4),
+            surface = if (rootDark) Color(0xFF1C1A20) else Color.White,
+            surfaceVariant = if (rootDark) Color(0xFF1C1A20) else Color.White,
+            primary = if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+            onPrimary = if (rootDark) Color(0xFF14121A) else Color.White,
+            onSurface = if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+            onBackground = if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A),
+            onSurfaceVariant = if (rootDark) Color(0xFFA29AA8) else Color(0xFF6B6873),
+            outline = (if (rootDark) Color(0xFFF2EFF6) else Color(0xFF14121A))
+                .copy(alpha = if (rootDark) 0.07f else 0.06f),
+        )
+    }
+    CompositionLocalProvider(
+        LocalApprovedSettingsDetail provides true,
+        com.music.bitchord.ui.components.LocalNeutralSwitchMetrics provides true,
+    ) {
+        MaterialTheme(colorScheme = rootColors) { content() }
+    }
+}
+
 @Composable
 internal fun SettingsPageTitle(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.displayLarge,
+        style = MaterialTheme.typography.headlineLarge.copy(fontSize = 30.sp, fontWeight = FontWeight.W800, letterSpacing = (-0.6).sp),
         color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 14.dp),
     )
@@ -2482,20 +2622,41 @@ internal fun SettingsGroup(
     footer: String? = null,
     /** Room above the card, where there is no [header] to provide it. */
     topSpacing: Dp = 26.dp,
+    /** The approved home names its sections in small caps above the card. */
+    eyebrow: Boolean = false,
+    shape: Shape = if (LocalApprovedSettingsDetail.current) HomeGroupShape else GroupShape,
+    cardColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     content: @Composable () -> Unit,
 ) {
     if (header != null) {
-        Text(
-            text = header.uppercase(Locale.ROOT),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(
-                start = GROUP_INSET + 4.dp,
-                end = GROUP_INSET,
-                top = 26.dp,
-                bottom = 8.dp,
-            ),
-        )
+        if (eyebrow) {
+            Text(
+                text = header.uppercase(Locale.ROOT),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
+                fontWeight = FontWeight.W700,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(
+                    start = GROUP_INSET + 4.dp,
+                    end = GROUP_INSET,
+                    top = 26.dp,
+                    bottom = 8.dp,
+                ),
+            )
+        } else {
+            // v6: the group names are headings, not eyebrow labels.
+            Text(
+                text = header,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.W700,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(
+                    start = GROUP_INSET + 4.dp,
+                    end = GROUP_INSET,
+                    top = 26.dp,
+                    bottom = 8.dp,
+                ),
+            )
+        }
     } else {
         Spacer(Modifier.height(topSpacing))
     }
@@ -2503,8 +2664,8 @@ internal fun SettingsGroup(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = GROUP_INSET)
-            .clip(GroupShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .clip(shape)
+            .background(cardColor),
     ) {
         content()
     }
@@ -2523,9 +2684,9 @@ internal fun SettingsGroup(
 }
 
 @Composable
-internal fun RowDivider() {
+internal fun RowDivider(inset: Dp = TEXT_INSET) {
     HorizontalDivider(
-        modifier = Modifier.padding(start = TEXT_INSET),
+        modifier = Modifier.padding(start = inset),
         thickness = 0.5.dp,
         color = MaterialTheme.colorScheme.outline,
     )
@@ -2554,9 +2715,14 @@ internal fun SettingsRow(
     enabled: Boolean = true,
     iconPainter: Painter? = null,
     iconContent: (@Composable () -> Unit)? = null,
+    /** The approved home draws its glyphs bare, with no tile behind them. */
+    iconTile: Boolean = !LocalApprovedSettingsDetail.current,
+    monochromeBadge: Boolean = LocalApprovedSettingsDetail.current,
+    subtitleMaxLines: Int = 5,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val detail = LocalApprovedSettingsDetail.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2566,36 +2732,69 @@ internal fun SettingsRow(
             .padding(horizontal = ROW_INSET, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (iconContent != null) {
+        if (detail) {
+            // The approved detail cards are text-led. Keep callbacks unchanged.
+        } else if (iconContent != null) {
             iconContent()
-        } else if (iconPainter != null) {
+        } else if (iconPainter != null && !iconTile) {
             Icon(
                 painter = iconPainter,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(ICON_SIZE),
             )
-        } else if (icon != null) {
+        } else if (icon != null && !iconTile) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(ICON_SIZE),
             )
+        } else if (iconPainter != null) {
+            Box(
+                modifier = Modifier
+                    .size(ICON_TILE_SIZE)
+                    .clip(RoundedCornerShape(ICON_TILE_CORNER))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(ICON_SIZE),
+                )
+            }
+        } else if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(ICON_TILE_SIZE)
+                    .clip(RoundedCornerShape(ICON_TILE_CORNER))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(ICON_SIZE),
+                )
+            }
         }
-        Spacer(Modifier.width(ICON_GAP))
+        if (!detail) Spacer(Modifier.width(ICON_GAP))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = if (iconTile) MaterialTheme.typography.bodyLarge else
+                        MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.W600),
                     color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
+                    maxLines = if (detail) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (badge != null) {
                     Spacer(Modifier.width(8.dp))
-                    Badge(badge)
+                    Badge(badge, monochrome = monochromeBadge)
                 }
             }
             if (subtitleContent != null) {
@@ -2603,9 +2802,11 @@ internal fun SettingsRow(
             } else if (subtitle != null) {
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (iconTile) MaterialTheme.typography.bodyMedium else
+                        MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 5,
+                    maxLines = subtitleMaxLines,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -2616,9 +2817,9 @@ internal fun SettingsRow(
             if (value != null) {
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = if (detail) 13.5.sp else 16.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (detail) 2 else 1,
                 )
                 Spacer(Modifier.width(4.dp))
             }
@@ -2641,32 +2842,34 @@ internal fun SettingsSubRow(
     subtitle: String? = null,
     enabled: Boolean = true,
 ) {
+    val detail = LocalApprovedSettingsDetail.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .alpha(if (enabled) 1f else 0.45f)
-            .padding(start = ROW_INSET, end = ROW_INSET, top = 0.dp, bottom = 10.dp),
+            .heightIn(min = 48.dp)
+            .padding(start = ROW_INSET, end = ROW_INSET, top = if (detail) 13.dp else 0.dp, bottom = if (detail) 13.dp else 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = if (detail) 15.sp else 16.sp, fontWeight = if (detail) FontWeight.W600 else FontWeight.Normal),
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (badge != null) {
                     Spacer(Modifier.width(8.dp))
-                    Badge(badge)
+                    Badge(badge, monochrome = detail)
                 }
             }
             if (subtitle != null) {
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = if (detail) 12.sp else 14.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 5,
                 )
@@ -2674,7 +2877,7 @@ internal fun SettingsSubRow(
         }
         IosSwitch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
+            onCheckedChange = null,
             enabled = enabled,
         )
     }
@@ -2682,14 +2885,18 @@ internal fun SettingsSubRow(
 
 /** Marks the connection whose ceiling is actually in force right now. */
 @Composable
-internal fun Badge(text: String) {
+internal fun Badge(text: String, monochrome: Boolean = false) {
     Text(
         text = text.uppercase(Locale.ROOT),
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
+        color = if (monochrome) MaterialTheme.colorScheme.onSurfaceVariant
+        else MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .clip(RoundedCornerShape(5.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+            .background(
+                if (monochrome) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            )
             .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
@@ -2717,6 +2924,7 @@ internal fun SliderRow(
     steps: Int,
     subtitle: String? = null,
 ) {
+    val detail = LocalApprovedSettingsDetail.current
     val colors = SliderDefaults.colors(
         thumbColor = MaterialTheme.colorScheme.primary,
         activeTrackColor = MaterialTheme.colorScheme.primary,
@@ -2724,23 +2932,23 @@ internal fun SliderRow(
     )
     Column(Modifier.padding(start = ROW_INSET, end = ROW_INSET, top = 12.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
+            if (!detail) Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(ICON_SIZE),
             )
-            Spacer(Modifier.width(ICON_GAP))
+            if (!detail) Spacer(Modifier.width(ICON_GAP))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = if (detail) 15.sp else 16.sp),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = if (detail) 12.sp else 14.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -2748,7 +2956,7 @@ internal fun SliderRow(
             Spacer(Modifier.width(12.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = if (detail) 15.sp else 16.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -2768,7 +2976,7 @@ internal fun SliderRow(
                     drawTick = { _, _ -> },
                 )
             },
-            modifier = Modifier.padding(start = ICON_SIZE + ICON_GAP),
+            modifier = Modifier.padding(start = if (detail) 0.dp else ICON_SIZE + ICON_GAP),
         )
     }
 }
@@ -2807,7 +3015,37 @@ internal fun SegmentedControl(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    PillSegmentedControl(options, selectedIndex, onSelect, modifier, enabled)
+    if (!LocalApprovedSettingsDetail.current) {
+        PillSegmentedControl(options, selectedIndex, onSelect, modifier, enabled)
+        return
+    }
+    Row(
+        modifier = modifier.fillMaxWidth().selectableGroup().alpha(if (enabled) 1f else 0.45f)
+            .clip(RoundedCornerShape(13.dp))
+            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f))
+            .padding(3.dp),
+    ) {
+        options.forEachIndexed { index, label ->
+            val selected = index == selectedIndex
+            Box(
+                modifier = Modifier.weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(index) })
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700),
+                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                )
+            }
+        }
+    }
 }
 
 // ---- Pages ------------------------------------------------------------------
@@ -2822,6 +3060,7 @@ enum class SettingsCategory(@param:StringRes val title: Int) {
     PLAYBACK(R.string.playback),
     CONTENT_PREFERENCES(R.string.content_preferences),
     APPEARANCE(R.string.appearance),
+    ADVANCED_VISUALS(R.string.advanced_visuals),
     PERFORMANCE(R.string.performance),
     LOCAL_MUSIC(R.string.local_music),
     STORAGE(R.string.storage),
@@ -2836,6 +3075,7 @@ enum class SettingsCategory(@param:StringRes val title: Int) {
             PLAYBACK -> SfIcons.PlayCircle
             CONTENT_PREFERENCES -> SfIcons.Video
             APPEARANCE -> SfIcons.Appearance
+            ADVANCED_VISUALS -> SfIcons.Appearance
             PERFORMANCE -> SfIcons.Performance
             LOCAL_MUSIC -> SfIcons.LibraryMusic
             STORAGE -> SfIcons.Storage
@@ -2858,11 +3098,17 @@ enum class SettingsChoiceKind(@param:StringRes val title: Int) {
 /** The main page's list of categories: a glyph and a name each, and a chevron into it. */
 @Composable
 private fun SettingsCategoryList(onOpen: (SettingsCategory) -> Unit) {
-    SettingsGroup {
-        SettingsCategory.entries.forEachIndexed { index, category ->
-            if (index > 0) RowDivider()
+    SettingsGroup(
+        header = stringResource(R.string.settings_section_general),
+        eyebrow = true,
+        shape = HomeGroupShape,
+        cardColor = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        SettingsCategory.entries.filter { it != SettingsCategory.ADVANCED_VISUALS }.forEachIndexed { index, category ->
+            if (index > 0) RowDivider(inset = BARE_TEXT_INSET)
             SettingsRow(
                 icon = category.icon,
+                iconTile = false,
                 title = stringResource(category.title),
                 onClick = { onOpen(category) },
             )
@@ -3056,4 +3302,13 @@ internal fun <T> ChoiceGroup(
             }
         }
     }
+}
+
+private val DirectSourceBolt: ImageVector by lazy {
+    ImageVector.Builder("DirectSourceBolt", 24.dp, 24.dp, 24f, 24f).apply {
+        path(fill = SolidColor(Color.Black)) {
+            moveTo(13f, 2f); lineTo(4f, 14f); lineTo(11f, 14f)
+            lineTo(10f, 22f); lineTo(20f, 9f); lineTo(13f, 9f); close()
+        }
+    }.build()
 }

@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import com.music.bitchord.ui.components.v6PageTitleStyle
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -96,7 +97,7 @@ fun SpotifyLibraryScreen(
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = stringResource(R.string.spotify),
-                    style = MaterialTheme.typography.displayLarge,
+                    style = v6PageTitleStyle(),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
             }

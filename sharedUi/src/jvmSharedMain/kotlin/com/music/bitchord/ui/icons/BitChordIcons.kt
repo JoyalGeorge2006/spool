@@ -153,6 +153,40 @@ object BitChordIcons {
     }
 
     /**
+     * The tab bar's Home in this file's stroked family: the same house as
+     * [Home] drawn as an outline, so the dock's four tabs share one weight.
+     */
+    val HomeOutline: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "bc_home_outline",
+            defaultWidth = 24.dp, defaultHeight = 24.dp,
+            viewportWidth = 24f, viewportHeight = 24f,
+        ).apply {
+            path(
+                stroke = stroke,
+                strokeLineWidth = STROKE,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                // Roof
+                moveTo(3.6f, 11.2f)
+                lineTo(12f, 4f)
+                lineTo(20.4f, 11.2f)
+                // Walls and floor
+                moveTo(5.8f, 9.4f)
+                lineTo(5.8f, 19.4f)
+                lineTo(18.2f, 19.4f)
+                lineTo(18.2f, 9.4f)
+                // Door, cut up out of the floor line
+                moveTo(10.2f, 19.4f)
+                lineTo(10.2f, 14.4f)
+                lineTo(13.8f, 14.4f)
+                lineTo(13.8f, 19.4f)
+            }
+        }.build()
+    }
+
+    /**
      * The phone tab bar's Explore, Library and Search glyphs: solid-weight
      * iOS shapes rather than this file's stroked family, taken from the
      * outlines of Flutter's cupertino_icons font (MIT) — square_grid_2x2

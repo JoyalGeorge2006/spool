@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import com.music.bitchord.playback.audio.LosslessOutput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -196,9 +198,11 @@ fun SourcesScreen(
     // invisible to it.
     val anyLosslessSource = configs.any { it.enabled && it.isComplete && it.kind.canServeLossless }
 
+    SpoolSettingsSurface {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
     ) {
@@ -383,6 +387,7 @@ fun SourcesScreen(
         Spacer(Modifier.height(32.dp))
     }
 
+    }
 }
 
 

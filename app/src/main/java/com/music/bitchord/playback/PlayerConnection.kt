@@ -298,6 +298,21 @@ fun MediaController.setQueueDragActive(active: Boolean) {
     )
 }
 
+/** The service validates the displayed entry against the live timeline before editing. */
+suspend fun MediaController.removeQueueWithUndo(index: Int, song: Song, snapshot: List<Song>): String? {
+    val result = sendCustomCommand(SessionCommand(ACTION_REMOVE_QUEUE_UNDO, Bundle.EMPTY), bundleOf(
+        EXTRA_QUEUE_UNDO_INDEX to index,
+        EXTRA_QUEUE_UNDO_ENTRY to song.queueEntryId,
+        EXTRA_QUEUE_UNDO_MEDIA to song.videoId,
+        EXTRA_QUEUE_UNDO_SNAPSHOT to ArrayList(snapshot.map { "${it.queueEntryId.orEmpty()}|${it.videoId}|${it.queueTier.name}" }),
+    )).await()
+    return result.extras.getString(EXTRA_QUEUE_UNDO_TOKEN)
+}
+
+suspend fun MediaController.restoreQueueWithUndo(token: String): Boolean =
+    sendCustomCommand(SessionCommand(ACTION_RESTORE_QUEUE_UNDO, Bundle.EMPTY),
+        bundleOf(EXTRA_QUEUE_UNDO_TOKEN to token)).await().resultCode == androidx.media3.session.SessionResult.RESULT_SUCCESS
+
 /** Mirrors the controller into Compose state, polling position while playing. */
 @Composable
 fun rememberPlayerState(controller: MediaController?): PlayerState {

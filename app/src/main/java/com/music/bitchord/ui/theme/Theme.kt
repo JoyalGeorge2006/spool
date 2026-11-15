@@ -5,6 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -15,6 +16,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
 import com.music.bitchord.data.settings.AppFont
@@ -24,28 +27,48 @@ import com.music.bitchord.data.settings.AppFont
 val AccentRed = Color(0xFFFA2D48)
 
 private val DarkColors = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
-    background = Color.Black,
-    onBackground = Color.White,
-    surface = Color(0xFF0D0D0F),
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF1C1C1E),
-    onSurfaceVariant = Color(0xFF8E8E93),
-    outline = Color(0xFF2C2C2E),
+    primary = Color(0xFFF1F1F1),
+    onPrimary = Color(0xFF111111),
+    secondary = Color(0xFF9E9E9E),
+    onSecondary = Color(0xFF111111),
+    secondaryContainer = Color(0x1AFFFFFF),
+    onSecondaryContainer = Color(0xFFF1F1F1),
+    tertiary = Color(0xFF9E9E9E),
+    onTertiary = Color(0xFF111111),
+    background = Color(0xFF1B1B1B),
+    onBackground = Color(0xFFFFFFFF),
+    surface = Color(0xFF262626),
+    onSurface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFF262626),
+    onSurfaceVariant = Color(0xFF9E9E9E),
+    outline = Color(0x1AFFFFFF),
+    surfaceTint = Color.Transparent,
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color.Black,
-    onPrimary = Color.White,
-    background = Color.White,
-    onBackground = Color.Black,
-    surface = Color(0xFFF7F7F9),
-    onSurface = Color.Black,
-    surfaceVariant = Color(0xFFF2F2F7),
-    onSurfaceVariant = Color(0xFF6E6E73),
-    outline = Color(0xFFE5E5EA),
+    primary = Color(0xFF1B1B1B),
+    onPrimary = Color(0xFFFFFFFF),
+    secondary = Color(0xFF474747),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0x0F000000),
+    onSecondaryContainer = Color(0xFF1B1B1B),
+    tertiary = Color(0xFF474747),
+    onTertiary = Color(0xFFFFFFFF),
+    background = Color(0xFFF1F1F1),
+    onBackground = Color(0xFF000000),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF000000),
+    surfaceVariant = Color(0xFFFFFFFF),
+    onSurfaceVariant = Color(0xFF6F6F6F),
+    outline = Color(0x0F000000),
+    surfaceTint = Color.Transparent,
 )
+
+/** spool semantic tokens (v6): info and success accents. */
+val SpoolInfo = Color(0xFF0074E2)
+val SpoolInfoDark = Color(0xFF6D9CFE)
+val SpoolSuccess = Color(0xFF198100)
+val SpoolSuccessDark = Color(0xFF64AF4C)
 
 /**
  * SF Pro Display, the face Apple Music itself is set in, drawn one weight
@@ -72,6 +95,18 @@ val SFProDisplay = FontFamily(
     Font(R.font.sf_pro_display_bold, FontWeight.W800),
 )
 
+/**
+ * spool's face (v6): Figtree everywhere, drawn at straight weights - no
+ * weight shifting; the v6 type spec names the actual cuts.
+ */
+val Figtree = FontFamily(
+    Font(R.font.figtree_regular, FontWeight.W400),
+    Font(R.font.figtree_medium, FontWeight.W500),
+    Font(R.font.figtree_semibold, FontWeight.W600),
+    Font(R.font.figtree_bold, FontWeight.W700),
+    Font(R.font.figtree_extrabold, FontWeight.W800),
+)
+
 /*
  * Letter spacing measured off Apple Music's own screens: the spacing the
  * bundled Display cut needs, at the weight it draws, to set a line to the
@@ -81,7 +116,7 @@ val SFProDisplay = FontFamily(
  * nothing for semibold titles at 18 to 24. The large titles had nothing to
  * measure against and follow the same trend.
  */
-private val BitChordTypography = Typography(
+private val SpoolTypography = Typography(
     displayLarge = TextStyle(fontWeight = FontWeight.W800, fontSize = 34.sp, letterSpacing = (-0.5).sp),
     headlineLarge = TextStyle(fontWeight = FontWeight.W800, fontSize = 30.sp, letterSpacing = (-0.4).sp),
     headlineMedium = TextStyle(fontWeight = FontWeight.W700, fontSize = 22.sp, letterSpacing = (-0.25).sp),
@@ -91,7 +126,7 @@ private val BitChordTypography = Typography(
     bodyMedium = TextStyle(fontWeight = FontWeight.W400, fontSize = 14.sp, letterSpacing = 0.3.sp),
     labelMedium = TextStyle(fontWeight = FontWeight.W600, fontSize = 12.sp, letterSpacing = 0.25.sp),
     labelSmall = TextStyle(fontWeight = FontWeight.W600, fontSize = 11.sp, letterSpacing = 0.3.sp),
-).withFamily(SFProDisplay)
+).withFamily(Figtree)
 
 /**
  * SF Pro Display as the app first shipped it, before [SFProDisplay] moved every
@@ -138,6 +173,15 @@ private fun Typography.withFamily(family: FontFamily) = Typography(
     labelSmall = labelSmall.copy(fontFamily = family),
 )
 
+/** v6 radii: inner 8, element 12, container 16, chips full. */
+private val SpoolShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(24.dp),
+)
+
 @Composable
 fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -146,8 +190,9 @@ fun BitChordTheme(
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
+        shapes = SpoolShapes,
         typography = when (font) {
-            AppFont.DEFAULT -> BitChordTypography
+            AppFont.DEFAULT -> SpoolTypography
             AppFont.LEGACY -> LegacyTypography
         },
         content = content,

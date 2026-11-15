@@ -1,6 +1,6 @@
 package com.music.bitchord.ui.screens
 
-import com.music.bitchord.ui.components.trackArtSize
+import com.music.bitchord.ui.components.RowArtwork
 import com.music.bitchord.ui.components.contextClick
 import com.music.bitchord.ui.AppUi
 import com.music.bitchord.sharedui.resources.*
@@ -32,6 +32,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.bitchord.ui.components.ShelfRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cached
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MoreVert
@@ -82,6 +86,9 @@ import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.VideoThumbnails
 import com.music.bitchord.ui.components.SearchPlayingBars
+import com.music.bitchord.ui.components.V6Badge
+import com.music.bitchord.ui.components.V6Chip
+import com.music.bitchord.ui.components.V6SectionHeader
 import com.music.bitchord.ui.components.SignInBanner
 import com.music.bitchord.ui.components.feedMoreSkeleton
 import com.music.bitchord.ui.components.feedSkeleton
@@ -128,6 +135,14 @@ fun HomeScreen(
     onFestiveLogoClick: (() -> Unit)? = null,
     signedIn: Boolean = true,
     onSignIn: (() -> Unit)? = null,
+    /** Opens the search tab from the field under the title. */
+    onSearchClick: (() -> Unit)? = null,
+    /** Opens the listening-history page from the button beside the title. */
+    onHistoryClick: (() -> Unit)? = null,
+    /** Extra action on the title row, right of the history button - the account avatar. */
+    titleTrailing: (@Composable () -> Unit)? = null,
+    /** Tracks with a genuine .mp3 copy exported, by videoId: they carry the row's MP3 badge. */
+    exportedMp3Ids: Set<String> = emptySet(),
     /**
      * Holding a card rather than tapping it. Every card on the feed answers,
      * whichever kind it is: the caller reads the item the same way it does for
@@ -190,7 +205,27 @@ fun HomeScreen(
             },
         ) {
             if (title != null) {
-                item { HomeTitle(title, festiveLogo = festiveLogo, onFestiveLogoClick = onFestiveLogoClick) }
+                item {
+                    HomeTitle(
+                        title,
+                        festiveLogo = festiveLogo,
+                        onFestiveLogoClick = onFestiveLogoClick,
+                        onHistoryClick = onHistoryClick,
+                        trailing = titleTrailing,
+                    )
+                }
+            }
+            if (onSearchClick != null) {
+                item(key = "search-entry") {
+                    com.music.bitchord.ui.components.V6SearchEntry(
+                        hint = stringResource(Res.string.search_hint),
+                        onClick = onSearchClick,
+                        modifier = Modifier.padding(bottom = 14.dp),
+                    )
+                }
+            }
+            if (onMoodClick != null) {
+                item(key = "mood-chips") { MoodChipRow(onMoodClick, onMoodsShowAll) }
             }
             if (!signedIn && onSignIn != null) {
                 item {
@@ -206,9 +241,10 @@ fun HomeScreen(
             if (onTopPickClick != null) {
                 when {
                     !topPicks.isNullOrEmpty() -> item(key = "top-picks") {
-                        TopPicksShelf(
+                        MadeForTonight(
                             picks = topPicks,
                             listenerName = listenerName,
+                            onRefresh = onRefresh,
                             onClick = onTopPickClick,
                             onLongPress = onTopPickLongPress,
                         )
@@ -232,12 +268,12 @@ fun HomeScreen(
                     }
                     itemsIndexedShelves(
                         shelves = state.data,
-                        onMoodClick = onMoodClick,
-                        onMoodsShowAll = onMoodsShowAll,
                         onItemClick = onItemClick,
                         onItemLongPress = onItemLongPress,
                         currentSong = currentSong,
                         isPlaying = isPlaying,
+                        onHistoryClick = onHistoryClick,
+                        exportedMp3Ids = exportedMp3Ids,
                     )
                     if (loadingMore) feedMoreSkeleton()
                 }
@@ -275,27 +311,48 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
     onItemLongPress: ((ShelfItem) -> Unit)?,
     currentSong: Song?,
     isPlaying: Boolean,
-    onMoodClick: ((TopPickMood, String) -> Unit)? = null,
-    onMoodsShowAll: () -> Unit = {},
+    onHistoryClick: (() -> Unit)? = null,
+    exportedMp3Ids: Set<String> = emptySet(),
 ) {
     shelves.forEachIndexed { index, shelf ->
-        // Find Your Mood follows the lead shelf, as on Apple Music's Home.
-        if (index == 1 && onMoodClick != null) {
-            item(key = "find-your-mood") { FindYourMoodShelf(onMoodClick, onMoodsShowAll) }
-        }
         item(key = shelf.title + index) {
             val openItem: (ShelfItem) -> Unit = { item -> onItemClick(item, shelf.title) }
-            // Listen again and Quick picks are lists on the web player, as
-            // Recents is here: one pager for all three.
-            if (shelf.layout == ShelfLayout.LIST ||
-                (index == 0 && shelf.title.equals(RECENTS_TITLE, ignoreCase = true))
-            ) {
+            val isRecents = shelf.title.equals(RECENTS_TITLE, ignoreCase = true)
+            val isNewReleases = NEW_RELEASES_TITLES.any { shelf.title.equals(it, ignoreCase = true) }
+            // v6: Recents becomes "Jump back in" and New releases joins it in
+            // hairline rows; the other list shelves (Quick picks, Listen
+            // again) keep the same row pager, unbadged.
+            if (isRecents || isNewReleases || shelf.layout == ShelfLayout.LIST) {
+                val newBadge = stringResource(Res.string.home_badge_new)
                 RecentShelf(
                     shelf = shelf,
                     onItemClick = openItem,
                     onItemLongPress = onItemLongPress,
                     currentSong = currentSong,
                     isPlaying = isPlaying,
+                    headerTitle = if (isRecents) stringResource(Res.string.home_jump_back_in) else null,
+                    headerActionLabel = if (isRecents && onHistoryClick != null) {
+                        stringResource(Res.string.home_recent)
+                    } else {
+                        null
+                    },
+                    onHeaderAction = onHistoryClick,
+                    badge = when {
+                        isRecents -> { item: ShelfItem ->
+                            if (item.videoId != null && item.videoId in exportedMp3Ids) MP3_BADGE else null
+                        }
+                        isNewReleases -> ({ _: ShelfItem -> newBadge })
+                        else -> null
+                    },
+                    badgeAccent = if (isNewReleases) {
+                        if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+                            androidx.compose.ui.graphics.Color(0xFF8FB3F4)
+                        } else {
+                            androidx.compose.ui.graphics.Color(0xFF2B5EC7)
+                        }
+                    } else {
+                        null
+                    },
                 )
             } else {
                 Shelf(
@@ -310,6 +367,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
     }
 }
 
+/** "New releases" in the languages the feed has arrived in - see localizeShelfTitle. */
+private val NEW_RELEASES_TITLES = listOf("New releases", "Albums & singles", "Bản phát hành mới", "最新リリース")
+
+/** The badge on a track with an exported .mp3 copy. A proper noun, never translated. */
+private const val MP3_BADGE = "MP3"
+
+
 /** The same four-rows-per-page treatment used by an artist's Top songs. */
 @Composable
 private fun RecentShelf(
@@ -318,9 +382,27 @@ private fun RecentShelf(
     onItemLongPress: ((ShelfItem) -> Unit)?,
     currentSong: Song?,
     isPlaying: Boolean,
+    /** v6 heading override ("Jump back in"); null keeps the feed's own title. */
+    headerTitle: String? = null,
+    /** The quiet trailing action ("Recent") and its tap. */
+    headerActionLabel: String? = null,
+    onHeaderAction: (() -> Unit)? = null,
+    /** A trailing badge per row ("MP3", "New"); null badges every row off. */
+    badge: ((ShelfItem) -> String?)? = null,
+    /** Recolours the badge (the blue "New"); null is the badge's own green. */
+    badgeAccent: androidx.compose.ui.graphics.Color? = null,
 ) {
     Column(Modifier.padding(bottom = 26.dp)) {
-        RecentSectionHeader(title = localizeShelfTitle(shelf.title), subtitle = localizeShelfSubtitle(shelf.subtitle))
+        if (headerTitle != null || headerActionLabel != null) {
+            V6SectionHeader(
+                title = headerTitle ?: localizeShelfTitle(shelf.title),
+                subtitle = if (headerTitle == null) localizeShelfSubtitle(shelf.subtitle) else "",
+                actionLabel = headerActionLabel,
+                onAction = onHeaderAction,
+            )
+        } else {
+            RecentSectionHeader(title = localizeShelfTitle(shelf.title), subtitle = localizeShelfSubtitle(shelf.subtitle))
+        }
         val isCurrentItem = shelf.items.playingItemMatcher(currentSong)
         BoxWithConstraints {
             val columnWidth = trackColumnWidth(maxWidth)
@@ -329,14 +411,23 @@ private fun RecentShelf(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(shelf.items.chunked(RECENT_TRACKS_PER_COLUMN)) { column ->
-                    Column(Modifier.width(columnWidth)) {
-                        column.forEach { item ->
+                    Column(
+                        Modifier
+                            .width(columnWidth)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    ) {
+                        column.forEachIndexed { rowIndex, item ->
+                            if (rowIndex > 0) com.music.bitchord.ui.components.V6Hairline()
                             RecentTrackRow(
                                 item = item,
                                 onClick = { onItemClick(item) },
                                 onLongPress = onItemLongPress?.let { { it(item) } },
                                 isCurrent = isCurrentItem(item),
                                 isPlaying = isCurrentItem(item) && isPlaying,
+                                badge = badge?.invoke(item),
+                                badgeAccent = badgeAccent,
                             )
                         }
                     }
@@ -355,7 +446,8 @@ private fun RecentSectionHeader(title: String, subtitle: String) {
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.W700,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -379,6 +471,8 @@ private fun RecentTrackRow(
     onLongPress: (() -> Unit)?,
     isCurrent: Boolean,
     isPlaying: Boolean,
+    badge: String? = null,
+    badgeAccent: androidx.compose.ui.graphics.Color? = null,
 ) {
     CompactTrackRow(
         title = item.title,
@@ -389,6 +483,8 @@ private fun RecentTrackRow(
         isCurrent = isCurrent,
         isPlaying = isPlaying,
         isVideo = item.isVideo,
+        badge = badge,
+        badgeAccent = badgeAccent,
     )
 }
 
@@ -408,6 +504,9 @@ fun CompactTrackRow(
     isPlaying: Boolean = false,
     /** A music video: its thumbnail at 16:9 rather than squared off. */
     isVideo: Boolean = false,
+    /** A trailing v6 badge ("MP3", "New"), before the more button. */
+    badge: String? = null,
+    badgeAccent: androidx.compose.ui.graphics.Color? = null,
 ) {
     Row(
         modifier = Modifier
@@ -417,17 +516,12 @@ fun CompactTrackRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.trackArtSize(48.dp, isVideo)) {
-            AsyncImage(
-                model = thumbnailUrl.artworkAt(ROW_ART_PX),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(7.dp))
-                    .thumbnailBorder(RoundedCornerShape(7.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            )
+        RowArtwork(
+            model = thumbnailUrl.artworkAt(ROW_ART_PX),
+            isVideo = isVideo,
+            size = 48.dp,
+            cornerRadius = 7.dp,
+        ) {
             if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         }
         Spacer(Modifier.width(12.dp))
@@ -446,6 +540,10 @@ fun CompactTrackRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (badge != null) {
+            V6Badge(label = badge, accent = badgeAccent)
+            Spacer(Modifier.width(4.dp))
         }
         if (onLongPress != null) {
             RowMoreButton(onClick = onLongPress)
@@ -467,42 +565,181 @@ private fun HomeTitle(
     modifier: Modifier = Modifier,
     festiveLogo: Boolean = false,
     onFestiveLogoClick: (() -> Unit)? = null,
+    onHistoryClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
-    val style = MaterialTheme.typography.displayLarge
-    val logoHeight = with(LocalDensity.current) { (style.fontSize * LOGO_TO_FONT).toDp() }
+    val style = com.music.bitchord.ui.components.v6PageTitleStyle()
     Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
-        val logoModifier = Modifier
-            .padding(bottom = 14.dp)
-            .height(logoHeight)
-            .aspectRatio(LOGO_ASPECT)
         if (festiveLogo) {
+            val logoHeight = with(LocalDensity.current) { (style.fontSize * LOGO_TO_FONT).toDp() }
             GoldenLogo(
                 painter = painterResource(Res.drawable.ic_logo),
-                modifier = logoModifier,
+                modifier = Modifier
+                    .padding(bottom = 14.dp)
+                    .height(logoHeight)
+                    .aspectRatio(LOGO_ASPECT),
                 onClick = onFestiveLogoClick,
             )
+        }
+        // The page's own name, v6: one big Figtree line, no wordmark above
+        // it, and the circular history button the v6 title row carries.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = style,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f),
+            )
+            if (onHistoryClick != null) {
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .clickable(onClick = onHistoryClick),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = stringResource(Res.string.home_history),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            if (trailing != null) {
+                trailing()
+            }
+        }
+    }
+}
+
+/**
+ * The quick mood launchers under the search field: For you, then three
+ * stations, then Show all - the chips replaced the mood tiles, and without
+ * the last one the full moods page would have no way in.
+ */
+@Composable
+private fun MoodChipRow(onMoodClick: (TopPickMood, String) -> Unit, onShowAll: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = PAGE_GUTTER)
+            .padding(bottom = 14.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        V6Chip(label = stringResource(Res.string.shelf_for_you), selected = true, onClick = {})
+        listOf(TopPickMood.CHILL, TopPickMood.FOCUS, TopPickMood.PARTY).forEach { mood ->
+            val label = stringResource(mood.titleRes())
+            V6Chip(label = label, selected = false, onClick = { onMoodClick(mood, label) })
+        }
+        V6Chip(label = stringResource(Res.string.show_all), selected = false, onClick = onShowAll)
+    }
+}
+
+/**
+ * v6's "Made for tonight": the Top Picks stations as full-width-artwork
+ * cards, two in view and the rest a swipe away, refreshing with the feed.
+ */
+@Composable
+private fun MadeForTonight(
+    picks: List<TopPick>,
+    listenerName: String?,
+    onRefresh: () -> Unit,
+    onClick: (TopPick, String) -> Unit,
+    onLongPress: ((TopPick) -> Unit)?,
+) {
+    Column(Modifier.padding(bottom = 26.dp)) {
+        V6SectionHeader(
+            title = stringResource(Res.string.home_made_for_tonight),
+            actionLabel = stringResource(Res.string.home_refresh),
+            onAction = onRefresh,
+        )
+        BoxWithConstraints {
+            // Two cards in view, as the mockup; the row swipes to the rest.
+            val cardWidth = (maxWidth - PAGE_GUTTER * 2 - 12.dp) / 2
+            ShelfRow(
+                contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(picks.size) { index ->
+                    MixCard(
+                        pick = picks[index],
+                        listenerName = listenerName,
+                        onClick = onClick,
+                        onLongPress = onLongPress,
+                        modifier = Modifier.width(cardWidth),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** One "Made for tonight" card: 4:3 artwork across the full card, text under it. */
+@Composable
+private fun MixCard(
+    pick: TopPick,
+    listenerName: String?,
+    onClick: (TopPick, String) -> Unit,
+    onLongPress: ((TopPick) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val text = cardText(pick, listenerName)
+    Column(
+        modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .longPressMenuClickable(
+                onClick = { onClick(pick, text.title) },
+                onLongClick = onLongPress?.let { handler -> { handler(pick) } },
+            )
+            .padding(bottom = 12.dp),
+    ) {
+        // A mood card has no cover to load: its picture is the mood's own
+        // drawn art, the same emblem the Mood for You tiles paint.
+        val artModifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(4f / 3f)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+        val moodArt = pick.mood.takeIf { pick.images.isEmpty() }
+        if (moodArt != null) {
+            MoodArt(moodArt, moodArt.style(), artModifier, square = true, still = true)
         } else {
-            Icon(
-                painter = painterResource(Res.drawable.ic_logo),
+            AsyncImage(
+                model = pick.images.firstOrNull().artworkAt(CARD_ART_PX),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = logoModifier,
+                contentScale = ContentScale.Crop,
+                modifier = artModifier,
             )
         }
-        // "Listen now" is hidden for now; the wordmark above stays.
-        // Text(
-        //     text = title,
-        //     style = style,
-        //     color = MaterialTheme.colorScheme.onBackground,
-        // )
+        Text(
+            text = text.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.W700,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 10.dp),
+        )
+        if (text.subtitle.isNotBlank()) {
+            Text(
+                text = text.subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 14.dp),
+            )
+        }
     }
 }
 
 /** The wordmark's height against the heading's font size. */
 private const val LOGO_TO_FONT = 0.9f
 
-/** ic_logo's viewport, 730 x 484. */
-private const val LOGO_ASPECT = 730f / 484f
+/** The spool mark is square. */
+private const val LOGO_ASPECT = 1f
 
 /**
  * Shared by the home feed, Explore and Library so headings line up across tabs.
@@ -524,7 +761,8 @@ internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() 
         Column(Modifier.weight(1f)) {
             Text(
                 text = displayTitle,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.W700,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -886,11 +1124,13 @@ internal fun NewShelfCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        // Two lines: the action tiles carry a sentence ("Saved to YouTube
+        // Music"), and one line at the card's width cut it mid-word.
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }

@@ -2,6 +2,7 @@ package com.music.bitchord.ui.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -18,6 +19,21 @@ import androidx.compose.ui.graphics.layer.drawLayer
 internal val LocalPlayerChrome = compositionLocalOf { false }
 
 /**
+ * spool's flat player (PlayerTheme.FLAT): the main player page stands on the
+ * theme background, not on artwork, so chrome there is ink, not white. Off on
+ * the lyrics and queue pages, which keep their dark blurred-cover backdrop.
+ */
+internal val LocalPlayerFlat = compositionLocalOf { false }
+
+/**
+ * The flat player's scrolling-page layout draws in plain ink (the theme's
+ * on-background on its background) instead of the Material purple accent, and
+ * drops the Lyrics and Up next chips that the tab row replaces. See
+ * [mdPlayerColors] and the Material action row.
+ */
+internal val LocalPlayerInk = compositionLocalOf { false }
+
+/**
  * How strong a control's "full" white is while the blend is on. Solid white comes
  * out of [additiveChrome] as solid white, with none of the backdrop in it.
  */
@@ -29,8 +45,10 @@ private const val CHROME_ALPHA_DROP = 0.15f
 /** White at [alpha], or that less [CHROME_ALPHA_DROP] while the blend is on. */
 @Composable
 @ReadOnlyComposable
-internal fun chromeWhite(alpha: Float): Color =
-    Color.White.copy(alpha = if (LocalPlayerChrome.current) alpha - CHROME_ALPHA_DROP else alpha)
+internal fun chromeWhite(alpha: Float): Color {
+    if (LocalPlayerFlat.current) return MaterialTheme.colorScheme.onBackground.copy(alpha = alpha)
+    return Color.White.copy(alpha = if (LocalPlayerChrome.current) alpha - CHROME_ALPHA_DROP else alpha)
+}
 
 /**
  * What [vibrantChrome] content is drawn in: a neutral ink, so the hue is all the backdrop's.

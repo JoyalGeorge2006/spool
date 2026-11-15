@@ -131,6 +131,15 @@ private val LightMenu = IosMenuColors(
 /** The panel colours for the theme in force. */
 @Composable
 fun iosMenuColors(): IosMenuColors {
+    if (LocalSpoolPlayerMenu.current) {
+        val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+        val ink = if (dark) Color(0xFFF2EFF6) else Color(0xFF14121A)
+        return IosMenuColors(dark,
+            if (dark) Color(0xFF1C1A20) else Color.White,
+            ink.copy(alpha = 0.07f), ink,
+            if (dark) Color(0xFFA29AA8) else Color(0xFF6B6873),
+            ink.copy(alpha = 0.07f), ink.copy(alpha = 0.08f))
+    }
     val plain by AppSettings.disableBlendEffects.collectAsStateWithLifecycle()
     return when {
         MaterialTheme.colorScheme.background.luminance() >= 0.5f -> LightMenu
@@ -238,6 +247,7 @@ private const val STILL_WAIT_MS = 150L
 /** The break between groups: a hairline inset from the panel's edges, with air either side. */
 @Composable
 fun IosMenuSeparator(colors: IosMenuColors = iosMenuColors()) {
+    if (LocalSpoolPlayerMenu.current) return
     Box(
         Modifier
             .fillMaxWidth()
@@ -260,9 +270,9 @@ fun IosMenuQuickActions(content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(66.dp)
-            .padding(horizontal = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .height(if (LocalSpoolPlayerMenu.current) 76.dp else 66.dp)
+            .padding(horizontal = if (LocalSpoolPlayerMenu.current) 20.dp else 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (LocalSpoolPlayerMenu.current) 10.dp else 4.dp),
         content = content,
     )
 }
@@ -284,8 +294,8 @@ fun RowScope.IosMenuQuickAction(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (pressed) colors.pressed else Color.Transparent)
+            .clip(RoundedCornerShape(if (LocalSpoolPlayerMenu.current) 14.dp else 16.dp))
+            .background(if (pressed || LocalSpoolPlayerMenu.current) colors.pressed else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 4.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -301,9 +311,9 @@ fun RowScope.IosMenuQuickAction(
         Text(
             text = label,
             color = color,
-            fontSize = 12.sp,
+            fontSize = if (LocalSpoolPlayerMenu.current) 11.5.sp else 12.sp,
             lineHeight = 15.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = if (LocalSpoolPlayerMenu.current) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -340,7 +350,7 @@ fun IosMenuRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = if (LocalSpoolPlayerMenu.current) 20.dp else 8.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(if (pressed) colors.pressed else Color.Transparent)
             .then(
@@ -355,11 +365,11 @@ fun IosMenuRow(
                     Modifier
                 },
             )
-            .heightIn(min = 44.dp)
-            .padding(start = 12.dp, end = 14.dp, top = 11.dp, bottom = 11.dp),
+            .heightIn(min = if (LocalSpoolPlayerMenu.current) 48.dp else 44.dp)
+            .padding(start = if (LocalSpoolPlayerMenu.current) 0.dp else 12.dp, end = if (LocalSpoolPlayerMenu.current) 0.dp else 14.dp, top = 11.dp, bottom = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(28.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.width(if (LocalSpoolPlayerMenu.current) 40.dp else 28.dp), contentAlignment = Alignment.Center) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
@@ -369,13 +379,14 @@ fun IosMenuRow(
                 )
             }
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(if (LocalSpoolPlayerMenu.current) 14.dp else 10.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
                 text = label,
                 color = foreground.copy(alpha = foreground.alpha * alpha),
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 17.sp,
+                    fontSize = if (LocalSpoolPlayerMenu.current) 14.5.sp else 17.sp,
+                    fontWeight = if (LocalSpoolPlayerMenu.current) FontWeight.SemiBold else FontWeight.Normal,
                     lineHeight = 21.sp,
                     letterSpacing = (-0.3).sp,
                 ),
@@ -386,8 +397,8 @@ fun IosMenuRow(
                 Text(
                     text = description,
                     color = colors.secondaryLabel.copy(alpha = colors.secondaryLabel.alpha * alpha),
-                    fontSize = 14.sp,
-                    lineHeight = 17.sp,
+                    fontSize = if (LocalSpoolPlayerMenu.current) 11.5.sp else 14.sp,
+                    lineHeight = if (LocalSpoolPlayerMenu.current) 15.sp else 17.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

@@ -3,6 +3,7 @@ package com.music.bitchord.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -133,11 +134,11 @@ import kotlin.math.sin
 /** Width over height: Apple's cards are a 3:4 portrait. */
 private const val TOP_PICK_RATIO = 0.75f
 
-/** Share of the row a card takes, so the next one shows past it. */
-private const val TOP_PICK_FRACTION = 0.60f
+/** Two approved flat cards per view, the third peeking past the edge. */
+private const val TOP_PICK_FRACTION = 0.44f
 
 /** Held back on a tablet, so a card doesn't blow up into a poster. */
-private val TOP_PICK_MAX_WIDTH = 280.dp
+private val TOP_PICK_MAX_WIDTH = 210.dp
 
 private val TopPickShape = RoundedCornerShape(12.dp)
 
@@ -208,7 +209,7 @@ fun LazyListScope.topPicksSkeleton() {
                 ) {
                     items(2) {
                         ShimmerBox(
-                            modifier = Modifier.width(cardWidth).aspectRatio(TOP_PICK_RATIO),
+                            modifier = Modifier.width(cardWidth).height(cardWidth + 62.dp),
                             shape = TopPickShape,
                         )
                     }
@@ -219,10 +220,10 @@ fun LazyListScope.topPicksSkeleton() {
 }
 
 /** What a card says: the small coloured line, the title, and an optional line under it. */
-private class CardText(val eyebrow: String, val title: String, val subtitle: String)
+internal class CardText(val eyebrow: String, val title: String, val subtitle: String)
 
 @Composable
-private fun cardText(pick: TopPick, listenerName: String?): CardText {
+internal fun cardText(pick: TopPick, listenerName: String?): CardText {
     val artist = pick.artistName.orEmpty()
     return when (pick.kind) {
         TopPickKind.LATEST_RELEASE -> CardText(
@@ -279,92 +280,77 @@ private fun TopPickCard(
 ) {
     val text = cardText(pick, listenerName)
     val longPress = onLongPress?.let { { it(pick) } }
-    Box(
+    // The approved flat card: the artwork as a square block on top, the title
+    // and one quiet line under it on the card's own surface. No scrim, no
+    // small-caps eyebrow, no overlaid white type.
+    Column(
         modifier = modifier
-            .aspectRatio(TOP_PICK_RATIO)
             .clip(TopPickShape)
-            .thumbnailBorder(TopPickShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline, TopPickShape)
             .longPressMenuClickable(onClick = { onClick(pick, text.title) }, onLongClick = longPress)
             .contextClick(longPress),
     ) {
-        val eyebrowColor: Color
-        val branded: Boolean
-        when (pick.kind) {
-            TopPickKind.PERSONAL_STATION -> {
-                PersonalStationArt(Modifier.fillMaxSize())
-                eyebrowColor = Color(0xFFFFD2DA)
-                branded = true
-            }
-            TopPickKind.DISCOVERY_STATION -> {
-                DiscoveryStationArt(Modifier.fillMaxSize())
-                eyebrowColor = Color(0xFFCDBDFF)
-                branded = true
-            }
-            TopPickKind.MOOD -> {
-                val style = (pick.mood ?: TopPickMood.FEEL_GOOD).style()
-                MoodArt(pick.mood ?: TopPickMood.FEEL_GOOD, style, Modifier.fillMaxSize())
-                eyebrowColor = style.eyebrow
-                branded = true
-            }
-            TopPickKind.ARTIST_AND_SIMILAR -> {
-                val palette = collagePalette(pick.artistName.orEmpty())
-                ArtistCollageArt(pick.images, palette, Modifier.fillMaxSize())
-                eyebrowColor = palette.eyebrow
-                branded = true
-            }
-            TopPickKind.LATEST_RELEASE, TopPickKind.NEW_RELEASE_MIX -> {
-                ReleaseArt(
-                    pick.images.firstOrNull(),
-                    Modifier.fillMaxSize(),
-                    // A New Release Mix is a playlist; only a real release has a sleeve that moves.
-                    motion = pick.takeIf { it.kind == TopPickKind.LATEST_RELEASE }?.let { release ->
-                        CardMotionSource(release.browseId ?: release.title) {
-                            AppUi.host.releaseMotion(release.title, release.artistName.orEmpty())
-                        }
-                    },
-                )
-                eyebrowColor = PhotoEyebrow
-                branded = false
-            }
-            TopPickKind.FEATURED_ARTIST -> {
-                AsyncImage(
-                    model = pick.images.firstOrNull().croppedAt(HEADER_ART_PX * 3 / 4, HEADER_ART_PX).whenArtworkReady(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                CardMotion(pick.artistMotion(), Modifier.fillMaxSize())
-                // The caption sits on the picture's own darkened foot, as on
-                // Apple's photo cards, rather than on a band of flat black.
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0.45f to Color.Transparent,
-                                0.72f to Color.Black.copy(alpha = 0.45f),
-                                1f to Color.Black.copy(alpha = 0.82f),
-                            ),
-                        ),
-                )
-                eyebrowColor = PhotoEyebrow
-                branded = false
+        Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+            when (pick.kind) {
+                TopPickKind.PERSONAL_STATION -> {
+                    PersonalStationArt(Modifier.fillMaxSize())
+                }
+                TopPickKind.DISCOVERY_STATION -> {
+                    DiscoveryStationArt(Modifier.fillMaxSize())
+                }
+                TopPickKind.MOOD -> {
+                    val style = (pick.mood ?: TopPickMood.FEEL_GOOD).style()
+                    MoodArt(pick.mood ?: TopPickMood.FEEL_GOOD, style, Modifier.fillMaxSize())
+                }
+                TopPickKind.ARTIST_AND_SIMILAR -> {
+                    ArtistCollageArt(pick.images, collagePalette(pick.artistName.orEmpty()), Modifier.fillMaxSize())
+                }
+                TopPickKind.LATEST_RELEASE, TopPickKind.NEW_RELEASE_MIX -> {
+                    ReleaseArt(
+                        pick.images.firstOrNull(),
+                        Modifier.fillMaxSize(),
+                        // A New Release Mix is a playlist; only a real release has a sleeve that moves.
+                        motion = pick.takeIf { it.kind == TopPickKind.LATEST_RELEASE }?.let { release ->
+                            CardMotionSource(release.browseId ?: release.title) {
+                                AppUi.host.releaseMotion(release.title, release.artistName.orEmpty())
+                            }
+                        },
+                    )
+                }
+                TopPickKind.FEATURED_ARTIST -> {
+                    AsyncImage(
+                        model = pick.images.firstOrNull().croppedAt(HEADER_ART_PX * 3 / 4, HEADER_ART_PX).whenArtworkReady(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    CardMotion(pick.artistMotion(), Modifier.fillMaxSize())
+                }
             }
         }
-        if (branded) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_logo),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 12.dp, end = 12.dp)
-                    .height(15.dp)
-                    .aspectRatio(730f / 484f),
+        Column(Modifier.padding(12.dp)) {
+            Text(
+                text = text.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            // The old eyebrow line carries the only copy some kinds have under
+            // their title ("New from ..."); it serves as the quiet line here.
+            val line = text.subtitle.ifBlank { text.eyebrow }
+            if (line.isNotBlank()) {
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        CardCaption(text, eyebrowColor, Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -866,14 +852,14 @@ private val DiscoveryInnerArrow = Color(0xFF3C1981).copy(alpha = 0.35f)
  * photographs, which this app can't use, so they get emblems in the same
  * hand instead.
  */
-private class MoodStyle(
+internal class MoodStyle(
     val background: Color,
     val stroke: Color,
     val periodMs: Int,
     val eyebrow: Color = lerp(stroke, Color.White, 0.35f),
 )
 
-private fun TopPickMood.style(): MoodStyle = when (this) {
+internal fun TopPickMood.style(): MoodStyle = when (this) {
     TopPickMood.ENERGY -> MoodStyle(Color(0xFF1EBD38), Color(0xFFE2F6A2), 3_000, Color(0xFFE8FF9C))
     TopPickMood.RELAX -> MoodStyle(Color(0xFF31AFF3), Color(0xFFB4E9FF), 5_600, Color(0xFFD6F3FF))
     TopPickMood.FEELING_BLUE -> MoodStyle(Color(0xFF253AB2), Color(0xFF6CC4FF), 3_700, Color(0xFFA9DBFF))
@@ -980,7 +966,7 @@ private class Frame(val left: Float, val top: Float, val side: Float) {
  * above the caption.
  */
 @Composable
-private fun MoodArt(
+internal fun MoodArt(
     mood: TopPickMood,
     style: MoodStyle,
     modifier: Modifier,
@@ -1619,7 +1605,7 @@ private fun MoodTile(mood: TopPickMood, onClick: (TopPickMood, String) -> Unit, 
                     .align(Alignment.TopEnd)
                     .padding(top = 8.dp, end = 8.dp)
                     .height(11.dp)
-                    .aspectRatio(730f / 484f),
+                    .aspectRatio(1f),
             )
         }
         Spacer(Modifier.height(10.dp))

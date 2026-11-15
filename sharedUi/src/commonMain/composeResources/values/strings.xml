@@ -26,6 +26,9 @@
     <string name="choose_lyrics_provider">Choose lyrics provider</string>
     <string name="clear">Clear</string>
     <string name="close_lyrics">Close lyrics</string>
+    <string name="translate">Translate</string>
+    <string name="romanize">Romanize</string>
+    <string name="close_player">Close player</string>
     <string name="data_saver">Data-Saver</string>
     <string name="decrease_lyrics_offset">Decrease lyrics offset</string>
     <string name="downgraded_from">↓ from %1$s</string>
@@ -155,12 +158,13 @@
     <string name="recent_search_edit">Edit “%1$s”</string>
     <string name="recent_search_remove">Remove “%1$s” from recent searches</string>
     <string name="recent_searches">Recent searches</string>
+    <string name="browse_moods_genres">Browse moods &amp; genres</string>
     <string name="replay_subtitle">Your top songs, artists, albums and genres</string>
     <string name="retry">Retry</string>
     <string name="saved_to_youtube_music">Saved to YouTube Music</string>
     <string name="search">Search</string>
     <string name="search_empty">Search millions of songs on YouTube Music.</string>
-    <string name="search_hint">Artists, Songs, Lyrics and More</string>
+    <string name="search_hint">Songs, artists, albums</string>
     <string name="search_library_empty">Search the songs in your Local Music folder.</string>
     <string name="search_library_hint">Songs, Artists and Albums</string>
     <string name="search_addons_hint">Search your addons</string>
@@ -175,6 +179,12 @@
     <string name="shelf_concerts">Concerts</string>
     <string name="shelf_featured_playlists_for_you">Featured playlists for you</string>
     <string name="shelf_for_you">For you</string>
+    <string name="home_jump_back_in">Jump back in</string>
+    <string name="home_made_for_tonight">Made for tonight</string>
+    <string name="home_recent">Recent</string>
+    <string name="home_refresh">Refresh</string>
+    <string name="home_badge_new">New</string>
+    <string name="home_history">History</string>
     <string name="shelf_forgotten_favorites">Forgotten favorites</string>
     <string name="shelf_from_the_community">From the community</string>
     <string name="shelf_from_your_library">From your library</string>
@@ -200,7 +210,7 @@
     <string name="subscriptions">Subscriptions</string>
     <string name="your_replay">Your Replay</string>
     <string name="your_listening_experience">Your listening experience</string>
-    <string name="default_replay_holder">BitChord listener</string>
+    <string name="default_replay_holder">spool listener</string>
     <string name="member_since">Member since</string>
     <string name="import_spotify">Import Spotify</string>
     <string name="import_spotify_subtitle">From a playlist link</string>
@@ -278,4 +288,8 @@
     <string name="mix_view_seconds">%1$d sec</string>
     <string name="mix_view_bpm">%1$d bpm</string>
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
+    <string name="spool_player_song">Song</string>
+    <string name="spool_player_video">Video</string>
+    <string name="spool_player_lyrics">Lyrics</string>
+    <string name="spool_player_related">Related</string>
 </resources>
