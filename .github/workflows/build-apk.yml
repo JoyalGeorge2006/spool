@@ -24,7 +24,18 @@ jobs:
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
 
+    - name: Restore the persisted debug keystore
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+      run: |
+        if [ -n "$SPOOL_DEBUG_KEYSTORE_B64" ]; then
+          echo "$SPOOL_DEBUG_KEYSTORE_B64" | base64 -d > spool-debug.keystore
+        fi
+
     - name: Build the APK
+      env:
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
       run: |
         chmod +x gradlew
         ./gradlew :app:assembleDevDebug
