@@ -13,14 +13,16 @@ jobs:
         run: |
           set -euo pipefail
           repo=JoyalGeorge2006/spool
-          id=446210838
-          tag=v6-test-20261115-165333
+          for pair in 446179969:v6-test-20261115-160508 446197241:v6-test-20261115-163158; do
+            id=${pair%%:*}
+            tag=${pair#*:}
           gh api "repos/$repo/releases/$id" > before.json
-          jq -e --arg tag "$tag" '.id == 446210838 and .tag_name == $tag and .immutable == false' before.json
+          jq -e --arg tag "$tag" --argjson id "$id" '.id == $id and .tag_name == $tag and .immutable == false' before.json
           jq -S '[.assets[] | {id,name,size,digest}] | sort_by(.id)' before.json > assets-before.json
           gh release edit "$tag" --repo "$repo" --draft
           gh api "repos/$repo/releases/$id" > after.json
-          jq -e --arg tag "$tag" '.id == 446210838 and .tag_name == $tag and .draft == true' after.json
+          jq -e --arg tag "$tag" --argjson id "$id" '.id == $id and .tag_name == $tag and .draft == true' after.json
           jq -S '[.assets[] | {id,name,size,digest}] | sort_by(.id)' after.json > assets-after.json
           diff -u assets-before.json assets-after.json
           jq '{id,tag_name,draft,html_url,assets:[.assets[]|{id,name,size,digest}]}' after.json
+          done
