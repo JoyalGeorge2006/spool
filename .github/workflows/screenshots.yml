@@ -58,13 +58,13 @@ jobs:
     - name: Prove the screenshot task graph builds no APK
       run: |
         chmod +x gradlew
-        ./gradlew :app:recordRoborazziDevDebug --dry-run | tee /tmp/tasks.txt
+        ./gradlew :app:recordRoborazziDevDebug -x :wearos:assembleDevDebug -x :wearos:packageDevDebug -x :app:bundleWearApkDevDebug --dry-run | tee /tmp/tasks.txt
         if grep -qiE 'assemble|Apk|androidTest' /tmp/tasks.txt; then
           echo "::error::APK-producing task in graph, refusing to run"; exit 1
         fi
 
     - name: Record v6 screenshots
-      run: ./gradlew :app:recordRoborazziDevDebug
+      run: ./gradlew :app:recordRoborazziDevDebug -x :wearos:assembleDevDebug -x :wearos:packageDevDebug -x :app:bundleWearApkDevDebug
 
     - name: Publish screenshots to the v6-shots branch
       run: |
