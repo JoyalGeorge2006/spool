@@ -1,0 +1,95 @@
+name: v6 page captures from preserved APK
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Source run id with the raw-apk-splits artifact
+        required: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download preserved x86 split
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh run download "${{ inputs.run_id }}" -n raw-apk-splits -D "$RUNNER_TEMP/splits" --repo JoyalGeorge2006/spool
+        mkdir -p "$RUNNER_TEMP/apk-out" "$RUNNER_TEMP/pages"
+        cp "$RUNNER_TEMP/splits"/*-x86_64-debug.apk "$RUNNER_TEMP/apk-out/spool-x86.apk"
+        ls -la "$RUNNER_TEMP/apk-out/"
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Capture every page on emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        script: |
+          set -x
+          adb install -r "$RUNNER_TEMP/apk-out/spool-x86.apk"
+          adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
+          sleep 12
+          shot() { adb exec-out screencap -p > "$RUNNER_TEMP/pages/$1.png"; ls -la "$RUNNER_TEMP/pages/$1.png"; }
+          uix() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml 2>/dev/null; }
+          tap_text() {
+            local label="$1"
+            local b=$(uix | tr '"' '\n' | grep -A0 "" | paste - - 2>/dev/null | true)
+            local line=$(uix | grep -o "text=\"$label\"[^/]*bounds=\"[^\"]*\"" | head -1)
+            if [ -z "$line" ]; then line=$(uix | grep -o "content-desc=\"$label\"[^/]*bounds=\"[^\"]*\"" | head -1); fi
+            local bounds=$(echo "$line" | grep -o 'bounds="[^"]*"' | head -1 | sed 's/bounds="//;s/"//')
+            if [ -z "$bounds" ]; then echo "TAP_MISS $label"; return 1; fi
+            local x1=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\1/')
+            local y1=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\2/')
+            local x2=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\3/')
+            local y2=$(echo "$bounds" | sed 's/\[\([0-9]*\),\([0-9]*\)\]\[\([0-9]*\),\([0-9]*\)\]/\4/')
+            adb shell input tap $(( (x1+x2)/2 )) $(( (y1+y2)/2 ))
+            echo "TAPPED $label at $(( (x1+x2)/2 )),$(( (y1+y2)/2 ))"
+          }
+          # Onboarding
+          uix > "$RUNNER_TEMP/pages/ui-onboarding.xml"
+          tap_text "Your name" && adb shell input text "Joyal"
+          sleep 1
+          tap_text "Next"
+          sleep 10
+          shot 01-home
+          # Tabs
+          tap_text "Explore"; sleep 6; shot 02-explore
+          tap_text "Library"; sleep 6; shot 03-library
+          tap_text "Downloads" || tap_text "Downloaded"; sleep 5; shot 04-downloads
+          adb shell input keyevent KEYCODE_BACK; sleep 3
+          tap_text "Search"; sleep 6; shot 05-search
+          # open first search result page if possible: type a query
+          tap_text "Artists, Songs, Lyrics and More" || tap_text "Songs, artists, albums"
+          sleep 2; adb shell input text "arijit singh"; adb shell input keyevent KEYCODE_ENTER; sleep 8
+          shot 06-search-results
+          uix > "$RUNNER_TEMP/pages/ui-results.xml"
+          # try opening an album/artist/playlist from results via card taps
+          tap_text "Albums" || true; sleep 3; shot 07-results-albums
+          adb shell input tap 270 800; sleep 6; shot 08-detail-opened
+          uix > "$RUNNER_TEMP/pages/ui-detail.xml"
+          adb shell input keyevent KEYCODE_BACK; sleep 3
+          # settings via profile icon if reachable
+          adb shell input keyevent KEYCODE_BACK; sleep 2
+          tap_text "Listen"; sleep 4
+          adb shell input tap 585 120; sleep 5; shot 09-maybe-settings
+          uix > "$RUNNER_TEMP/pages/ui-last.xml"
+          shot 99-final
+
+    - name: Upload page captures
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: page-captures
+        path: ${{ runner.temp }}/pages/
+        if-no-files-found: ignore
