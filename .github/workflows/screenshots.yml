@@ -107,10 +107,10 @@ jobs:
     - name: Collect the APKs
       run: |
         ls -la app/build/outputs/apk/dev/debug/
-        cp app/build/outputs/apk/dev/debug/*-universal.apk spool.apk
-        cp app/build/outputs/apk/dev/debug/*-x86_64.apk spool-x86.apk
-        cp app/build/outputs/apk/dev/debug/*-arm64-v8a.apk spool-arm64.apk
-        ls -la spool.apk spool-x86.apk spool-arm64.apk
+        cp app/build/outputs/apk/dev/debug/*-universal-debug.apk spool-universal.apk
+        cp app/build/outputs/apk/dev/debug/*-x86_64-debug.apk spool-x86.apk
+        cp app/build/outputs/apk/dev/debug/*-arm64-v8a-debug.apk spool.apk
+        ls -la spool.apk spool-universal.apk spool-x86.apk
 
     - name: Publish patched source to v6-source branch
       run: |
@@ -132,7 +132,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         tag="v6-test-$(date -u +%Y%m%d-%H%M%S)"
-        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Automated debug-signed test build. Installs as spool. Built from the v6-source branch." spool.apk spool-arm64.apk
+        gh release create "$tag" --title "spool v6 test build ($tag)" --notes "Debug-signed test build, installs as spool. spool.apk = arm64 (Pixel 7 and most modern phones). spool-universal.apk = all ABIs. Built from the v6-source branch." spool.apk spool-universal.apk
 
     - name: Enable KVM
       run: |
