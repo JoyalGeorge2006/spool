@@ -222,7 +222,19 @@ jobs:
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
 
+    - name: Restore the persisted signing key
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+      run: |
+        test -n "$SPOOL_DEBUG_KEYSTORE_B64"
+        printf '%s' "$SPOOL_DEBUG_KEYSTORE_B64" | base64 -d > spool-debug.keystore
+        test -s spool-debug.keystore
+        chmod 600 spool-debug.keystore
+
     - name: Build the spool APK (verification test build)
+      env:
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
       run: |
         chmod +x gradlew
         ./gradlew :app:assembleDevDebug
@@ -261,6 +273,18 @@ jobs:
         run-id: 43747139582
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path: ${{ runner.temp }}/prior-v116
+
+    - name: Normalize emulator fixture signature to the candidate key
+      env:
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+        fixture=$(find "$RUNNER_TEMP/prior-v116" -name '*-x86_64-debug.apk' -print -quit)
+        test -n "$signer" && test -n "$fixture"
+        "$signer" sign --ks spool-debug.keystore --ks-key-alias spooldebug --ks-pass env:SPOOL_DEBUG_STORE_PASSWORD --key-pass env:SPOOL_DEBUG_KEY_PASSWORD "$fixture"
+        "$signer" verify --verbose --print-certs "$fixture"
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool.apk"
 
     - name: Enable KVM
       run: |
