@@ -1,0 +1,67 @@
+name: v6 release from preserved artifact
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Source run id with the raw-apk-splits artifact
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download preserved splits and verify bytes
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh run download "${{ inputs.run_id }}" -n raw-apk-splits -D "$RUNNER_TEMP/splits" --repo JoyalGeorge2006/spool
+        ls -la "$RUNNER_TEMP/splits"
+        mkdir -p "$RUNNER_TEMP/apk-out"
+        cp "$RUNNER_TEMP/splits"/*-universal-debug.apk "$RUNNER_TEMP/apk-out/spool-universal.apk"
+        cp "$RUNNER_TEMP/splits"/*-x86_64-debug.apk "$RUNNER_TEMP/apk-out/spool-x86.apk"
+        cp "$RUNNER_TEMP/splits"/*-arm64-v8a-debug.apk "$RUNNER_TEMP/apk-out/spool.apk"
+        ls -la "$RUNNER_TEMP/apk-out/"
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool-universal.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
+        AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt | sort -V | tail -1)
+        "$AAPT" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | grep -E "package:|application-label:"
+        "$AAPT" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | grep "application-label:'spool'"
+
+    - name: Publish release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cd "$RUNNER_TEMP/apk-out"
+        tag="v6-test-$(date -u +%Y%m%d-%H%M%S)"
+        gh release create "$tag" --repo JoyalGeorge2006/spool --title "spool v6 test build ($tag)" --notes "Debug-signed test build, installs as spool. spool.apk = arm64-v8a split (Pixel 7 and most modern phones). spool-universal.apk = all ABIs fallback. Built from the v6-source branch." spool.apk spool-universal.apk
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Emulator smoke test (install + launch)
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        script: |
+          adb install -r "$RUNNER_TEMP/apk-out/spool-x86.apk"
+          adb shell monkey -p app.spool.music.dev -c android.intent.category.LAUNCHER 1
+          sleep 20
+          adb shell pidof app.spool.music.dev
+          adb exec-out screencap -p > "$RUNNER_TEMP/launch.png"
+
+    - name: Upload launch screenshot
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: launch-screenshot
+        path: ${{ runner.temp }}/launch.png
+        if-no-files-found: ignore
