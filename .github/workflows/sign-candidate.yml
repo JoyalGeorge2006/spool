@@ -19,7 +19,7 @@ jobs:
     - name: Apply the spool patch
       run: |
         curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
-        echo 'dbc047b9f0c2826eae58d8e4f9c63f51c45f38eb881730491224caa4f474577c  /tmp/spool.patch' | sha256sum -c -
+        echo 'c1f6f7b119d89d423bd64c5453cfba8ff7482be356ad2b03e56cfaa1aeac845f  /tmp/spool.patch' | sha256sum -c -
         git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
         curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
@@ -85,7 +85,7 @@ jobs:
     - name: Apply the spool patch
       run: |
         curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
-        echo 'dbc047b9f0c2826eae58d8e4f9c63f51c45f38eb881730491224caa4f474577c  /tmp/spool.patch' | sha256sum -c -
+        echo 'c1f6f7b119d89d423bd64c5453cfba8ff7482be356ad2b03e56cfaa1aeac845f  /tmp/spool.patch' | sha256sum -c -
         git apply --exclude='native/lame/*' --exclude='README.md' --exclude='docs/assets/spool-logo.svg' /tmp/spool.patch
         curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
