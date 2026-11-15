@@ -30,15 +30,24 @@ jobs:
         ./gradlew :app:assembleDevDebug
 
     - name: Record v6 screenshots
-      run: ./gradlew :app:recordRoborazziDevDebug
+      run: ./gradlew :app:recordRoborazziDevDebug --tests 'com.music.bitchord.V6ScreenshotTest'
 
     - name: Upload v6 screenshots
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: v6-screenshots
         path: app/build/outputs/roborazzi/
 
+    - name: Upload screenshot test reports
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: v6-test-reports
+        path: app/build/test-results/testDevDebugUnitTest/
+
     - name: Upload the APK
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: spool-dev-debug
