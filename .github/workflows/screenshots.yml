@@ -34,3 +34,45 @@ jobs:
 
     - name: Compile Home sources and screenshot-test sources
       run: ./gradlew :app:compileDevDebugKotlin :app:compileDevDebugUnitTestKotlin
+
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Apply the spool patch
+      run: |
+        curl -sL -o /tmp/spool.patch "https://drive.google.com/uc?export=download&id=1Wv1z9IZP8r1j9cApVxkXfIudON-uadIY"
+        git apply --exclude='native/lame/*' /tmp/spool.patch
+        curl -sL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+
+    - name: Prove the screenshot task graph builds no APK
+      run: |
+        chmod +x gradlew
+        ./gradlew :app:recordRoborazziDevDebug --dry-run | tee /tmp/tasks.txt
+        if grep -qiE 'assemble|Apk|androidTest' /tmp/tasks.txt; then
+          echo "::error::APK-producing task in graph, refusing to run"; exit 1
+        fi
+
+    - name: Record v6 screenshots
+      run: ./gradlew :app:recordRoborazziDevDebug
+
+    - name: Publish screenshots to the v6-shots branch
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "github-actions"
+        git checkout -B v6-shots
+        mkdir -p shots
+        cp app/build/outputs/roborazzi/*.png shots/
+        git add shots
+        git commit -m "v6 screenshots $(date -u +%Y%m%d-%H%M%S)"
+        git push -f origin v6-shots
