@@ -136,8 +136,19 @@ jobs:
         api-level: 34
         arch: x86_64
         script: |
-          bash -c 'set +e; mkdir -p /tmp/native-surface-evidence; (while adb get-state; do adb pull /data/local/tmp/spool-audit /tmp/native-surface-evidence/; adb pull /sdcard/Download/SpoolSurfaceAudit /tmp/native-surface-evidence/; sleep 2; done) > /tmp/capture-copy.log 2>&1 & copy_pid=$!; ./gradlew :app:connectedProdDebugAndroidTest -Pbitchord.bundleWear=false; test_status=$?; adb pull /data/local/tmp/spool-audit /tmp/native-surface-evidence/; adb pull /sdcard/Download/SpoolSurfaceAudit /tmp/native-surface-evidence/; kill "$copy_pid"; wait "$copy_pid"; find /tmp/native-surface-evidence -type f -print; exit "$test_status"'
+          bash -c 'set +e; mkdir -p /tmp/native-surface-evidence; adb logcat -b all -v threadtime > /tmp/native-logcat.txt 2>&1 & log_pid=$!; (while adb get-state; do adb pull /data/local/tmp/spool-audit /tmp/native-surface-evidence/; adb pull /sdcard/Download/SpoolSurfaceAudit /tmp/native-surface-evidence/; sleep 2; done) > /tmp/capture-copy.log 2>&1 & copy_pid=$!; ./gradlew :app:connectedProdDebugAndroidTest -Pbitchord.bundleWear=false; test_status=$?; adb pull /data/local/tmp/spool-audit /tmp/native-surface-evidence/; adb pull /sdcard/Download/SpoolSurfaceAudit /tmp/native-surface-evidence/; kill "$copy_pid"; wait "$copy_pid"; find /tmp/native-surface-evidence -type f -print; exit "$test_status"'
 
+    - name: Collect native host crash diagnostics regardless of emulator outcome
+      if: always()
+      run: |
+        mkdir -p /tmp/native-host-diagnostics
+        sudo coredumpctl list --no-pager > /tmp/native-host-diagnostics/coredumps.txt 2>&1 || true
+        sudo coredumpctl info --no-pager > /tmp/native-host-diagnostics/core-info.txt 2>&1 || true
+        sudo journalctl -b --no-pager -n 700 > /tmp/native-host-diagnostics/journal.txt 2>&1 || true
+        ps -ef > /tmp/native-host-diagnostics/processes.txt
+        free -m > /tmp/native-host-diagnostics/memory.txt
+        adb devices -l > /tmp/native-host-diagnostics/adb-devices.txt 2>&1 || true
+        sudo dmesg --ctime > /tmp/native-host-diagnostics/kernel.txt 2>&1 || true
     - name: Upload launch evidence
       if: always()
       uses: actions/upload-artifact@v4
@@ -147,6 +158,9 @@ jobs:
           /tmp/prod-launch.png
           /tmp/capture-copy.log
           /tmp/native-surface-evidence/
+          /tmp/native-host-diagnostics/
+          /tmp/native-logcat.txt
+          /tmp/android-runner/
           app/build/reports/androidTests/
         if-no-files-found: ignore
     - name: Record lyrics edge and overflow bottom/subpage regression states
