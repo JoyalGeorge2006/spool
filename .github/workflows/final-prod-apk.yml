@@ -4,7 +4,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
@@ -76,15 +76,6 @@ jobs:
         name: raw-apk-splits
         path: app/build/outputs/apk/prod/debug/*.apk
         if-no-files-found: ignore
-    - name: Record page screenshots (Roborazzi, both themes)
-      run: ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false
-    - name: Upload page screenshots
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: page-screenshots
-        path: app/build/outputs/roborazzi/
-        if-no-files-found: ignore
     - name: Verify package, updater guard and signer
       run: |
         set -euo pipefail
@@ -143,4 +134,13 @@ jobs:
         path: |
           /tmp/prod-launch.png
           app/build/reports/androidTests/
+        if-no-files-found: ignore
+    - name: Record page screenshots (Roborazzi, both themes)
+      run: ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false
+    - name: Upload page screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: page-screenshots
+        path: app/build/outputs/roborazzi/
         if-no-files-found: ignore
