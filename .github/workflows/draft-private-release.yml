@@ -1,0 +1,37 @@
+name: spool draft private release (not public)
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID carrying the spool-final-apk artifact'
+        required: true
+        default: '43786851121'
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+    - name: Download final APK artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: spool-final-apk
+        run-id: ${{ inputs.run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: /tmp/apk
+    - name: Create draft release with the arm64 APK
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        ls -la /tmp/apk
+        sha256sum /tmp/apk/spool.apk | tee /tmp/sha.txt
+        grep -q c7d3e9ada9e2848bee0ee32089545423b11255f09d035f8016fdd083151dbb5c /tmp/sha.txt
+        tag="v6-separate-$(date -u +%Y%m%d-%H%M%S)"
+        gh release create "$tag" \
+          --draft \
+          --title "spool private build (draft, not public)" \
+          --notes "Private draft for direct install alongside the existing app. Package app.spool.music, arm64, signed with the persisted spool debug key. In-app updater disabled in this build; updates arrive as separately provided APKs." \
+          /tmp/apk/spool.apk
