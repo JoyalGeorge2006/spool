@@ -1,10 +1,14 @@
-name: spool final prod APK (separate install, no release)
+name: v39 isolated native audits (no release)
 on:
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        audit: [playbackSettingsBothThemesNativeAudit, localFixtureDrivesRealAndroidPlayerUi, searchRetainsQueryAcrossNativeTabCycles]
     permissions:
       contents: read
     steps:
@@ -44,68 +48,6 @@ jobs:
       run: |
         chmod +x gradlew
         ./gradlew :app:assembleProdDebug -Pbitchord.bundleWear=false
-    - name: Run unit, JVM and screenshot suites
-      env:
-        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
-        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
-        SPOOL_ONLINE_TESTS: 1
-      run: |
-        ./gradlew :app:testProdDebugUnitTest :shared:jvmTest :sharedUi:jvmTest -Pbitchord.bundleWear=false
-        echo '--- VersionResolutionOnlineTest execution proof ---'
-        if ls shared/build/test-results/jvmTest/TEST-*VersionResolutionOnlineTest*.xml 1>/dev/null 2>&1; then
-          grep -h 'testcase\|ONLINE-PROBE\|SKIP:' shared/build/test-results/jvmTest/TEST-*VersionResolutionOnlineTest*.xml || true
-        else
-          echo 'PROBE XML MISSING - probe did not execute'
-          exit 1
-        fi
-    - name: Upload test reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-reports
-        path: |
-          app/build/reports/tests/
-          shared/build/reports/tests/
-          sharedUi/build/reports/tests/
-          app/build/outputs/roborazzi/
-        if-no-files-found: ignore
-    - name: Fail-safe raw APK splits artifact
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: raw-apk-splits
-        path: app/build/outputs/apk/prod/debug/*.apk
-        if-no-files-found: ignore
-    - name: Verify package, updater guard and signer
-      run: |
-        set -euo pipefail
-        bc=$(find app/build/generated -name BuildConfig.java -path '*prod*' | head -1)
-        echo "BuildConfig: $bc"
-        grep -n 'SEPARATELY_PROVIDED_UPDATES = true' "$bc"
-        aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
-        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
-        mkdir -p "$RUNNER_TEMP/apk-out"
-        cp app/build/outputs/apk/prod/debug/*-arm64-v8a-debug.apk "$RUNNER_TEMP/apk-out/spool.apk"
-        cp app/build/outputs/apk/prod/debug/*-universal-debug.apk "$RUNNER_TEMP/apk-out/spool-universal.apk"
-        cp app/build/outputs/apk/prod/debug/*-x86_64-debug.apk "$RUNNER_TEMP/apk-out/spool-x86.apk"
-        "$aapt" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | head -3 | tee /tmp/badging.txt
-        grep -q "package: name='app.spool.music'" /tmp/badging.txt
-        if grep -q "package: name='app.spool.music.dev'" /tmp/badging.txt; then echo "::error::wrong package"; exit 1; fi
-        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee /tmp/certs.txt
-        grep -qi 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee' /tmp/certs.txt
-        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool-universal.apk" | grep -qi 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
-        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
-        sha256sum "$RUNNER_TEMP/apk-out/"*.apk | tee /tmp/apk-sha256.txt
-    - name: Upload final APKs
-      uses: actions/upload-artifact@v4
-      with:
-        name: spool-final-apk
-        path: |
-          ${{ runner.temp }}/apk-out/spool.apk
-          ${{ runner.temp }}/apk-out/spool-universal.apk
-          /tmp/apk-sha256.txt
-          /tmp/badging.txt
-          /tmp/certs.txt
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -119,24 +61,18 @@ jobs:
       with:
         api-level: 34
         arch: x86_64
+        emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
         script: |
-          bash -c 'set +e; ./gradlew :app:connectedProdDebugAndroidTest -Pbitchord.bundleWear=false; test_status=$?; mkdir -p /tmp/native-surface-evidence; adb pull /sdcard/Download/SpoolSurfaceAudit /tmp/native-surface-evidence/; adb pull /sdcard/Download/SpoolAuditExport /tmp/native-surface-evidence/; find /tmp/native-surface-evidence -type f -print; exit "$test_status"'
+          bash -c 'set +e; mkdir -p /tmp/native-surface-evidence; (while adb get-state; do adb pull /sdcard/Download/SpoolAuditExport /tmp/native-surface-evidence/; sleep 2; done) > /tmp/capture-copy.log 2>&1 & copy_pid=$!; ./gradlew :app:connectedProdDebugAndroidTest -Pbitchord.bundleWear=false -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.SpoolServiceIntegrationTest#${{ matrix.audit }}; test_status=$?; adb pull /sdcard/Download/SpoolAuditExport /tmp/native-surface-evidence/; kill "$copy_pid"; wait "$copy_pid"; journalctl -n 100 --no-pager > /tmp/host-journal.txt; coredumpctl info --no-pager > /tmp/host-coredumps.txt; exit "$test_status"'
     - name: Upload launch evidence
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: prod-launch-evidence
+        name: native-${{ matrix.audit }}
         path: |
-          /tmp/prod-launch.png
+          /tmp/capture-copy.log
+          /tmp/host-journal.txt
+          /tmp/host-coredumps.txt
           /tmp/native-surface-evidence/
           app/build/reports/androidTests/
-        if-no-files-found: ignore
-    - name: Record page screenshots (Roborazzi, both themes)
-      run: ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false
-    - name: Upload page screenshots
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: page-screenshots
-        path: app/build/outputs/roborazzi/
         if-no-files-found: ignore
