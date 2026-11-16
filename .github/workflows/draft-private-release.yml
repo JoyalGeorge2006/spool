@@ -17,11 +17,11 @@ jobs:
     - name: Create draft release with the arm64 APK
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: "set -euo pipefail\napk=$(find /tmp/apk -name 'spool.apk' -print -quit)\ntest -n \"$apk\"\nsha256sum \"$apk\" | tee /tmp/sha.txt\ngrep -q 6e2b52e2cd80950ef9d8ed475271cc4d26145c2eca28b3449ff316f1f270e089 /tmp/sha.txt\ncp \"$apk\" /tmp/Spool-Pixel-ARM64-test-v53.apk\ntag=\"private-test-v53-$(date -u +%Y%m%d-%H%M%S)\"\ngh release create \"$tag\" \\\n  --repo JoyalGeorge2006/spool \\\n  --draft \\\n  --title \"Spool Pixel ARM64 test v53 (private draft)\" \\\n  --notes \"Interim test build, not final. ARM64 only for Pixel. Package app.spool.music 1.9.2 code40, persisted signer matches original delivered code39. Install as update, never uninstall or clear data. Lyrics first-glyph clipping remains. Online Song/Video switching, live Google sign-in, full-page review and performance acceptance incomplete. Source candidate run43907358215. Same-source seeded emulator upgrade retained15files and saved settings; not phone data proof. No public release.\" \\\n  /tmp/Spool-Pixel-ARM64-test-v53.apk\n"
+      run: "set -euo pipefail\napk=$(find /tmp/apk -name 'spool.apk' -print -quit)\ntest -n \"$apk\"\nsha256sum \"$apk\" | tee /tmp/sha.txt\ngrep -q f49f96efaa60894cfb716cc92ac3fbc2cd726748a59098959110cf29706519ea /tmp/sha.txt\ncp \"$apk\" /tmp/Spool-Pixel-ARM64-test-v72.apk\ntag=\"private-test-v72-$(date -u +%Y%m%d-%H%M%S)\"\ngh release create \"$tag\" \\\n  --repo JoyalGeorge2006/spool \\\n  --draft \\\n  --title \"Spool Pixel ARM64 test v72 (private draft)\" \\\n  --notes \"Private Pixel ARM64 test candidate v72. Package app.spool.music 1.9.2 code40, persisted signer matches original delivered code39. Install as an update, never uninstall or clear data. Source run43931709128. Full JVM: app1512 tests,0 failures,1 ignored; shared133/0; sharedUI67/0. Native28 tests:25 passed,0 failed,3 provider skipped; no host coredumps. Queue four-direction fixture and lyrics clipping in Light/Dark passed. Archived older CI baseline normal replace retained15files/settings/local like, not phone data or fresh UI seed proof. Live Song/Video provider switching/default smart alignment, Google sign-in, external-device flows and exhaustive all-state coverage remain unverified. Emulator navigation frame sample was slow, not performance acceptance. This is a test build, not a zero-bug or every-screen acceptance claim. No public release.\" \\\n  /tmp/Spool-Pixel-ARM64-test-v72.apk\n"
 'on':
   workflow_dispatch:
     inputs:
       run_id:
         description: Run ID carrying the spool-final-apk artifact
         required: true
-        default: '43907358215'
+        default: '43931709128'
