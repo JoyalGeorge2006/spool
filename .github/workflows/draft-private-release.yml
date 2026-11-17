@@ -1,41 +1,45 @@
-name: Approved mobile v74 private draft delivery only
+name: Copy verified v75 APK to unpublished draft only
+on:
+  workflow_dispatch: {}
 jobs:
   draft:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     permissions:
       contents: write
       actions: read
     steps:
-    - name: Download final APK artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: spool-mobile-audio-only-test-v74
-        run-id: '44066523740'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path: /tmp/apk
-    - name: Create separate private draft and upload verified mobile APK
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: "set -euo pipefail\napk=$(find /tmp/apk -name spool.apk -print -quit)\n\
-        test -n \"$apk\"\necho \"a555e20bec2b6fe9c845137ed2b8f41a12c3877419af611bf9b1b11108779685\
-        \  $apk\" | sha256sum -c -\ntag=spool-mobile-audio-test-v74-20261117\nif gh\
-        \ release view \"$tag\" --repo JoyalGeorge2006/spool --json isDraft >/tmp/existing.json\
-        \ 2>/tmp/existing.err; then\n  echo \"::error::Draft tag already exists; refusing\
-        \ duplicate mutation\"\n  exit 1\nfi\ncp \"$apk\" /tmp/Spool-Pixel-ARM64-audio-only-test-v74.apk\n\
-        gh release create \"$tag\" --repo JoyalGeorge2006/spool --draft --target spool-audio-only-20261117\
-        \ --title \"Spool mobile audio-only test v74 (private draft)\" --notes \"\
-        Private mobile test APK. Same app.spool.music identity and signer. Android\
-        \ version 1.9.2/code40. Device acceptance pending. Current release and v73\
-        \ untouched.\" /tmp/Spool-Pixel-ARM64-audio-only-test-v74.apk\ntest \"$(gh\
-        \ release view \"$tag\" --repo JoyalGeorge2006/spool --json isDraft --jq .isDraft)\"\
-        \ = true\ngh release view \"$tag\" --repo JoyalGeorge2006/spool --json isDraft,url,assets,tagName\
-        \ > /tmp/private-route.json\ncat /tmp/private-route.json\n"
-    - name: Upload private delivery metadata
-      uses: actions/upload-artifact@v4
-      with:
-        name: spool-v74-private-delivery-metadata
-        path: /tmp/private-route.json
-        if-no-files-found: error
-'on':
-  workflow_dispatch: {}
+      - name: Download existing verified artifact without rebuilding
+        uses: actions/download-artifact@v4
+        with:
+          name: spool-mobile-current-fixes-v75
+          run-id: '44110785467'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/v75-source
+      - name: Verify bytes and create unpublished draft only
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo=JoyalGeorge2006/spool
+          tag=spool-mobile-current-fixes-v75-20261117
+          apk=/tmp/v75-source/home/runner/work/_temp/apk-out/spool.apk
+          echo "79985ad08a47430a2effef0537e316e424da9d4235ad773982b9249bc600bad6  $apk" | sha256sum -c -
+          test "$(stat -c %s "$apk")" = 139753414
+          gh api repos/$repo/releases --paginate > /tmp/existing-releases.json
+          if jq -e --arg tag "$tag" '.[] | select(.tag_name==$tag)' /tmp/existing-releases.json; then
+            echo 'Existing matching release found; refusing duplicate mutation'
+            exit 1
+          fi
+          cp "$apk" /tmp/Spool-Mobile-Current-Fixes-v75.apk
+          gh release create "$tag" --repo "$repo" --draft --target main --title "Spool mobile current fixes v75 (unpublished draft)" --notes "Unchanged current-fixes APK from run 44110785467. Package app.spool.music, version 1.9.2/code40. Automated checks passed; real-phone acceptance pending. Install over the existing app, never uninstall or clear data. Broader performance/motion work is not included. Keep this release unpublished." /tmp/Spool-Mobile-Current-Fixes-v75.apk
+          test "$(gh release view "$tag" --repo "$repo" --json isDraft --jq .isDraft)" = true
+          gh release view "$tag" --repo "$repo" --json isDraft,url,assets,tagName > /tmp/v75-draft-metadata.json
+          cat /tmp/v75-draft-metadata.json
+      - name: Save delivery metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: spool-v75-draft-delivery-metadata
+          path: /tmp/v75-draft-metadata.json
+          if-no-files-found: error
+          retention-days: 7
