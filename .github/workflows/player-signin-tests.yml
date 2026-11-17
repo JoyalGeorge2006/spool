@@ -60,24 +60,22 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Final phone full regression after large-text badge correction - no APK
+    - name: Diagnose stalled phone-landscape captures with thread evidence - no APK
       if: always()
       env:
         SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
-      run: "mkdir -p verification\ncat > /tmp/spool-test-isolation.gradle <<'INIT'\nallprojects {\n tasks.withType(Test).configureEach {\n  forkEvery = 1\n  maxParallelForks = 1\n  if (System.getProperty('spool.skipV6') == 'true') { exclude '**/V6ScreenshotTest.class' }\n }\n}\nINIT\nset +e\ntimeout --signal=TERM --kill-after=30s 15m ./gradlew :app:testProdDebugUnitTest :shared:jvmTest :sharedUi:jvmTest --continue -Pbitchord.bundleWear=false -I /tmp/spool-test-isolation.gradle -Dspool.skipV6=true\nresult=$?\ncp -R app/build/test-results verification/full-app || true\ncp -R shared/build/test-results verification/full-shared || true\ncp -R sharedUi/build/test-results verification/full-sharedUi || true\nexit \"$result\"\n"
+      run: "chmod +x gradlew\n./gradlew :app:compileProdDebugUnitTestKotlin -Pbitchord.bundleWear=false || exit $?\npython3 - <<'DIAG'\nimport subprocess,pathlib,shutil,time,os\nout=pathlib.Path('verification/landscape-diagnostic');out.mkdir(parents=True,exist_ok=True)\nfailed=[]\nfor name in ['player_landscape_light','player_landscape_dark']:\n results=pathlib.Path('app/build/test-results/testProdDebugUnitTest');shutil.rmtree(results,ignore_errors=True)\n with open(out/(name+'.log'),'w') as log:\n  proc=subprocess.Popen(['./gradlew',':app:recordRoborazziProdDebug','-Pbitchord.bundleWear=false','--tests','com.music.bitchord.V6ScreenshotTest.'+name],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)\n  for checkpoint in range(1,5):\n   try: code=proc.wait(timeout=45);break\n   except subprocess.TimeoutExpired:\n    ps=subprocess.check_output(['ps','-eo','pid,args'],text=True)\n    (out/(name+f'-processes-{checkpoint}.txt')).write_text(ps)\n    for row in ps.splitlines():\n     if 'Gradle Test Executor' not in row or 'java' not in row:continue\n     pid=int(row.strip().split()[0]);exe=os.readlink(f'/proc/{pid}/exe');jstack=str(pathlib.Path(exe).with_name('jstack'))\n     dump=subprocess.run([jstack,str(pid)],capture_output=True,text=True,timeout=15)\n     (out/(name+f'-threads-{checkpoint}-{pid}.txt')).write_text(dump.stdout+dump.stderr)\n  else:\n   os.killpg(proc.pid,15)\n   try:proc.wait(timeout=15)\n   except subprocess.TimeoutExpired:os.killpg(proc.pid,9)\n   code=124\n if results.exists():shutil.copytree(results,out/name,dirs_exist_ok=True)\n print('LANDSCAPE RESULT',name,code,flush=True)\n if code:failed.append(name)\nraise SystemExit(bool(failed))\nDIAG\n"
     - name: Upload test reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: audio42-mobile-final-regression
+        name: audio44-landscape-thread-evidence
         path: 'verification
 
-          app/build/test-results
+          app/build/outputs/roborazzi
 
-          shared/build/test-results
-
-          sharedUi/build/test-results'
+          app/build/test-results'
         if-no-files-found: ignore
 'on':
   workflow_dispatch: {}
