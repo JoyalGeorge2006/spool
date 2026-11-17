@@ -1,4 +1,4 @@
-name: spool private ARM64 test APK (draft only)
+name: spool approved v73 private draft asset only
 jobs:
   draft:
     runs-on: ubuntu-latest
@@ -10,18 +10,36 @@ jobs:
     - name: Download final APK artifact
       uses: actions/download-artifact@v4
       with:
-        name: spool-final-apk
+        name: spool-phone-test-v73
         run-id: ${{ inputs.run_id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path: /tmp/apk
-    - name: Create draft release with the arm64 APK
+    - name: Add approved ARM64 APK to existing private draft
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: "set -euo pipefail\napk=$(find /tmp/apk -name 'spool.apk' -print -quit)\ntest -n \"$apk\"\nsha256sum \"$apk\" | tee /tmp/sha.txt\ngrep -q f49f96efaa60894cfb716cc92ac3fbc2cd726748a59098959110cf29706519ea /tmp/sha.txt\ncp \"$apk\" /tmp/Spool-Pixel-ARM64-test-v72.apk\ntag=\"private-test-v72-$(date -u +%Y%m%d-%H%M%S)\"\ngh release create \"$tag\" \\\n  --repo JoyalGeorge2006/spool \\\n  --draft \\\n  --title \"Spool Pixel ARM64 test v72 (private draft)\" \\\n  --notes \"Private Pixel ARM64 test candidate v72. Package app.spool.music 1.9.2 code40, persisted signer matches original delivered code39. Install as an update, never uninstall or clear data. Source run43931709128. Full JVM: app1512 tests,0 failures,1 ignored; shared133/0; sharedUI67/0. Native28 tests:25 passed,0 failed,3 provider skipped; no host coredumps. Queue four-direction fixture and lyrics clipping in Light/Dark passed. Archived older CI baseline normal replace retained15files/settings/local like, not phone data or fresh UI seed proof. Live Song/Video provider switching/default smart alignment, Google sign-in, external-device flows and exhaustive all-state coverage remain unverified. Emulator navigation frame sample was slow, not performance acceptance. This is a test build, not a zero-bug or every-screen acceptance claim. No public release.\" \\\n  /tmp/Spool-Pixel-ARM64-test-v72.apk\n"
+      run: 'set -euo pipefail
+
+        apk=$(find /tmp/apk -name spool.apk -print -quit)
+
+        test -n "$apk"
+
+        echo "0d7bc6e68d14a41af44d27c33d29b10ee73bdbf9318f819dae91ec144b92cdfa  $apk" | sha256sum -c -
+
+        tag=untagged-1576f0eacf874835d0dc
+
+        test "$(gh release view "$tag" --repo JoyalGeorge2006/spool --json isDraft --jq .isDraft)" = true
+
+        cp "$apk" /tmp/Spool-Pixel-ARM64-test-v73.apk
+
+        gh release upload "$tag" --repo JoyalGeorge2006/spool /tmp/Spool-Pixel-ARM64-test-v73.apk
+
+        gh release view "$tag" --repo JoyalGeorge2006/spool --json isDraft,url,assets
+
+        '
 'on':
   workflow_dispatch:
     inputs:
       run_id:
-        description: Run ID carrying the spool-final-apk artifact
+        description: Approved build carrying spool-phone-test-v73 artifact
         required: true
-        default: '43931709128'
+        default: '44012759499'
