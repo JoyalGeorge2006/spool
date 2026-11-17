@@ -60,14 +60,14 @@ jobs:
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
       run: 'chmod +x gradlew
 
-        ./gradlew :app:testProdDebugUnitTest --tests com.music.bitchord.SettingsLargeTextAuditTest -Pbitchord.bundleWear=false
+        ./gradlew :app:recordRoborazziProdDebug --tests com.music.bitchord.SettingsLargeTextAuditTest -Pbitchord.bundleWear=false
 
         '
     - name: Upload test reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: audio35-settings-full-scroll
+        name: audio36-settings-full-scroll-pixels
         path: 'app/build/outputs/roborazzi
 
           app/build/test-results
