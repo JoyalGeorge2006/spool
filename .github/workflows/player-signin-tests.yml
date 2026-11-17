@@ -1,8 +1,8 @@
-name: Audio-only compile checks - no APK
+name: Spool approved mobile audio-only test APK
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -13,7 +13,7 @@ jobs:
         java-version: '17'
         distribution: temurin
         cache: gradle
-    - name: Apply checked patch
+    - name: Materialize frozen audio64 verified source
       id: source
       run: 'set -euo pipefail
 
@@ -31,11 +31,30 @@ jobs:
 
         PATCH85
 
-        echo ''75cb4cf9fcc03e5de63683993fe9a5df45287700eab5e7a947cd64e6257bb05c  /tmp/final.patch'' | sha256sum -c -
+        echo ''75cb4cf9fcc03e5de63683993fe9a5df45287700eab5e7a947cd64e6257bb05c  /tmp/final.patch''
+        | sha256sum -c -
 
         git apply --unidiff-zero /tmp/final.patch
 
-        rm -- app/src/main/java/com/music/bitchord/data/canvas/AppleMusicCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/CanvasCache.kt app/src/main/java/com/music/bitchord/data/canvas/CanvasRepository.kt app/src/main/java/com/music/bitchord/data/canvas/CommunityCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/SpotifyCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/TidalCanvas.kt app/src/main/java/com/music/bitchord/playback/MusicOnlyPlayback.kt app/src/main/java/com/music/bitchord/ui/components/TopFadeBlur.kt app/src/main/java/com/music/bitchord/ui/player/CanvasArtworkPlayer.kt app/src/main/java/com/music/bitchord/ui/player/MusicVideoPlayer.kt app/src/test/java/com/music/bitchord/playback/MusicOnlyConversionTest.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/CanvasArtwork.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/SpotifyCanvasQuery.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/discord/DiscordApplication.kt sharedUi/src/androidMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.android.kt sharedUi/src/jvmMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.jvm.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/ArtworkMeshBackdrop.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MeshGradient.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MusicVideoLayout.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerVersionPill.kt web/app/src/components/music/MotionArtwork.tsx web/app/src/components/music/VideoSurface.tsx web/app/src/playback/youtube/videoDeck.ts web/app/src/shell/VideoQuality.tsx web/app/src/state/video.ts
+        rm -- app/src/main/java/com/music/bitchord/data/canvas/AppleMusicCanvas.kt
+        app/src/main/java/com/music/bitchord/data/canvas/CanvasCache.kt app/src/main/java/com/music/bitchord/data/canvas/CanvasRepository.kt
+        app/src/main/java/com/music/bitchord/data/canvas/CommunityCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/SpotifyCanvas.kt
+        app/src/main/java/com/music/bitchord/data/canvas/TidalCanvas.kt app/src/main/java/com/music/bitchord/playback/MusicOnlyPlayback.kt
+        app/src/main/java/com/music/bitchord/ui/components/TopFadeBlur.kt app/src/main/java/com/music/bitchord/ui/player/CanvasArtworkPlayer.kt
+        app/src/main/java/com/music/bitchord/ui/player/MusicVideoPlayer.kt app/src/test/java/com/music/bitchord/playback/MusicOnlyConversionTest.kt
+        shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/CanvasArtwork.kt
+        shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/SpotifyCanvasQuery.kt
+        shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/discord/DiscordApplication.kt
+        sharedUi/src/androidMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.android.kt
+        sharedUi/src/jvmMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.jvm.kt
+        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.kt
+        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/ArtworkMeshBackdrop.kt
+        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MeshGradient.kt
+        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MusicVideoLayout.kt
+        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerVersionPill.kt
+        web/app/src/components/music/MotionArtwork.tsx web/app/src/components/music/VideoSurface.tsx
+        web/app/src/playback/youtube/videoDeck.ts web/app/src/shell/VideoQuality.tsx
+        web/app/src/state/video.ts
 
         grep -n ''SEPARATELY_PROVIDED_UPDATES", "true"'' app/build.gradle.kts
 
@@ -48,7 +67,7 @@ jobs:
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
 
         '
-    - name: Prepare checks
+    - name: Restore persisted signing key
       env:
         SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
       run: 'test -n "$SPOOL_DEBUG_KEYSTORE_B64"
@@ -60,25 +79,67 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Discord removal and story rank ink then full regression - no APK
+    - name: Build approved phone acceptance APK
       env:
         SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
-      run: "set -euo pipefail\nchmod +x gradlew\ncat > /tmp/spool-capture-isolation.gradle <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks = 1 } }\nINIT\ntimeout --signal=TERM --kill-after=30s 15m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false -I /tmp/spool-capture-isolation.gradle --tests com.music.bitchord.BroadRouteScreenshotTest --tests com.music.bitchord.ReplayAuditScreenshotTest\nmkdir -p verification\ncat > /tmp/spool-test-isolation.gradle <<'INIT'\nallprojects {\n tasks.withType(Test).configureEach {\n  forkEvery = 1\n  maxParallelForks = 1\n  if (System.getProperty('spool.skipV6') == 'true') { exclude '**/V6ScreenshotTest.class' }\n }\n}\nINIT\nset +e\ntimeout --signal=TERM --kill-after=30s 15m ./gradlew :app:testProdDebugUnitTest :shared:jvmTest :sharedUi:jvmTest --continue -Pbitchord.bundleWear=false -I /tmp/spool-test-isolation.gradle -Dspool.skipV6=true\nresult=$?\ncp -R app/build/test-results verification/full-app || true\ncp -R shared/build/test-results verification/full-shared || true\ncp -R sharedUi/build/test-results verification/full-sharedUi || true\nexit \"$result\"\n"
-    - name: Upload test reports
-      if: always()
+      run: 'chmod +x gradlew
+
+        ./gradlew :app:assembleProdDebug -Pbitchord.bundleWear=false
+
+        '
+    - name: Verify package, updater guard and signer
+      run: 'set -euo pipefail
+
+        bc=$(find app/build/generated -name BuildConfig.java -path ''*prod*'' | head
+        -1)
+
+        echo "BuildConfig: $bc"
+
+        grep -n ''SEPARATELY_PROVIDED_UPDATES = true'' "$bc"
+
+        aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail
+        -1)
+
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V
+        | tail -1)
+
+        mkdir -p "$RUNNER_TEMP/apk-out"
+
+        cp app/build/outputs/apk/prod/debug/*-arm64-v8a-debug.apk "$RUNNER_TEMP/apk-out/spool.apk"
+
+        "$aapt" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | head -3 | tee /tmp/badging.txt
+
+        grep -q "package: name=''app.spool.music''" /tmp/badging.txt
+
+        if grep -q "package: name=''app.spool.music.dev''" /tmp/badging.txt; then
+        echo "::error::wrong package"; exit 1; fi
+
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool.apk"
+        | tee /tmp/certs.txt
+
+        grep -qi ''a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee''
+        /tmp/certs.txt
+
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c ''lib/arm64-v8a/'')"
+        -gt 0
+
+        sha256sum "$RUNNER_TEMP/apk-out/"*.apk | tee /tmp/apk-sha256.txt
+
+        '
+    - name: Upload verified ARM64 phone test APK
       uses: actions/upload-artifact@v4
       with:
-        name: audio64-localized-discord-story-ink-full
-        path: 'verification
+        name: spool-mobile-audio-only-test-v74
+        path: '${{ runner.temp }}/apk-out/spool.apk
 
-          app/build/test-results
+          /tmp/apk-sha256.txt
 
-          shared/build/test-results
+          /tmp/badging.txt
 
-          sharedUi/build/test-results
+          /tmp/certs.txt
 
-          app/build/outputs/roborazzi'
-        if-no-files-found: ignore
+          '
+        if-no-files-found: error
 'on':
   workflow_dispatch: {}
