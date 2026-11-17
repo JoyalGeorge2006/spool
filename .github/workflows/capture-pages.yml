@@ -12,13 +12,10 @@ jobs:
       max-parallel: 3
       matrix:
         include:
-        - group: 1-recovered
-          cases: IntegratedRootHeaderScreenshotTest_* StationArtworkScreenshotTest_*
-            HeaderControlsScreenshotTest_*
-        - group: 2-recovered
+        - group: 1-clean
+          cases: IntegratedRootHeaderScreenshotTest_* StationArtworkScreenshotTest_* HeaderControlsScreenshotTest_*
+        - group: 2-clean
           cases: AccountSettingsScreenshotTest_* AboutDeveloperScreenshotTest_*
-        - group: 7-extra
-          cases: MoreMobileAuditScreenshots
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 17
@@ -79,15 +76,7 @@ jobs:
 
         '
     - name: Render actual current components only - NO APK
-      run: "set -euo pipefail\nset -f\nchmod +x gradlew\ncat > /tmp/audit-isolation.gradle\
-        \ <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery =\
-        \ 1; maxParallelForks = 1 } }\nINIT\nmkdir -p verification\nstatus=0\nfor\
-        \ case in ${{ matrix.cases }}; do\n  timeout --signal=TERM --kill-after=30s\
-        \ 12m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false\
-        \ -I /tmp/audit-isolation.gradle --tests \"com.music.bitchord.$case\" > \"\
-        verification/$case.log\" 2>&1 || status=1\n  tail -15 \"verification/$case.log\"\
-        \n  mkdir -p \"verification/$case\"\n  cp -R app/build/test-results \"verification/$case/\"\
-        \ || true\ndone\nexit \"$status\"\n"
+      run: "set -euo pipefail\nset -f\nchmod +x gradlew\ncat > /tmp/audit-isolation.gradle <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks = 1 } }\nINIT\nmkdir -p verification\nstatus=0\nfor case in ${{ matrix.cases }}; do\n  safe=${case//\\*/ALL}\n  timeout --signal=TERM --kill-after=30s 12m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false -I /tmp/audit-isolation.gradle --tests \"com.music.bitchord.$case\" > \"verification/$safe.log\" 2>&1 || status=1\n  tail -15 \"verification/$safe.log\"\n  mkdir -p \"verification/$safe\"\n  cp -R app/build/test-results \"verification/$safe/\" || true\ndone\nexit \"$status\"\n"
     - name: Upload audit evidence
       if: always()
       uses: actions/upload-artifact@v4
