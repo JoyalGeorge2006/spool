@@ -52,13 +52,23 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Player temporal targeted harness diagnostic
+    - name: Final combined player, sign-in and full regression gate
       env:
         SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
       run: 'chmod +x gradlew
 
-        ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false --tests ''com.music.bitchord.PlayerTransitionRegressionTest''
+        set +e
+
+        ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false --tests ''com.music.bitchord.SignInLoadFailureTest'' --tests ''com.music.bitchord.SignInFlowTest'' --tests ''com.music.bitchord.SignInHostRegressionTest'' --tests ''com.music.bitchord.PlayerTransitionRegressionTest'' --tests ''com.music.bitchord.PlayerGestureRegressionTest''
+
+        focused=$?
+
+        ./gradlew :app:testProdDebugUnitTest :shared:jvmTest :sharedUi:jvmTest --continue -Pbitchord.bundleWear=false
+
+        full=$?
+
+        if [ "$focused" -ne 0 ] || [ "$full" -ne 0 ]; then exit 1; fi
 
         '
     - name: Upload test reports
