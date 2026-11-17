@@ -1,4 +1,4 @@
-name: Approved unified headers and station artwork tests - NO APK
+name: Approved native Settings About and credits tests - NO APK
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,30 +31,11 @@ jobs:
 
         PATCH85
 
-        echo ''efcb65289d6bf77386b63c3c3d36af9048687e004f24257a77faaddcbc603502  /tmp/final.patch''
-        | sha256sum -c -
+        echo ''01e517fbbde23712c6e7d32667bc09b41cb0e08f7f3e2478879736301cb24cf9  /tmp/final.patch'' | sha256sum -c -
 
         git apply --unidiff-zero /tmp/final.patch
 
-        rm -- app/src/main/java/com/music/bitchord/data/canvas/AppleMusicCanvas.kt
-        app/src/main/java/com/music/bitchord/data/canvas/CanvasCache.kt app/src/main/java/com/music/bitchord/data/canvas/CanvasRepository.kt
-        app/src/main/java/com/music/bitchord/data/canvas/CommunityCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/SpotifyCanvas.kt
-        app/src/main/java/com/music/bitchord/data/canvas/TidalCanvas.kt app/src/main/java/com/music/bitchord/playback/MusicOnlyPlayback.kt
-        app/src/main/java/com/music/bitchord/ui/components/TopFadeBlur.kt app/src/main/java/com/music/bitchord/ui/player/CanvasArtworkPlayer.kt
-        app/src/main/java/com/music/bitchord/ui/player/MusicVideoPlayer.kt app/src/test/java/com/music/bitchord/playback/MusicOnlyConversionTest.kt
-        shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/CanvasArtwork.kt
-        shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/SpotifyCanvasQuery.kt
-        shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/discord/DiscordApplication.kt
-        sharedUi/src/androidMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.android.kt
-        sharedUi/src/jvmMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.jvm.kt
-        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.kt
-        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/ArtworkMeshBackdrop.kt
-        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MeshGradient.kt
-        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MusicVideoLayout.kt
-        sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerVersionPill.kt
-        web/app/src/components/music/MotionArtwork.tsx web/app/src/components/music/VideoSurface.tsx
-        web/app/src/playback/youtube/videoDeck.ts web/app/src/shell/VideoQuality.tsx
-        web/app/src/state/video.ts
+        rm -- app/src/main/java/com/music/bitchord/data/canvas/AppleMusicCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/CanvasCache.kt app/src/main/java/com/music/bitchord/data/canvas/CanvasRepository.kt app/src/main/java/com/music/bitchord/data/canvas/CommunityCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/SpotifyCanvas.kt app/src/main/java/com/music/bitchord/data/canvas/TidalCanvas.kt app/src/main/java/com/music/bitchord/playback/MusicOnlyPlayback.kt app/src/main/java/com/music/bitchord/ui/components/TopFadeBlur.kt app/src/main/java/com/music/bitchord/ui/player/CanvasArtworkPlayer.kt app/src/main/java/com/music/bitchord/ui/player/MusicVideoPlayer.kt app/src/test/java/com/music/bitchord/playback/MusicOnlyConversionTest.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/CanvasArtwork.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/canvas/SpotifyCanvasQuery.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/discord/DiscordApplication.kt sharedUi/src/androidMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.android.kt sharedUi/src/jvmMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.jvm.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/BlurredBackdrop.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/ArtworkMeshBackdrop.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MeshGradient.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/MusicVideoLayout.kt sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerVersionPill.kt web/app/src/components/music/MotionArtwork.tsx web/app/src/components/music/VideoSurface.tsx web/app/src/playback/youtube/videoDeck.ts web/app/src/shell/VideoQuality.tsx web/app/src/state/video.ts
 
         grep -n ''SEPARATELY_PROVIDED_UPDATES", "true"'' app/build.gradle.kts
 
@@ -79,7 +60,7 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Approved header geometry taps and artwork verification - NO APK
+    - name: Approved About and credits UI tests - NO APK
       env:
         SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
@@ -89,24 +70,20 @@ jobs:
 
         cat > /tmp/station-isolation.gradle <<''INIT''
 
-        allprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks
-        = 1 } }
+        allprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks = 1 } }
 
         INIT
 
-        ./gradlew :shared:jvmTest --tests ''*StationArtworkTest'' -Pbitchord.bundleWear=false
-        -I /tmp/station-isolation.gradle
+        ./gradlew :shared:jvmTest --tests ''*StationArtworkTest'' -Pbitchord.bundleWear=false -I /tmp/station-isolation.gradle
 
-        ./gradlew :app:recordRoborazziProdDebug --tests ''*StationArtworkScreenshotTest_*''
-        --tests ''*HeaderControlsScreenshotTest_*'' --tests ''*IntegratedRootHeaderScreenshotTest_*''
-        -Pbitchord.bundleWear=false -I /tmp/station-isolation.gradle
+        ./gradlew :app:recordRoborazziProdDebug --tests ''*AboutDeveloperScreenshotTest_*'' --tests ''*AppNavigatorTest'' --tests ''*StationArtworkScreenshotTest_*'' --tests ''*IntegratedRootHeaderScreenshotTest_*'' -Pbitchord.bundleWear=false -I /tmp/station-isolation.gradle
 
         '
     - name: Upload test reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: audio80-integrated-headers-art-test-only
+        name: audio81-native-about-test-only
         path: 'verification
 
           app/build/test-results
