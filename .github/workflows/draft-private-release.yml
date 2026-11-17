@@ -1,4 +1,4 @@
-name: spool approved v73 private draft asset only
+name: Approved mobile v74 private draft delivery only
 jobs:
   draft:
     runs-on: ubuntu-latest
@@ -10,36 +10,32 @@ jobs:
     - name: Download final APK artifact
       uses: actions/download-artifact@v4
       with:
-        name: spool-phone-test-v73
-        run-id: ${{ inputs.run_id }}
+        name: spool-mobile-audio-only-test-v74
+        run-id: '44066523740'
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path: /tmp/apk
-    - name: Add approved ARM64 APK to existing private draft
+    - name: Create separate private draft and upload verified mobile APK
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: 'set -euo pipefail
-
-        apk=$(find /tmp/apk -name spool.apk -print -quit)
-
-        test -n "$apk"
-
-        echo "0d7bc6e68d14a41af44d27c33d29b10ee73bdbf9318f819dae91ec144b92cdfa  $apk" | sha256sum -c -
-
-        tag=untagged-1576f0eacf874835d0dc
-
-        test "$(gh release view "$tag" --repo JoyalGeorge2006/spool --json isDraft --jq .isDraft)" = true
-
-        cp "$apk" /tmp/Spool-Pixel-ARM64-test-v73.apk
-
-        gh release upload "$tag" --repo JoyalGeorge2006/spool /tmp/Spool-Pixel-ARM64-test-v73.apk
-
-        gh release view "$tag" --repo JoyalGeorge2006/spool --json isDraft,url,assets
-
-        '
+      run: "set -euo pipefail\napk=$(find /tmp/apk -name spool.apk -print -quit)\n\
+        test -n \"$apk\"\necho \"a555e20bec2b6fe9c845137ed2b8f41a12c3877419af611bf9b1b11108779685\
+        \  $apk\" | sha256sum -c -\ntag=spool-mobile-audio-test-v74-20261117\nif gh\
+        \ release view \"$tag\" --repo JoyalGeorge2006/spool --json isDraft >/tmp/existing.json\
+        \ 2>/tmp/existing.err; then\n  echo \"::error::Draft tag already exists; refusing\
+        \ duplicate mutation\"\n  exit 1\nfi\ncp \"$apk\" /tmp/Spool-Pixel-ARM64-audio-only-test-v74.apk\n\
+        gh release create \"$tag\" --repo JoyalGeorge2006/spool --draft --target spool-audio-only-20261117\
+        \ --title \"Spool mobile audio-only test v74 (private draft)\" --notes \"\
+        Private mobile test APK. Same app.spool.music identity and signer. Android\
+        \ version 1.9.2/code40. Device acceptance pending. Current release and v73\
+        \ untouched.\" /tmp/Spool-Pixel-ARM64-audio-only-test-v74.apk\ntest \"$(gh\
+        \ release view \"$tag\" --repo JoyalGeorge2006/spool --json isDraft --jq .isDraft)\"\
+        \ = true\ngh release view \"$tag\" --repo JoyalGeorge2006/spool --json isDraft,url,assets,tagName\
+        \ > /tmp/private-route.json\ncat /tmp/private-route.json\n"
+    - name: Upload private delivery metadata
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-v74-private-delivery-metadata
+        path: /tmp/private-route.json
+        if-no-files-found: error
 'on':
-  workflow_dispatch:
-    inputs:
-      run_id:
-        description: Approved build carrying spool-phone-test-v73 artifact
-        required: true
-        default: '44012759499'
+  workflow_dispatch: {}
