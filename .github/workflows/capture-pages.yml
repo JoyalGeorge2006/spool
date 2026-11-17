@@ -12,18 +12,13 @@ jobs:
       max-parallel: 3
       matrix:
         include:
-        - group: 1
-          cases: IntegratedRootHeaderScreenshotTest StationArtworkScreenshotTest HeaderControlsScreenshotTest RootInsetContractTest
-        - group: 2
-          cases: SettingsLargeTextAuditTest AccountSettingsScreenshotTest AboutDeveloperScreenshotTest
-        - group: 3
-          cases: SettingsSecondaryViewportTest SettingsTertiaryViewportTest RemainingMobileDestinationTest
-        - group: 4
-          cases: BroadRouteScreenshotTest BroadDialogScreenshotTest ReplayAuditScreenshotTest
-        - group: 5
-          cases: PlayerGesturePagingTest_dark PlayerGesturePagingTest_light PlayerGesturePagingTest_large PlayerGesturePagingTest_reduced PlayerGestureCollapseTest_main PlayerGestureCollapseTest_header PlayerGestureMenuUndoTest LandscapePlayerFrameTest
-        - group: 6
-          cases: V6ScreenshotTest.onboarding_light V6ScreenshotTest.onboarding_dark V6ScreenshotTest.party_landing_light V6ScreenshotTest.party_landing_dark V6ScreenshotTest.settings_wear_os_light V6ScreenshotTest.settings_wear_os_dark V6ScreenshotTest.import_dialog_light V6ScreenshotTest.import_dialog_dark
+        - group: 1-recovered
+          cases: IntegratedRootHeaderScreenshotTest_* StationArtworkScreenshotTest_*
+            HeaderControlsScreenshotTest_*
+        - group: 2-recovered
+          cases: AccountSettingsScreenshotTest_* AboutDeveloperScreenshotTest_*
+        - group: 7-extra
+          cases: MoreMobileAuditScreenshots
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 17
@@ -57,6 +52,20 @@ jobs:
         PYRESTORE
 
         '
+    - name: Install offline additional capture fixture only
+      run: 'python3 - <<''PYFIXTURE''
+
+        from pathlib import Path
+
+        import base64
+
+        p=Path(''app/src/test/java/com/music/bitchord/MoreMobileAuditScreenshots.kt'')
+
+        p.write_bytes(base64.b64decode(''cGFja2FnZSBjb20ubXVzaWMuYml0Y2hvcmQKCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLmZvdW5kYXRpb24uYmFja2dyb3VuZAppbXBvcnQgYW5kcm9pZHguY29tcG9zZS5mb3VuZGF0aW9uLmxheW91dC4qCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5NYXRlcmlhbFRoZW1lCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLnJ1bnRpbWUuKgppbXBvcnQgYW5kcm9pZHguY29tcG9zZS51aS5Nb2RpZmllcgppbXBvcnQgYW5kcm9pZHguY29tcG9zZS51aS51bml0LmRwCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLnVpLnRlc3QuKgppbXBvcnQgYW5kcm9pZHguY29tcG9zZS51aS50ZXN0Lmp1bml0NC5jcmVhdGVDb21wb3NlUnVsZQppbXBvcnQgY29tLmdpdGh1Yi50YWthaGlyb20ucm9ib3JhenppLlJvYm9sZWN0cmljRGV2aWNlUXVhbGlmaWVycwppbXBvcnQgY29tLmdpdGh1Yi50YWthaGlyb20ucm9ib3JhenppLmNhcHR1cmVSb2JvSW1hZ2UKaW1wb3J0IGNvbS5tdXNpYy5iaXRjaG9yZC5kYXRhLmxpc3RlbnRvZ2V0aGVyLlBhcnR5UHJldmlldwppbXBvcnQgY29tLm11c2ljLmJpdGNob3JkLmRhdGEubGlzdGVudG9nZXRoZXIuUGFydHlQcmV2aWV3TWVtYmVyCmltcG9ydCBjb20ubXVzaWMuYml0Y2hvcmQuZGF0YS5zZXR0aW5ncy5BcHBTZXR0aW5ncwppbXBvcnQgY29tLm11c2ljLmJpdGNob3JkLmRhdGEuc2V0dGluZ3MuVGhlbWVNb2RlCmltcG9ydCBjb20ubXVzaWMuYml0Y2hvcmQudWkuY29tcG9uZW50cy4qCmltcG9ydCBjb20ubXVzaWMuYml0Y2hvcmQudWkuc2NyZWVucy4qCmltcG9ydCBjb20ubXVzaWMuYml0Y2hvcmQudWkudGhlbWUuQml0Q2hvcmRUaGVtZQppbXBvcnQgY29tLm11c2ljLmJpdGNob3JkLnVpLm9uYm9hcmRpbmcuT25ib2FyZGluZ1NjcmVlbgppbXBvcnQgZGV2LmNocmlzYmFuZXMuaGF6ZS5IYXplU3RhdGUKaW1wb3J0IG9yZy5qdW5pdC5SdWxlCmltcG9ydCBvcmcuanVuaXQuVGVzdAppbXBvcnQgb3JnLmp1bml0LnJ1bm5lci5SdW5XaXRoCmltcG9ydCBvcmcucm9ib2xlY3RyaWMuUm9ib2xlY3RyaWNUZXN0UnVubmVyCmltcG9ydCBvcmcucm9ib2xlY3RyaWMuYW5ub3RhdGlvbi5Db25maWcKaW1wb3J0IG9yZy5yb2JvbGVjdHJpYy5hbm5vdGF0aW9uLkdyYXBoaWNzTW9kZQoKLyoqIE9mZmxpbmUgY2FwdHVyZXMgb25seS4gQWxsIHN1Ym1pdC9zaGFyZS9zYXZlIGNhbGxiYWNrcyBhcmUgaW5lcnQ7IG5vIHJlYWwgY3JlZGVudGlhbHMgb3IgYWNjb3VudHMuICovCkBSdW5XaXRoKFJvYm9sZWN0cmljVGVzdFJ1bm5lcjo6Y2xhc3MpCkBHcmFwaGljc01vZGUoR3JhcGhpY3NNb2RlLk1vZGUuTkFUSVZFKQpAQ29uZmlnKHNkayA9IFszNF0sIHF1YWxpZmllcnMgPSBSb2JvbGVjdHJpY0RldmljZVF1YWxpZmllcnMuUGl4ZWw3KQpjbGFzcyBNb3JlTW9iaWxlQXVkaXRTY3JlZW5zaG90cyB7CiBAZ2V0OlJ1bGUgdmFsIGNvbXBvc2UgPSBjcmVhdGVDb21wb3NlUnVsZSgpCiBwcml2YXRlIGZ1biBzaG90KHBhZ2U6IFN0cmluZywgZGFyazogQm9vbGVhbikgewogIFY2U2NyZWVuc2hvdFRlc3QoKS5pbnN0YWxsVWlIb3N0KCkKICB2YWwgcHJldmlvdXM9QXBwU2V0dGluZ3MudGhlbWVNb2RlLnZhbHVlCiAgQXBwU2V0dGluZ3Muc2V0VGhlbWVNb2RlKGlmKGRhcmspVGhlbWVNb2RlLkRBUksgZWxzZSBUaGVtZU1vZGUuTElHSFQpCiAgdHJ5IHsKICAgY29tcG9zZS5zZXRDb250ZW50IHsgQml0Q2hvcmRUaGVtZShkYXJrVGhlbWU9ZGFyaykgewogICAgdmFsIGhhemU9cmVtZW1iZXJ7SGF6ZVN0YXRlKCl9CiAgICBCb3goTW9kaWZpZXIuZmlsbE1heFNpemUoKS5iYWNrZ3JvdW5kKE1hdGVyaWFsVGhlbWUuY29sb3JTY2hlbWUuYmFja2dyb3VuZCkpIHsKICAgICB3aGVuKHBhZ2UpIHsKICAgICAgInBhcnR5X2NyZWF0ZSIgLT4gQ29sdW1uKE1vZGlmaWVyLmZpbGxNYXhXaWR0aCgpLmJhY2tncm91bmQoTWF0ZXJpYWxUaGVtZS5jb2xvclNjaGVtZS5zdXJmYWNlKS5wYWRkaW5nKHZlcnRpY2FsPTI0LmRwKSkgeyBDcmVhdGVQYXJ0eVNoZWV0KG51bGwsIkZpeHR1cmUgbGlzdGVuZXIiLHt9LDUse30sZmFsc2UsdHJ1ZSxudWxsLHt9KSB9CiAgICAgICJwYXJ0eV9qb2luIiAtPiBDb2x1bW4oTW9kaWZpZXIuZmlsbE1heFdpZHRoKCkuYmFja2dyb3VuZChNYXRlcmlhbFRoZW1lLmNvbG9yU2NoZW1lLnN1cmZhY2UpLnBhZGRpbmcodmVydGljYWw9MjQuZHApKSB7IEpvaW5QYXJ0eVNoZWV0KCJBQkMxMjMiLHt9LGZhbHNlLHRydWUsbnVsbCx7fSkgfQogICAgICAicGFydHlfY29uZmlybSIgLT4gQ29sdW1uKE1vZGlmaWVyLmZpbGxNYXhXaWR0aCgpLmJhY2tncm91bmQoTWF0ZXJpYWxUaGVtZS5jb2xvclNjaGVtZS5zdXJmYWNlKS5wYWRkaW5nKHZlcnRpY2FsPTI0LmRwKSkgeyBKb2luQ29uZmlybVNoZWV0KFBhcnR5UHJldmlldygiQUJDMTIzIiwiRml4dHVyZSBob3N0IiwyLDUsZmFsc2UsbGlzdE9mKFBhcnR5UHJldmlld01lbWJlcigiRml4dHVyZSBob3N0IixudWxsLHRydWUpLFBhcnR5UHJldmlld01lbWJlcigiRml4dHVyZSBsaXN0ZW5lciIpKSksbnVsbCwiRml4dHVyZSBsaXN0ZW5lciIse30sZmFsc2UsbnVsbCx7fSwge30pIH0KICAgICAgInBhcnR5X2ludml0ZSIgLT4gQ29sdW1uKE1vZGlmaWVyLmZpbGxNYXhXaWR0aCgpLmJhY2tncm91bmQoTWF0ZXJpYWxUaGVtZS5jb2xvclNjaGVtZS5zdXJmYWNlKS5wYWRkaW5nKHZlcnRpY2FsPTI0LmRwKSkgeyBJbnZpdGVTaGVldCgiQUJDMTIzIiwiaHR0cHM6Ly9leGFtcGxlLmludmFsaWQvZml4dHVyZS1pbnZpdGUiLHt9LCB7fSkgfQogICAgICAicGFydHlfc2VydmVyIiAtPiBQYXJ0eVNlcnZlckVkaXRvcihoYXplLHt9KQogICAgICAicGlwZWxpbmUiIC0+IEF1ZGlvUGlwZWxpbmVEaWFsb2coaGF6ZSx7fSkKICAgICAgImxpc3RlbmJyYWlueiIgLT4gTGlzdGVuQnJhaW56VG9rZW5BbGVydChoYXplLCIiLHt9LCB7fSwge30pCiAgICAgICJsYXN0Zm0iIC0+IExhc3RmbUxvZ2luQWxlcnQoaGF6ZSwiIix7fSwiIix7fSxudWxsLGZhbHNlLHt9LCB7fSkKICAgICAgImRpc2NvcmRfdG9rZW4iIC0+IERpc2NvcmRUb2tlbkFsZXJ0KGhhemUsIiIse30sbnVsbCxmYWxzZSx7fSwge30pCiAgICAgICJ1cGxvYWRfY29uZmxpY3QiIC0+IFdlYkRhdkNvbmZsaWN0QWxlcnQoaGF6ZSwiRml4dHVyZSB0cmFjay5mbGFjIix0cnVlLGZhbHNlLHt9LCB7fSwge30sIHt9LCB7fSkKICAgICAgImNvbmZpcm1hdGlvbiIgLT4gQ29uZmlybWF0aW9uQWxlcnQoaGF6ZSwiUmVwbGFjZSBkZXZpY2UgZGF0YT8iLCJUaGlzIHJlcGxhY2VzIHNldHRpbmdzIGFuZCBsaXN0ZW5pbmcgaGlzdG9yeSBvbiB0aGlzIGRldmljZS4iLCJSZXBsYWNlIGRhdGEiLHt9LCB7fSkKICAgICAgImxpY2Vuc2UiIC0+IExpY2Vuc2VOb3RpY2VQYWdlKCJHUEwtMy4wLnR4dCIsUGFkZGluZ1ZhbHVlcygpKQogICAgICAib25ib2FyZGluZ19jb25uZWN0IiAtPiBPbmJvYXJkaW5nU2NyZWVuKGZhbHNlLCJGaXh0dXJlIGxpc3RlbmVyIix7fSwge30sIHt9KQogICAgICAicmVuYW1lIiAtPiBUZXh0VmFsdWVBbGVydChoYXplLCJSZW5hbWUgcGxheWxpc3QiLCJDaG9vc2UgYSBuYW1lIGZvciB0aGlzIHBsYXlsaXN0LiIsIlBsYXlsaXN0IG5hbWUiLCJGaXh0dXJlIHBsYXlsaXN0Iix7fSwge30sIHt9KQogICAgIH0KICAgIH0KICAgfSB9CiAgIGNvbXBvc2Uud2FpdEZvcklkbGUoKQogICBpZihwYWdlPT0ib25ib2FyZGluZ19jb25uZWN0IikgewogICAgdmFsIGNvbnRleHQ9YW5kcm9pZHgudGVzdC5jb3JlLmFwcC5BcHBsaWNhdGlvblByb3ZpZGVyLmdldEFwcGxpY2F0aW9uQ29udGV4dDxhbmRyb2lkLmNvbnRlbnQuQ29udGV4dD4oKQogICAgY29tcG9zZS5vbk5vZGVXaXRoVGV4dChjb250ZXh0LmdldFN0cmluZyhSLnN0cmluZy5vbmJvYXJkaW5nX25leHQpKS5wZXJmb3JtQ2xpY2soKQogICAgY29tcG9zZS5tYWluQ2xvY2suYWR2YW5jZVRpbWVCeSg3MDApCiAgICBjb21wb3NlLndhaXRGb3JJZGxlKCkKICAgfQogICBjb21wb3NlLm9uQWxsTm9kZXMoaXNSb290KCkpLm9uTGFzdCgpLmNhcHR1cmVSb2JvSW1hZ2UoImJ1aWxkL291dHB1dHMvcm9ib3JhenppL2N1cnJlbnRfZXh0cmFfJHtwYWdlfV8ke2lmKGRhcmspImRhcmsiIGVsc2UgImxpZ2h0In0ucG5nIikKICB9IGZpbmFsbHkgeyBBcHBTZXR0aW5ncy5zZXRUaGVtZU1vZGUocHJldmlvdXMpIH0KIH0KIEBUZXN0IGZ1biBwYXJ0eUNyZWF0ZUxpZ2h0KCk9c2hvdCgicGFydHlfY3JlYXRlIixmYWxzZSkKIEBUZXN0IGZ1biBwYXJ0eUNyZWF0ZURhcmsoKT1zaG90KCJwYXJ0eV9jcmVhdGUiLHRydWUpCiBAVGVzdCBmdW4gcGFydHlKb2luTGlnaHQoKT1zaG90KCJwYXJ0eV9qb2luIixmYWxzZSkKIEBUZXN0IGZ1biBwYXJ0eUpvaW5EYXJrKCk9c2hvdCgicGFydHlfam9pbiIsdHJ1ZSkKIEBUZXN0IGZ1biBwYXJ0eUNvbmZpcm1MaWdodCgpPXNob3QoInBhcnR5X2NvbmZpcm0iLGZhbHNlKQogQFRlc3QgZnVuIHBhcnR5Q29uZmlybURhcmsoKT1zaG90KCJwYXJ0eV9jb25maXJtIix0cnVlKQogQFRlc3QgZnVuIHBhcnR5SW52aXRlTGlnaHQoKT1zaG90KCJwYXJ0eV9pbnZpdGUiLGZhbHNlKQogQFRlc3QgZnVuIHBhcnR5SW52aXRlRGFyaygpPXNob3QoInBhcnR5X2ludml0ZSIsdHJ1ZSkKIEBUZXN0IGZ1biBwYXJ0eVNlcnZlckxpZ2h0KCk9c2hvdCgicGFydHlfc2VydmVyIixmYWxzZSkKIEBUZXN0IGZ1biBwYXJ0eVNlcnZlckRhcmsoKT1zaG90KCJwYXJ0eV9zZXJ2ZXIiLHRydWUpCiBAVGVzdCBmdW4gcGlwZWxpbmVMaWdodCgpPXNob3QoInBpcGVsaW5lIixmYWxzZSkKIEBUZXN0IGZ1biBwaXBlbGluZURhcmsoKT1zaG90KCJwaXBlbGluZSIsdHJ1ZSkKIEBUZXN0IGZ1biBsaXN0ZW5icmFpbnpMaWdodCgpPXNob3QoImxpc3RlbmJyYWlueiIsZmFsc2UpCiBAVGVzdCBmdW4gbGlzdGVuYnJhaW56RGFyaygpPXNob3QoImxpc3RlbmJyYWlueiIsdHJ1ZSkKIEBUZXN0IGZ1biBsYXN0Zm1MaWdodCgpPXNob3QoImxhc3RmbSIsZmFsc2UpCiBAVGVzdCBmdW4gbGFzdGZtRGFyaygpPXNob3QoImxhc3RmbSIsdHJ1ZSkKIEBUZXN0IGZ1biBkaXNjb3JkVG9rZW5MaWdodCgpPXNob3QoImRpc2NvcmRfdG9rZW4iLGZhbHNlKQogQFRlc3QgZnVuIGRpc2NvcmRUb2tlbkRhcmsoKT1zaG90KCJkaXNjb3JkX3Rva2VuIix0cnVlKQogQFRlc3QgZnVuIHVwbG9hZENvbmZsaWN0TGlnaHQoKT1zaG90KCJ1cGxvYWRfY29uZmxpY3QiLGZhbHNlKQogQFRlc3QgZnVuIHVwbG9hZENvbmZsaWN0RGFyaygpPXNob3QoInVwbG9hZF9jb25mbGljdCIsdHJ1ZSkKIEBUZXN0IGZ1biBjb25maXJtYXRpb25MaWdodCgpPXNob3QoImNvbmZpcm1hdGlvbiIsZmFsc2UpCiBAVGVzdCBmdW4gY29uZmlybWF0aW9uRGFyaygpPXNob3QoImNvbmZpcm1hdGlvbiIsdHJ1ZSkKIEBUZXN0IGZ1biBsaWNlbnNlTGlnaHQoKT1zaG90KCJsaWNlbnNlIixmYWxzZSkKIEBUZXN0IGZ1biBsaWNlbnNlRGFyaygpPXNob3QoImxpY2Vuc2UiLHRydWUpCiBAVGVzdCBmdW4gb25ib2FyZGluZ0Nvbm5lY3RMaWdodCgpPXNob3QoIm9uYm9hcmRpbmdfY29ubmVjdCIsZmFsc2UpCiBAVGVzdCBmdW4gb25ib2FyZGluZ0Nvbm5lY3REYXJrKCk9c2hvdCgib25ib2FyZGluZ19jb25uZWN0Iix0cnVlKQogQFRlc3QgZnVuIHJlbmFtZUxpZ2h0KCk9c2hvdCgicmVuYW1lIixmYWxzZSkKIEBUZXN0IGZ1biByZW5hbWVEYXJrKCk9c2hvdCgicmVuYW1lIix0cnVlKQp9Cg==''))
+
+        PYFIXTURE
+
+        '
     - name: Prepare checks
       env:
         SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
@@ -70,7 +79,15 @@ jobs:
 
         '
     - name: Render actual current components only - NO APK
-      run: "set -euo pipefail\nchmod +x gradlew\ncat > /tmp/audit-isolation.gradle <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks = 1 } }\nINIT\nmkdir -p verification\nstatus=0\nfor case in ${{ matrix.cases }}; do\n  timeout --signal=TERM --kill-after=30s 12m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false -I /tmp/audit-isolation.gradle --tests \"com.music.bitchord.$case\" > \"verification/$case.log\" 2>&1 || status=1\n  tail -15 \"verification/$case.log\"\n  mkdir -p \"verification/$case\"\n  cp -R app/build/test-results \"verification/$case/\" || true\ndone\nexit \"$status\"\n"
+      run: "set -euo pipefail\nset -f\nchmod +x gradlew\ncat > /tmp/audit-isolation.gradle\
+        \ <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery =\
+        \ 1; maxParallelForks = 1 } }\nINIT\nmkdir -p verification\nstatus=0\nfor\
+        \ case in ${{ matrix.cases }}; do\n  timeout --signal=TERM --kill-after=30s\
+        \ 12m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false\
+        \ -I /tmp/audit-isolation.gradle --tests \"com.music.bitchord.$case\" > \"\
+        verification/$case.log\" 2>&1 || status=1\n  tail -15 \"verification/$case.log\"\
+        \n  mkdir -p \"verification/$case\"\n  cp -R app/build/test-results \"verification/$case/\"\
+        \ || true\ndone\nexit \"$status\"\n"
     - name: Upload audit evidence
       if: always()
       uses: actions/upload-artifact@v4
