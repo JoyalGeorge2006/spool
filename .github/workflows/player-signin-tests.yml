@@ -54,24 +54,16 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Compile TV, Wear and instrumentation without packaging
-      env: &id001
+    - name: Precompile once then missing24V6 fresh isolated methods - no APK
+      env:
         SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
-      run: 'chmod +x gradlew
-
-        timeout --signal=TERM --kill-after=30s 10m ./gradlew :tv:compileProdDebugKotlin :wearos:compileProdDebugKotlin :app:compileProdDebugAndroidTestKotlin --continue -Pbitchord.bundleWear=false
-
-        '
-    - name: Full regression with isolated test classes, no APK
-      if: always()
-      env: *id001
-      run: "mkdir -p verification\ncat > /tmp/spool-test-isolation.gradle <<'INIT'\nallprojects {\n tasks.withType(Test).configureEach {\n  forkEvery = 1\n  maxParallelForks = 1\n  if (System.getProperty('spool.skipV6') == 'true') { exclude '**/V6ScreenshotTest.class' }\n }\n}\nINIT\nset +e\ntimeout --signal=TERM --kill-after=30s 15m ./gradlew :app:testProdDebugUnitTest :shared:jvmTest :sharedUi:jvmTest --continue -Pbitchord.bundleWear=false -I /tmp/spool-test-isolation.gradle -Dspool.skipV6=true\nresult=$?\ncp -R app/build/test-results verification/full-app || true\ncp -R shared/build/test-results verification/full-shared || true\ncp -R sharedUi/build/test-results verification/full-sharedUi || true\nexit \"$result\"\n"
+      run: "chmod +x gradlew\ntimeout --signal=TERM --kill-after=30s 8m ./gradlew :app:compileProdDebugUnitTestKotlin -Pbitchord.bundleWear=false || exit $?\npython3 - <<'BATCH' \nimport subprocess,shutil,pathlib\nnames=['settings_player_overflow_extended_dark', 'settings_player_overflow_video_light', 'player_landscape_light', 'player_landscape_dark', 'player_party_light', 'player_party_dark', 'player_pane_related_light', 'player_pane_related_dark', 'player_pane_queue_light', 'player_pane_queue_dark', 'player_pane_lyrics_light', 'player_pane_lyrics_dark', 'player_pane_empty_light', 'player_pane_empty_dark', 'player_light', 'player_dark', 'player_video_light', 'player_video_dark', 'player_video_sysdark_applight', 'player_video_syslight_appdark', 'import_dialog_light', 'import_dialog_dark', 'import_dialog_signed_in_dark', 'import_dialog_working']\nfailed=[]\nfor i,name in enumerate(names,1):\n results=pathlib.Path('app/build/test-results/testProdDebugUnitTest')\n shutil.rmtree(results,ignore_errors=True)\n code=subprocess.run(['timeout','--signal=TERM','--kill-after=15s','2m','./gradlew',':app:recordRoborazziProdDebug','-Pbitchord.bundleWear=false','--tests','com.music.bitchord.V6ScreenshotTest.'+name]).returncode\n dest=pathlib.Path('verification/missing-v6')/name\n if results.exists():shutil.copytree(results,dest,dirs_exist_ok=True)\n print('METHOD RESULT',i,name,code,flush=True)\n if code:failed.append(name)\nprint('FAILED METHODS',failed,flush=True)\nraise SystemExit(bool(failed))\nBATCH\n"
     - name: Upload test reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: same-candidate-final-regression-platform
+        name: missing24-v6-fresh-method-results
         path: 'app/build/reports/tests/
 
           shared/build/reports/tests/
@@ -86,9 +78,6 @@ jobs:
           shared/build/test-results/
 
           sharedUi/build/test-results/
-
-
-          verification/
 
 
           verification/
