@@ -2,7 +2,7 @@ name: Audio-only compile checks - no APK
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 65
     permissions:
       contents: read
     steps:
@@ -54,20 +54,16 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Clipped motion gutter and full Settings labels 2x - no APK
+    - name: Missing24V6 methods individually, fresh XML each time - no APK
       env:
         SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
         SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
-      run: 'chmod +x gradlew
-
-        timeout --signal=TERM --kill-after=30s 10m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false --tests ''com.music.bitchord.SettingsLargeTextAuditTest'' --tests ''com.music.bitchord.PlayerTransitionRegressionTest''
-
-        '
+      run: "chmod +x gradlew\npython3 - <<'BATCH'\nimport subprocess,shutil,pathlib\nnames=['settings_player_overflow_extended_dark', 'settings_player_overflow_video_light', 'player_landscape_light', 'player_landscape_dark', 'player_party_light', 'player_party_dark', 'player_pane_related_light', 'player_pane_related_dark', 'player_pane_queue_light', 'player_pane_queue_dark', 'player_pane_lyrics_light', 'player_pane_lyrics_dark', 'player_pane_empty_light', 'player_pane_empty_dark', 'player_light', 'player_dark', 'player_video_light', 'player_video_dark', 'player_video_sysdark_applight', 'player_video_syslight_appdark', 'import_dialog_light', 'import_dialog_dark', 'import_dialog_signed_in_dark', 'import_dialog_working']\nfailed=[]\nfor i,name in enumerate(names,1):\n results=pathlib.Path('app/build/test-results/testProdDebugUnitTest')\n shutil.rmtree(results,ignore_errors=True)\n code=subprocess.run(['timeout','--signal=TERM','--kill-after=15s','2m','./gradlew',':app:recordRoborazziProdDebug','-Pbitchord.bundleWear=false','--tests','com.music.bitchord.V6ScreenshotTest.'+name]).returncode\n dest=pathlib.Path('verification/missing-v6')/name\n if results.exists():shutil.copytree(results,dest,dirs_exist_ok=True)\n print('METHOD RESULT',i,name,code,flush=True)\n if code:failed.append(name)\nprint('FAILED METHODS',failed,flush=True)\nraise SystemExit(bool(failed))\nBATCH\n"
     - name: Upload test reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: settings-labels-and-motion-gutter
+        name: missing24-v6-fresh-method-results
         path: 'app/build/reports/tests/
 
           shared/build/reports/tests/
@@ -82,6 +78,9 @@ jobs:
           shared/build/test-results/
 
           sharedUi/build/test-results/
+
+
+          verification/
 
           '
         if-no-files-found: ignore
