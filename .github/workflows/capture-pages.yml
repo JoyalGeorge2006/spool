@@ -1,4 +1,4 @@
-name: Spool exact core7 background runtime diagnostics NO release
+name: Spool core7 normal process eviction background acceptance NO release
 'on':
   workflow_dispatch: {}
 permissions:
@@ -64,11 +64,16 @@ jobs:
         adb('shell','appops','set','app.spool.music','REQUEST_INSTALL_PACKAGES','allow')\nadb('shell','svc','wifi','disable');adb('shell','svc','data','disable')\n\
         r=adb('shell','am','instrument','-w','-r','-e','class','com.music.bitchord.UpdateRuntimeFixtureTest#beginExactPublished47Download','app.spool.music.test/androidx.test.runner.AndroidJUnitRunner')\n\
         (out/'begin.txt').write_text(r);assert 'OK (1 test)' in r,r\nbefore=phase();(out/'before-kill.json').write_text(json.dumps(before,indent=2));assert before.get('phase')\
-        \ in ['queued','downloading','waiting'],before\nadb('shell','am','kill','app.spool.music')\nfor _ in range(15):\n if not adb('shell','pidof','app.spool.music',check=False):break\n\
-        \ time.sleep(.2)\nassert not adb('shell','pidof','app.spool.music',check=False),'Process still present'\n(out/'process-absent.txt').write_text('Confirmed\
-        \ app process absent before restoring connectivity')\nadb('shell','svc','wifi','enable');adb('shell','svc','data','enable');diagnostics('reconnected')\nend=time.time()+300;last=None\n\
-        while time.time()<end:\n a=phase();now=a.get('phase')\n if now!=last:\n  with (out/'phase-history.txt').open('a') as f:f.write(str(time.time())+' '+str(now)+'\\\
-        n')\n  last=now\n if now=='ready':break\n if now in ['failed','fallback','cancelled']:raise AssertionError(a)\n time.sleep(2)\nelse:\n diagnostics('background-timeout')\n\
+        \ in ['queued','downloading','waiting'],before\n# Android force-stops target when instrumentation finishes. A normal app\n# launch clears that stopped bit\
+        \ before we test ordinary process eviction.\nadb('shell','am','start','-n','app.spool.music/com.music.bitchord.MainActivity')\nend=time.time()+45\nwhile time.time()<end:\n\
+        \ state=adb('shell','dumpsys','activity','activities',check=False)\n if any('app.spool.music' in line and ('mResumedActivity' in line or 'topResumedActivity'\
+        \ in line) for line in state.splitlines()):break\n time.sleep(1)\nelse:raise AssertionError('Bootstrap activity never resumed before background eviction')\n\
+        adb('shell','input','keyevent','KEYCODE_HOME');time.sleep(2)\nstate=adb('shell','dumpsys','package','app.spool.music',check=False)\n(out/'before-ordinary-kill-package.txt').write_text(state)\n\
+        assert 'stopped=false' in state,'Package remained force-stopped after explicit launch'\ndiagnostics('before-ordinary-kill')\nadb('shell','am','kill','app.spool.music')\n\
+        for _ in range(15):\n if not adb('shell','pidof','app.spool.music',check=False):break\n time.sleep(.2)\nassert not adb('shell','pidof','app.spool.music',check=False),'Process\
+        \ still present'\n(out/'process-absent.txt').write_text('Confirmed app process absent before restoring connectivity')\nadb('shell','svc','wifi','enable');adb('shell','svc','data','enable');diagnostics('reconnected')\n\
+        end=time.time()+300;last=None\nwhile time.time()<end:\n a=phase();now=a.get('phase')\n if now!=last:\n  with (out/'phase-history.txt').open('a') as f:f.write(str(time.time())+'\
+        \ '+str(now)+'\\n')\n  last=now\n if now=='ready':break\n if now in ['failed','fallback','cancelled']:raise AssertionError(a)\n time.sleep(2)\nelse:\n diagnostics('background-timeout')\n\
         \ adb('shell','am','start','-n','app.spool.music/com.music.bitchord.MainActivity',check=False)\n time.sleep(30);diagnostics('foreground-recovery');screenshot('foreground-recovery.png')\n\
         \ raise AssertionError('No background Ready state within300s; foreground recovery phase='+str(phase()))\n(out/'ready-before-reopen.json').write_text(json.dumps(a,indent=2))\n\
         r=adb('shell','am','instrument','-w','-r','-e','class','com.music.bitchord.UpdateRuntimeFixtureTest#openPrepared47AndroidConfirmation','app.spool.music.test/androidx.test.runner.AndroidJUnitRunner')\n\
@@ -93,6 +98,6 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: runtime8-core7-background-diagnostics-NOT-RELEASE
+        name: runtime9-ordinary-background-eviction-NOT-RELEASE
         path: verification
         retention-days: 14
