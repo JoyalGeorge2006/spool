@@ -1,19 +1,12 @@
-name: Spool approved six UI changes - tests only NO APK
+name: Build Spool approved six UI changes v76 - private APK only
 'on':
   workflow_dispatch: {}
 permissions:
   contents: read
 jobs:
-  capture:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        include:
-        - group: six-approved
-          cases: ApprovedDesignChangesTest
+    timeout-minutes: 40
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 17
@@ -77,19 +70,73 @@ jobs:
         chmod 600 spool-debug.keystore
 
         '
-    - name: Compile and render approved UI changes only - NO APK
-      run: "set -euo pipefail\nset -f\nchmod +x gradlew\ncat > /tmp/audit-isolation.gradle <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks = 1 } }\nINIT\nmkdir -p verification\nstatus=0\nfor case in ${{ matrix.cases }}; do\n  safe=${case//\\*/ALL}\n  timeout --signal=TERM --kill-after=30s 12m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false -I /tmp/audit-isolation.gradle --tests \"com.music.bitchord.$case\" > \"verification/$safe.log\" 2>&1 || status=1\n  tail -15 \"verification/$safe.log\"\n  mkdir -p \"verification/$safe\"\n  cp -R app/build/test-results \"verification/$safe/\" || true\ndone\nexit \"$status\"\n"
-    - name: Upload audit evidence
-      if: always()
+    - name: Build approved phone acceptance APK
+      env:
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: 'chmod +x gradlew
+
+        ./gradlew :app:assembleProdDebug -Pbitchord.bundleWear=false
+
+        '
+    - name: Verify package, updater guard and signer
+      run: 'set -euo pipefail
+
+        bc=$(find app/build/generated -name BuildConfig.java -path ''*prod*'' | head -1)
+
+        echo "BuildConfig: $bc"
+
+        grep -n ''SEPARATELY_PROVIDED_UPDATES = true'' "$bc"
+
+        aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+
+        mkdir -p "$RUNNER_TEMP/apk-out"
+
+        cp app/build/outputs/apk/prod/debug/*-arm64-v8a-debug.apk "$RUNNER_TEMP/apk-out/spool.apk"
+
+        "$aapt" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | head -3 | tee /tmp/badging.txt
+
+        grep -q "package: name=''app.spool.music''" /tmp/badging.txt
+
+        if grep -q "package: name=''app.spool.music.dev''" /tmp/badging.txt; then echo "::error::wrong package"; exit 1; fi
+
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee /tmp/certs.txt
+
+        grep -qi ''a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'' /tmp/certs.txt
+
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c ''lib/arm64-v8a/'')" -gt 0
+
+        sha256sum "$RUNNER_TEMP/apk-out/"*.apk | tee /tmp/apk-sha256.txt
+
+        '
+    - name: Save exact verified APK and build evidence
       uses: actions/upload-artifact@v4
       with:
-        name: spool-approved-six-${{ matrix.group }}
-        path: 'verification
+        name: spool-approved-six-v76
+        path: '${{ runner.temp }}/apk-out/spool.apk
 
-          app/build/outputs/roborazzi
+          /tmp/apk-sha256.txt
 
-          /tmp/frozen-diff-stat.txt
+          /tmp/badging.txt
+
+          /tmp/certs.txt
 
           /tmp/approved-six.patch'
         if-no-files-found: error
-        retention-days: 7
+        retention-days: 30
+    - name: Create unpublished draft APK for private delivery only
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: "set -euo pipefail\nrepo=JoyalGeorge2006/spool\ntag=spool-approved-six-v76-20261118\napk=\"$RUNNER_TEMP/apk-out/spool.apk\"\ncp \"$apk\" /tmp/Spool-Mobile-Approved-Six-v76.apk\ngh api repos/$repo/releases --paginate > /tmp/releases-before.json\nif jq -e --arg tag \"$tag\" '.[] | select(.tag_name==$tag)' /tmp/releases-before.json; then\n  echo 'Existing matching draft found; refusing duplicate mutation'\n  exit 1\nfi\ngh release create \"$tag\" --repo \"$repo\" --draft --target \"$GITHUB_SHA\" --title 'Spool approved six UI changes v76 (unpublished draft)' --notes 'Six approved UI changes only. Same mobile debug package and persisted signer as v75; no size optimization or pending proposals. Physical-keyboard/provider acceptance remains pending. Do not publish.' /tmp/Spool-Mobile-Approved-Six-v76.apk\ntest \"$(gh release view \"$tag\" --repo \"$repo\" --json isDraft --jq .isDraft)\" = true\ngh release view \"$tag\" --repo \"$repo\" --json isDraft,url,assets,tagName > /tmp/v76-draft-metadata.json\ncat /tmp/v76-draft-metadata.json\n"
+    - name: Save private delivery metadata
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-approved-six-v76-delivery
+        path: /tmp/v76-draft-metadata.json
+        if-no-files-found: error
+        retention-days: 30
+    permissions:
+      contents: write
+      actions: read
