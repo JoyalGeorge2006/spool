@@ -1,4 +1,4 @@
-name: Spool Wear actual foreground acceptance using exact signed platform5 APK NO RELEASE
+name: Spool platform7 exact signed TV Wear runtime hardware health and foreground assertions NO RELEASE
 'on':
   workflow_dispatch: {}
 permissions:
@@ -12,6 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         module:
+        - tv
         - wearos
     steps:
     - uses: actions/checkout@v4
@@ -36,30 +37,33 @@ jobs:
         with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f'api={api}\\narch={arch}\\ntag={tag}\\n')\nprint('Selected genuine image',api,tag,arch)\nIMAGE\n"
     - uses: actions/download-artifact@v4
       with:
-        name: platform5-signed-wearos-runtime-NOT-RELEASE
+        name: platform5-signed-${{ matrix.module }}-runtime-NOT-RELEASE
         path: verification
         run-id: 44346151934
         github-token: ${{ github.token }}
     - name: Prepare foreground-verifying runtime script
-      run: "cat > /tmp/platform-runtime.py <<'TEST'\nimport subprocess,time,os,xml.etree.ElementTree as ET,re\nfrom pathlib import Path\nout=Path('verification');module=os.environ['MODULE']\n\
-        pkg='com.music.bitchord.tv' if module=='tv' else 'app.spool.music'\nactivity='com.music.bitchord.TvActivity' if module=='tv' else 'com.music.bitchord.wear.WearActivity'\n\
-        def adb(*args,check=False):return subprocess.run(['adb',*args],capture_output=True,text=True,check=check).stdout.strip()\ndef xml():\n adb('shell','uiautomator','dump','/sdcard/ui.xml');s=adb('shell','cat','/sdcard/ui.xml')\n\
-        \ try:return s,ET.fromstring(s)\n except:return s,None\ndef capture(name):\n s,_=xml();(out/(name+'.xml')).write_text(s);adb('shell','screencap','-p','/sdcard/platform.png');adb('pull','/sdcard/platform.png',str(out/(name+'.png')))\n\
+      run: "set -euo pipefail\necho 'KERNEL==\"kvm\", GROUP=\"kvm\", MODE=\"0666\", OPTIONS+=\"static_node=kvm\"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules\n\
+        sudo udevadm control --reload-rules\nsudo udevadm trigger --name-match=kvm\nls -l /dev/kvm\ncat > /tmp/platform-runtime.py <<'TEST'\nimport subprocess,time,os,xml.etree.ElementTree\
+        \ as ET,re\nfrom pathlib import Path\nout=Path('verification');module=os.environ['MODULE']\npkg='com.music.bitchord.tv' if module=='tv' else 'app.spool.music'\n\
+        activity='com.music.bitchord.TvActivity' if module=='tv' else 'com.music.bitchord.wear.WearActivity'\ndef adb(*args,check=False):return subprocess.run(['adb',*args],capture_output=True,text=True,check=check,timeout=90).stdout.strip()\n\
+        def xml():\n adb('shell','uiautomator','dump','/sdcard/ui.xml');s=adb('shell','cat','/sdcard/ui.xml')\n try:return s,ET.fromstring(s)\n except:return s,None\n\
+        def capture(name):\n s,_=xml();(out/(name+'.xml')).write_text(s);adb('shell','screencap','-p','/sdcard/platform.png');adb('pull','/sdcard/platform.png',str(out/(name+'.png')))\n\
         def key(k):adb('shell','input','keyevent',k);time.sleep(.6)\ndef focus(label,direction='KEYCODE_DPAD_DOWN',limit=12):\n for _ in range(limit):\n  s,root=xml()\n\
         \  if root is not None:\n   for n in root.iter('node'):\n    if n.get('focused')=='true' and label in ' '.join((x.get('text','')+' '+x.get('content-desc',''))\
         \ for x in n.iter('node')):\n     capture('focus-'+label.replace(' ','-'));return True\n  key(direction)\n return False\ndef choose(label,direction='KEYCODE_DPAD_DOWN'):\n\
-        \ assert focus(label,direction),'No remote focus for '+label\n key('KEYCODE_DPAD_CENTER');time.sleep(1)\ntry:\n adb('install','-g','--no-streaming','verification/platform.apk',check=True)\n\
-        \ (out/'features.txt').write_text(adb('shell','pm','list','features'))\n (out/'properties.txt').write_text(adb('shell','getprop'))\n (out/'package.txt').write_text(adb('shell','dumpsys','package',pkg))\n\
-        \ adb('shell','pm','grant',pkg,'android.permission.POST_NOTIFICATIONS')\n adb('shell','dumpsys','battery','unplug')\n adb('shell','input','keyevent','KEYCODE_WAKEUP')\n\
-        \ adb('shell','wm','dismiss-keyguard')\n adb('shell','settings','put','system','screen_off_timeout','600000')\n result=adb('shell','am','start','-W','-n',pkg+'/'+activity)\n\
-        \ (out/'launch.txt').write_text(result);time.sleep(20);capture('launch')\n assert adb('shell','pidof',pkg),'App process not alive'\n if module=='tv':\n  choose('Continue');capture('setup-sign-in')\n\
-        \  choose('Not Now');capture('setup-appearance')\n  choose('Continue');capture('setup-listening')\n  choose('Continue');capture('setup-ready')\n  choose('Start\
-        \ Listening');time.sleep(10);capture('home')\n  # Traverse only remote navigation, without selecting accounts or changing prefs.\n  key('KEYCODE_DPAD_UP');key('KEYCODE_DPAD_UP')\n\
-        \  for i in range(8):\n   capture('remote-top-'+str(i));key('KEYCODE_DPAD_RIGHT')\n else:\n  # No companion is paired. This capture proves only real watch\
-        \ install/launch.\n  time.sleep(15);capture('no-companion')\n  hierarchy,_=xml()\n  assert 'Phone not connected' in hierarchy, 'No actual no-phone screen'\n\
-        \  assert pkg in adb('shell','dumpsys','activity','activities').split('topResumedActivity=')[-1].split('\\n')[0], 'App not foreground'\n  (out/'pairing-scope.txt').write_text('No\
-        \ paired phone; player/queue/output and Data Layer not exercised')\nfinally:\n (out/'logcat.txt').write_text(adb('logcat','-d','-b','all'))\n (out/'exit-info.txt').write_text(adb('shell','dumpsys','activity','exit-info',pkg))\n\
-        \ (out/'activities.txt').write_text(adb('shell','dumpsys','activity','activities'))\nTEST\n"
+        \ assert focus(label,direction),'No remote focus for '+label\n key('KEYCODE_DPAD_CENTER');time.sleep(1)\ntry:\n assert adb('shell','getprop','sys.boot_completed')=='1','Emulator\
+        \ not booted'\n adb('shell','echo','healthy',check=True)\n adb('install','-g','--no-streaming','verification/platform.apk',check=True)\n (out/'features.txt').write_text(adb('shell','pm','list','features'))\n\
+        \ (out/'properties.txt').write_text(adb('shell','getprop'))\n (out/'package.txt').write_text(adb('shell','dumpsys','package',pkg))\n adb('shell','pm','grant',pkg,'android.permission.POST_NOTIFICATIONS')\n\
+        \ adb('shell','dumpsys','battery','unplug')\n adb('shell','input','keyevent','KEYCODE_WAKEUP')\n adb('shell','wm','dismiss-keyguard')\n adb('shell','settings','put','system','screen_off_timeout','600000')\n\
+        \ result=adb('shell','am','start','-W','-n',pkg+'/'+activity)\n (out/'launch.txt').write_text(result);time.sleep(20);capture('launch')\n adb('shell','echo','healthy',check=True)\n\
+        \ assert adb('shell','pidof',pkg),'App process not alive'\n if module=='tv':\n  choose('Continue');capture('setup-sign-in')\n  choose('Not Now');capture('setup-appearance')\n\
+        \  choose('Continue');capture('setup-listening')\n  choose('Continue');capture('setup-ready')\n  choose('Start Listening');time.sleep(10);capture('home')\n\
+        \  # Traverse only remote navigation, without selecting accounts or changing prefs.\n  key('KEYCODE_DPAD_UP');key('KEYCODE_DPAD_UP')\n  for i in range(8):\n\
+        \   capture('remote-top-'+str(i));key('KEYCODE_DPAD_RIGHT')\n else:\n  # No companion is paired. This capture proves only real watch install/launch.\n  time.sleep(15);capture('no-companion')\n\
+        \  hierarchy,_=xml()\n  assert 'Phone not connected' in hierarchy, 'No actual no-phone screen'\n  assert pkg in adb('shell','dumpsys','activity','activities').split('topResumedActivity=')[-1].split('\\\
+        n')[0], 'App not foreground'\n  (out/'pairing-scope.txt').write_text('No paired phone; player/queue/output and Data Layer not exercised')\nfinally:\n (out/'logcat.txt').write_text(adb('logcat','-d','-b','all'))\n\
+        \ (out/'exit-info.txt').write_text(adb('shell','dumpsys','activity','exit-info',pkg))\n (out/'activities.txt').write_text(adb('shell','dumpsys','activity','activities'))\n\
+        TEST\n"
     - uses: reactivecircus/android-emulator-runner@v2
       env:
         MODULE: ${{ matrix.module }}
@@ -68,11 +72,12 @@ jobs:
         arch: ${{ steps.image.outputs.arch }}
         target: ${{ steps.image.outputs.tag }}
         disable-animations: true
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072 -skin 384x384
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072 -no-snapshot
         script: python3 /tmp/platform-runtime.py
+        emulator-boot-timeout: 180
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: platform6-signed-wearos-foreground-NOT-RELEASE
+        name: platform7-signed-${{ matrix.module }}-foreground-NOT-RELEASE
         path: verification
         retention-days: 14
