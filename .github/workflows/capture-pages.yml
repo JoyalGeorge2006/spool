@@ -1,4 +1,4 @@
-name: Spool exact v76 to v77 Android installer diagnostic
+name: Spool exact installer diagnostic Android17 beta
 'on':
   workflow_dispatch: {}
 permissions:
@@ -24,48 +24,87 @@ jobs:
         name: Spool-v77-APK-and-source
         path: candidate
     - name: Verify exact baseline and failed-phone candidate
-      run: |
-        set -euo pipefail
+      run: 'set -euo pipefail
+
         mkdir -p verification
-        find baseline candidate -name '*.apk' -type f | tee verification/apks.txt
-        base=$(find baseline -name '*.apk' -type f | head -1)
-        next=$(find candidate -name '*.apk' -type f | head -1)
-        echo "7723309ee8bc0642c2c3df545f434a10cd7c1dedf8816074b3f5a5781bccbd91  $base" | sha256sum -c -
-        echo "38a9e47786af002d18924ec6e5203ca8834a858be70e17fe1b8bb022d35828e0  $next" | sha256sum -c -
+
+        find baseline candidate -name ''*.apk'' -type f | tee verification/apks.txt
+
+        base=$(find baseline -name ''*.apk'' -type f | head -1)
+
+        next=$(find candidate -name ''*.apk'' -type f | head -1)
+
+        echo "7723309ee8bc0642c2c3df545f434a10cd7c1dedf8816074b3f5a5781bccbd91  $base"
+        | sha256sum -c -
+
+        echo "38a9e47786af002d18924ec6e5203ca8834a858be70e17fe1b8bb022d35828e0  $next"
+        | sha256sum -c -
+
         cp "$base" /tmp/v76.apk
+
         cp "$next" /tmp/v77.apk
-        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V
+        | tail -1)
+
         "$signer" verify --verbose --print-certs /tmp/v76.apk | tee verification/v76-signature.txt
+
         "$signer" verify --verbose --print-certs /tmp/v77.apk | tee verification/v77-signature.txt
-        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+
+        echo ''KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"''
+        | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+
         sudo udevadm control --reload-rules
+
         sudo udevadm trigger --name-match=kvm
-    - name: Install exact APKs on disposable Android emulator, preserve data sentinel
+
+        '
+    - name: Android17 beta16KB-page emulator exact install-over diagnostic
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 30
+        api-level: 37.2-beta3
         arch: x86_64
-        target: google_apis
+        target: google_apis_ps16k
         profile: pixel_7
         disable-animations: true
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072
-        script: |
-          adb shell getprop > verification/emulator-properties.txt
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          -camera-back none -memory 3072
+        script: 'adb shell getprop > verification/emulator-properties.txt
+
           adb logcat -c
-          adb install --no-streaming /tmp/v76.apk > verification/v76-install.txt 2>&1 || true
+
+          adb install --no-streaming /tmp/v76.apk > verification/v76-install.txt 2>&1
+          || true
+
           cat verification/v76-install.txt
+
           adb shell dumpsys package app.spool.music > verification/v76-package.txt
-          adb shell run-as app.spool.music sh -c 'mkdir -p files; echo spool-install-over-sentinel > files/install-over-sentinel.txt' > verification/sentinel-write.txt 2>&1 || true
-          adb install -r --no-streaming /tmp/v77.apk > verification/v77-update.txt 2>&1 || true
+
+          adb shell run-as app.spool.music sh -c ''mkdir -p files; echo spool-install-over-sentinel
+          > files/install-over-sentinel.txt'' > verification/sentinel-write.txt 2>&1
+          || true
+
+          adb install -r --no-streaming /tmp/v77.apk > verification/v77-update.txt
+          2>&1 || true
+
           cat verification/v77-update.txt
+
           adb shell dumpsys package app.spool.music > verification/v77-package.txt
-          adb shell run-as app.spool.music cat files/install-over-sentinel.txt > verification/sentinel-after.txt 2>&1 || true
+
+          adb shell run-as app.spool.music cat files/install-over-sentinel.txt > verification/sentinel-after.txt
+          2>&1 || true
+
           cat verification/sentinel-after.txt
+
           adb logcat -d -b all > verification/package-manager-logcat.txt
-          echo 'Disposable emulator diagnostic only. Not proof of installation on user phone or user-data migration.' > verification/SCOPE.txt
+
+          echo ''Disposable emulator diagnostic only. Not proof of installation on
+          user phone or user-data migration.'' > verification/SCOPE.txt
+
+          '
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: Spool-v76-v77-exact-installer-diagnostic
+        name: Spool-v76-v77-Android17beta-installer-diagnostic
         path: verification
         retention-days: 30
