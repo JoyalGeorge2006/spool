@@ -88,6 +88,9 @@ jobs:
       run: 'chmod +x gradlew
 
         ./gradlew :app:assembleProdDebug -Pbitchord.bundleWear=false'
+      env: &id001
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
     - name: Verify package, updater guard and signer
       run: 'set -euo pipefail
 
@@ -133,6 +136,7 @@ jobs:
         retention-days: 30
     - name: Capture real Android Compose page with fixture recommendations
       run: "cat > /tmp/isolation.gradle <<'INIT'\nallprojects { tasks.withType(Test).configureEach { forkEvery = 1; maxParallelForks = 1 } }\nINIT\nmkdir -p verification\nstatus=0\nfor case in RelatedPageScreenshotTest_light RelatedPageScreenshotTest_dark RelatedPageScreenshotTest_large RelatedPageScreenshotTest_error AccountSettingsScreenshotTest_light AboutDeveloperScreenshotTest_light AppNavigatorTest; do\n timeout --kill-after=20s 8m ./gradlew :app:recordRoborazziProdDebug -Pbitchord.bundleWear=false -I /tmp/isolation.gradle --tests \"com.music.bitchord.$case\" > \"verification/$case.log\" 2>&1 || status=1\n tail -25 \"verification/$case.log\"\n mkdir -p \"verification/$case\"\n cp -R app/build/test-results \"verification/$case/\" || true\ndone\nexit \"$status\"\n"
+      env: *id001
     - uses: actions/upload-artifact@v4
       if: always()
       with:
