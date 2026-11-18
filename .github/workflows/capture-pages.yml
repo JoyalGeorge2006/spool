@@ -1,101 +1,60 @@
-name: Verified onboarding-only input and restored updater installation
+name: Exact published 1.9.4 to 1.9.9 install diagnostic
 'on':
   workflow_dispatch: {}
 permissions:
   contents: read
-  actions: read
 jobs:
-  publish-and-probe:
+  exact-install:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    permissions:
-      contents: read
-      actions: read
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [30, 35]
     steps:
-    - uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        repository: JoyalGeorge2006/spool
-        run-id: 44245372182
-        name: Spool-v78-active-OTA-APK
-        path: final
-    - uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        repository: JoyalGeorge2006/spool
-        run-id: 44245372182
-        name: Spool-v78-complete-corresponding-source
-        path: source
-    - uses: actions/download-artifact@v4
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        repository: JoyalGeorge2006/spool
-        run-id: 44243011057
-        name: Spool-v78-active-OTA-APK
-        path: baseline
-    - name: Prepare release notes and real UI probe
-      run: 'python3 - <<''PREP''
-
-        import base64
-
-        open(''/tmp/ota-ui.py'',''wb'').write(base64.b64decode(''aW1wb3J0IHN1YnByb2Nlc3MgYXMgUyx0aW1lLHhtbC5ldHJlZS5FbGVtZW50VHJlZSBhcyBFLHJlLHBhdGhsaWIsanNvbgpvdXQ9cGF0aGxpYi5QYXRoKCd2ZXJpZmljYXRpb24nKTtvdXQubWtkaXIoZXhpc3Rfb2s9VHJ1ZSkKUEtHPSdhcHAuc3Bvb2wubXVzaWMnO0FDVD1QS0crJy9jb20ubXVzaWMuYml0Y2hvcmQuTWFpbkFjdGl2aXR5JztmaW5hbF9jb2RlPTQ3CmZpbGU9Jy9zZGNhcmQvQW5kcm9pZC9kYXRhLycrUEtHKycvZmlsZXMvdXBkYXRlcy9zcG9vbC11cGRhdGUuYXBrJwpkZWYgYWRiKCphKToKIHByaW50KCdBREInLCphLGZsdXNoPVRydWUpCiB0cnk6cmV0dXJuIFMucnVuKFsnYWRiJywqYV0sc3Rkb3V0PVMuUElQRSxzdGRlcnI9Uy5TVERPVVQsdGV4dD1UcnVlLHRpbWVvdXQ9MzUpLnN0ZG91dAogZXhjZXB0IFMuVGltZW91dEV4cGlyZWQgYXMgZTpyYWlzZSBSdW50aW1lRXJyb3IoJ0FEQl9USU1FT1VUICcrc3RyKGEpKSBmcm9tIGUKZGVmIHRyZWUobGFiZWwpOgogYWRiKCdzaGVsbCcsJ3JtJywnLWYnLCcvc2RjYXJkL3dpbmRvdy54bWwnKTtkdW1wPWFkYignc2hlbGwnLCd1aWF1dG9tYXRvcicsJ2R1bXAnLCcvc2RjYXJkL3dpbmRvdy54bWwnKTtyYXc9YWRiKCdzaGVsbCcsJ2NhdCcsJy9zZGNhcmQvd2luZG93LnhtbCcpIGlmICdkdW1wZWQgdG8nIGluIGR1bXAgZWxzZSAnJzsob3V0LyhsYWJlbCsnLnhtbCcpKS53cml0ZV90ZXh0KHJhdykKIHRyeTpyZXR1cm4gRS5mcm9tc3RyaW5nKHJhd1tyYXcuaW5kZXgoJzw/eG1sJyk6XSkKIGV4Y2VwdCBFeGNlcHRpb246cmV0dXJuIE5vbmUKZGVmIHNuYXAobGFiZWwpOmFkYignc2hlbGwnLCdzY3JlZW5jYXAnLCctcCcsJy9zZGNhcmQvc2hvdC5wbmcnKTthZGIoJ3B1bGwnLCcvc2RjYXJkL3Nob3QucG5nJyxzdHIob3V0LyhsYWJlbCsnLnBuZycpKSkKZGVmIHRhcG5vZGUobik6CiB2PWxpc3QobWFwKGludCxyZS5maW5kYWxsKHInXGQrJyxuLmF0dHJpYi5nZXQoJ2JvdW5kcycsJycpKSkpCiBpZiBsZW4odik9PTQ6YWRiKCdzaGVsbCcsJ2lucHV0JywndGFwJyxzdHIoKHZbMF0rdlsyXSkvLzIpLHN0cigodlsxXSt2WzNdKS8vMikpO3JldHVybiBUcnVlCiByZXR1cm4gRmFsc2UKZGVmIHRhcChyb290LHRlcm1zKToKIGlmIHJvb3QgaXMgTm9uZTpyZXR1cm4gTm9uZQogZm9yIHRlcm0gaW4gdGVybXM6CiAgZm9yIG4gaW4gcm9vdC5pdGVyKCdub2RlJyk6CiAgIHRleHQ9KG4uYXR0cmliLmdldCgndGV4dCcsJycpKycgJytuLmF0dHJpYi5nZXQoJ2NvbnRlbnQtZGVzYycsJycpKS5zdHJpcCgpCiAgIGlmIHRleHQuY2FzZWZvbGQoKT09dGVybS5jYXNlZm9sZCgpIGFuZCBuLmF0dHJpYi5nZXQoJ2VuYWJsZWQnKSE9J2ZhbHNlJyBhbmQgdGFwbm9kZShuKTpyZXR1cm4gdGV4dAogcmV0dXJuIE5vbmUKZGVmIHByZWZzKCk6cmV0dXJuIGFkYignc2hlbGwnLCdydW4tYXMnLFBLRywnY2F0Jywnc2hhcmVkX3ByZWZzL3Nwb29sLXVwZGF0ZS10cmFuc2Zlci54bWwnKQp0cmFuc2Zlcl9pZD1Ob25lCmRlZiBieXRlY291bnQoKToKIGlmIG5vdCB0cmFuc2Zlcl9pZDpyZXR1cm4gLTEKIHZhbHVlPWFkYignc2hlbGwnLCdzdScsJzAnLCdjb250ZW50JywncXVlcnknLCctLXVyaScsJ2NvbnRlbnQ6Ly9kb3dubG9hZHMvYWxsX2Rvd25sb2FkcycsJy0tcHJvamVjdGlvbicsJ2N1cnJlbnRfYnl0ZXM6dG90YWxfYnl0ZXM6c3RhdHVzJywnLS13aGVyZScsJ19pZD0nK3RyYW5zZmVyX2lkKQogd2l0aCAob3V0Lydkb3dubG9hZG1hbmFnZXItcXVlcnktbG9nLnR4dCcpLm9wZW4oJ2EnKSBhcyBmOmYud3JpdGUodmFsdWUrJ1xuJykKIG09cmUuc2VhcmNoKHInY3VycmVudF9ieXRlcz0oXGQrKScsdmFsdWUpCiByZXR1cm4gaW50KG1bMV0pIGlmIG0gZWxzZSAtMQpwcmludChhZGIoJ2luc3RhbGwnLCctcicsJy0tbm8tc3RyZWFtaW5nJywnL3RtcC9iYXNlbGluZS5hcGsnKSxmbHVzaD1UcnVlKQpwcmludChhZGIoJ3NoZWxsJywncnVuLWFzJyxQS0csJ21rZGlyJywnLXAnLCdmaWxlcycpLGZsdXNoPVRydWUpClMucnVuKFsnYWRiJywnc2hlbGwnLCdydW4tYXMnLFBLRywndGVlJywnZmlsZXMvb3RhLXNlbnRpbmVsLnR4dCddLGlucHV0PSdzcG9vbC1iYWNrZ3JvdW5kLW90YS1zZW50aW5lbFxuJyx0ZXh0PVRydWUsY2hlY2s9VHJ1ZSkKcHJpbnQoYWRiKCdzaGVsbCcsJ2FwcG9wcycsJ3NldCcsUEtHLCdSRVFVRVNUX0lOU1RBTExfUEFDS0FHRVMnLCdhbGxvdycpLGZsdXNoPVRydWUpCnByaW50KGFkYignZW11JywnbmV0d29yaycsJ3NwZWVkJywnNDA5Njo0MDk2JyksZmx1c2g9VHJ1ZSkKcHJpbnQoYWRiKCdzaGVsbCcsJ2FtJywnc3RhcnQnLCctbicsQUNUKSxmbHVzaD1UcnVlKQpzdGFydGVkPXRpbWUudGltZSgpO2V2ZW50cz1bXTtiYWNrZ3JvdW5kX3Byb3Zlbj1GYWxzZTttb2JpbGVfcHJvdmVuPUZhbHNlO3Jlc3RvcmVkX3JlYWR5PUZhbHNlO2Rvd25sb2FkX3N0YXJ0ZWQ9RmFsc2UKd2hpbGUgdGltZS50aW1lKCktc3RhcnRlZDw2MDA6CiBlbGFwc2VkPWludCh0aW1lLnRpbWUoKS1zdGFydGVkKTtyb290PU5vbmUgaWYgZG93bmxvYWRfc3RhcnRlZCBhbmQgbm90IGJhY2tncm91bmRfcHJvdmVuIGVsc2UgdHJlZSgndWktJytzdHIoZWxhcHNlZCkpCiBpZiByb290IGlzIG5vdCBOb25lOnNuYXAoJ3VpLScrc3RyKGVsYXBzZWQpKQogdGV4dHM9W10gaWYgcm9vdCBpcyBOb25lIGVsc2UgWyhuLmF0dHJpYi5nZXQoJ3RleHQnLCcnKSsnICcrbi5hdHRyaWIuZ2V0KCdjb250ZW50LWRlc2MnLCcnKSkuc3RyaXAoKSBmb3IgbiBpbiByb290Lml0ZXIoJ25vZGUnKV0KIGV2ZW50cy5hcHBlbmQoeydlbGFwc2VkJzplbGFwc2VkLCd0ZXh0cyc6dGV4dHN9KTsob3V0Lyd1aS1ldmVudHMuanNvbicpLndyaXRlX3RleHQoanNvbi5kdW1wcyhldmVudHMsaW5kZW50PTIpKQogcGtnPWFkYignc2hlbGwnLCdkdW1wc3lzJywncGFja2FnZScsUEtHKQogaWYgcmUuc2VhcmNoKHIndmVyc2lvbkNvZGU9JytzdHIoZmluYWxfY29kZSkrcidcYicscGtnKToKICBhc3NlcnQgYmFja2dyb3VuZF9wcm92ZW4sJ05PX1BST0NFU1NfREVBVEhfRE9XTkxPQURfUFJPT0YnCiAgYXNzZXJ0IHJlc3RvcmVkX3JlYWR5LCdOT19SRVNUT1JFRF9WRVJJRklFRF9SRUFEWScKICAob3V0LydpbnN0YWxsZWQtZmluYWwtcGFja2FnZS50eHQnKS53cml0ZV90ZXh0KHBrZykKICBzZW50aW5lbD1hZGIoJ3NoZWxsJywncnVuLWFzJyxQS0csJ2NhdCcsJ2ZpbGVzL290YS1zZW50aW5lbC50eHQnKTsob3V0LydvdGEtc2VudGluZWwtYWZ0ZXIudHh0Jykud3JpdGVfdGV4dChzZW50aW5lbCkKICBhc3NlcnQgc2VudGluZWwuc3RyaXAoKT09J3Nwb29sLWJhY2tncm91bmQtb3RhLXNlbnRpbmVsJyxzZW50aW5lbAogIHNuYXAoJ290YS1pbnN0YWxsZWQtZmluYWwnKTtwcmludCgnT1RBX0NPREU0N19JTlNUQUxMRURfQU5EX1NFTlRJTkVMX1JFVEFJTkVEJyxmbHVzaD1UcnVlKQogIGFkYignc2hlbGwnLCdhbScsJ2ZvcmNlLXN0b3AnLFBLRyk7YWRiKCdzaGVsbCcsJ2FtJywnc3RhcnQnLCctbicsQUNUKQogIGZvciBpIGluIHJhbmdlKDgpOgogICB0aW1lLnNsZWVwKDYpO2ZpbmFscm9vdD10cmVlKCdmaW5hbDQ3LWxhdW5jaC0nK3N0cihpKSk7c25hcCgnZmluYWw0Ny1sYXVuY2gtJytzdHIoaSkpCiAgIGZ0PVtdIGlmIGZpbmFscm9vdCBpcyBOb25lIGVsc2UgW24uYXR0cmliLmdldCgndGV4dCcsJycpIGZvciBuIGluIGZpbmFscm9vdC5pdGVyKCdub2RlJyldCiAgIGFzc2VydCBub3QgYW55KCdBbmRyb2lkIEFwcCBDb21wYXRpYmlsaXR5JyBpbiB0IG9yICdSRUxSTyBhbGlnbm1lbnQnIGluIHQgZm9yIHQgaW4gZnQpLCdGSU5BTDQ3X0NPTVBBVF9XQVJOSU5HJwogIGFzc2VydCBhZGIoJ3NoZWxsJywncGlkb2YnLFBLRykuc3RyaXAoKSwnRklOQUw0N19QSURfTUlTU0lORycKICBwcmludCgnRklOQUw0N19SRUxBVU5DSEVEX1dJVEhPVVRfQ09NUEFUX1dBUk5JTkdfT0JTRVJWRUQnLGZsdXNoPVRydWUpO2JyZWFrCiBpZiBkb3dubG9hZF9zdGFydGVkIGFuZCBub3QgYmFja2dyb3VuZF9wcm92ZW46CiAgcmF3PXByZWZzKCk7KG91dC8ndHJhbnNmZXItYmVmb3JlLWJhY2tncm91bmQueG1sJykud3JpdGVfdGV4dChyYXcpCiAgbWF0Y2g9cmUuc2VhcmNoKHInPGxvbmcgbmFtZT0iaWQiIHZhbHVlPSIoXGQrKSInLHJhdykKICBpZiBtYXRjaDoKICAgdHJhbnNmZXJfaWQ9bWF0Y2hbMV0KICAgYmVmb3JlPWJ5dGVjb3VudCgpCiAgIGFzc2VydCAwPD1iZWZvcmU8MTQwNjE5ODY5LCgnTk9fSU5DT01QTEVURV9BTkRST0lEX0JZVEVfU0FNUExFJyxiZWZvcmUpCiAgIGFkYignc2hlbGwnLCdpbnB1dCcsJ2tleWV2ZW50JywnMycpO3RpbWUuc2xlZXAoMikKICAgYWRiKCdzaGVsbCcsJ2FtJywna2lsbCcsUEtHKTt0aW1lLnNsZWVwKDIpCiAgIHBpZD1hZGIoJ3NoZWxsJywncGlkb2YnLFBLRykuc3RyaXAoKQogICBpZiBwaWQ6CiAgICBmb3IgcCBpbiBwaWQuc3BsaXQoKTphZGIoJ3NoZWxsJywncnVuLWFzJyxQS0csJ2tpbGwnLCctOScscCkKICAgIHRpbWUuc2xlZXAoMikKICAgYXNzZXJ0IG5vdCBhZGIoJ3NoZWxsJywncGlkb2YnLFBLRykuc3RyaXAoKSwnQVBQX1BST0NFU1NfTk9UX1RFUk1JTkFURUQnCiAgIGV2aWRlbmNlPVt7J3N0YWdlJzona2lsbGVkJywnYnl0ZXMnOmJlZm9yZSwncGlkJzphZGIoJ3NoZWxsJywncGlkb2YnLFBLRykuc3RyaXAoKSwnaWQnOnRyYW5zZmVyX2lkfV0KICAgc25hcCgnbGF1bmNoZXItYXBwLXByb2Nlc3Mta2lsbGVkJykKICAgIyBVc2UgdGhlIGVtdWxhdG9yIGNlbGx1bGFyIHRyYW5zcG9ydCwgbm90IG1lcmVseSBhIHJlcXVlc3QgZmxhZywgZm9yIGEgc2Vjb25kIGxlZy4KICAgYWRiKCdzaGVsbCcsJ3N2YycsJ2RhdGEnLCdlbmFibGUnKTthZGIoJ3NoZWxsJywnc3ZjJywnd2lmaScsJ2Rpc2FibGUnKQogICBmb3Igc3RlcCBpbiByYW5nZSgyNCk6CiAgICB0aW1lLnNsZWVwKDMpCiAgICBjb3VudD1ieXRlY291bnQoKTtwaWQ9YWRiKCdzaGVsbCcsJ3BpZG9mJyxQS0cpLnN0cmlwKCkKICAgIGNvbm5lY3Rpdml0eT1hZGIoJ3NoZWxsJywnZHVtcHN5cycsJ2Nvbm5lY3Rpdml0eScpCiAgICBldmlkZW5jZS5hcHBlbmQoeydzdGFnZSc6J2JhY2tncm91bmQtbW9iaWxlJywnc3RlcCc6c3RlcCwnYnl0ZXMnOmNvdW50LCdwaWQnOnBpZH0pCiAgICAob3V0LydiYWNrZ3JvdW5kLWNvbm5lY3Rpdml0eS50eHQnKS53cml0ZV90ZXh0KGNvbm5lY3Rpdml0eSkKICAgIChvdXQvJ2JhY2tncm91bmQtdHJhbnNmZXIuanNvbicpLndyaXRlX3RleHQoanNvbi5kdW1wcyhldmlkZW5jZSxpbmRlbnQ9MikpCiAgICBpZiBjb3VudD5tYXgoYmVmb3JlLDApIGFuZCBub3QgcGlkOgogICAgIGJhY2tncm91bmRfcHJvdmVuPVRydWUKICAgICBtb2JpbGVfcHJvdmVuPWJvb2wocmUuc2VhcmNoKHInQWN0aXZlIGRlZmF1bHQgbmV0d29yazogKFxkKyknLGNvbm5lY3Rpdml0eSkgYW5kIHJlLnNlYXJjaChyJ25ldHdvcmtceycrcmUuc2VhcmNoKHInQWN0aXZlIGRlZmF1bHQgbmV0d29yazogKFxkKyknLGNvbm5lY3Rpdml0eSlbMV0rcidcfS4qP1RyYW5zcG9ydHM6IENFTExVTEFSJyxjb25uZWN0aXZpdHkscmUuUykpCiAgICAgaWYgbW9iaWxlX3Byb3ZlbjpicmVhawogICBhZGIoJ3NoZWxsJywnc3ZjJywnd2lmaScsJ2VuYWJsZScpCiAgIHByaW50KGFkYignZW11JywnbmV0d29yaycsJ3NwZWVkJywnZnVsbCcpLGZsdXNoPVRydWUpCiAgIGFzc2VydCBiYWNrZ3JvdW5kX3Byb3ZlbiwnQllURVNfRElEX05PVF9JTkNSRUFTRV9XSVRIX0FQUF9QUk9DRVNTX0FCU0VOVCcKICAgYXNzZXJ0IG1vYmlsZV9wcm92ZW4sJ05PX0FDVElWRV9DRUxMVUxBUl9UUkFOU1BPUlQnCiAgIHByaW50KCdCQUNLR1JPVU5EX0JZVEVTX0FEVkFOQ0VEX1dJVEhfUFJPQ0VTU19BQlNFTlQnLGV2aWRlbmNlLGZsdXNoPVRydWUpCiAgIHByaW50KCdDRUxMVUxBUl9UUkFOU1BPUlRfT0JTRVJWRUQnLG1vYmlsZV9wcm92ZW4sZmx1c2g9VHJ1ZSkKICAgZm9yIGZpbmlzaCBpbiByYW5nZSg2MCk6CiAgICBxPWFkYignc2hlbGwnLCdzdScsJzAnLCdjb250ZW50JywncXVlcnknLCctLXVyaScsJ2NvbnRlbnQ6Ly9kb3dubG9hZHMvYWxsX2Rvd25sb2FkcycsJy0tcHJvamVjdGlvbicsJ2N1cnJlbnRfYnl0ZXM6dG90YWxfYnl0ZXM6c3RhdHVzJywnLS13aGVyZScsJ19pZD0nK3RyYW5zZmVyX2lkKQogICAgKG91dC8nZG93bmxvYWRtYW5hZ2VyLWNvbXBsZXRpb24udHh0Jykud3JpdGVfdGV4dChxKQogICAgaWYgJ3N0YXR1cz0yMDAnIGluIHE6YnJlYWsKICAgIHRpbWUuc2xlZXAoMikKICAgZWxzZTpyYWlzZSBSdW50aW1lRXJyb3IoJ0RPV05MT0FEX05PVF9DT01QTEVURScpCiAgIGFkYignc2hlbGwnLCdhbScsJ2ZvcmNlLXN0b3AnLFBLRykKICAgYWRiKCdzaGVsbCcsJ2FtJywnc3RhcnQnLCctbicsQUNUKQogICBjb250aW51ZQogaWYgYmFja2dyb3VuZF9wcm92ZW4gYW5kIGFueSh0IGluIFsnSW5zdGFsbCBOb3cnLCdJbnN0YWxsIHVwZGF0ZSddIGZvciB0IGluIHRleHRzKToKICByZXN0b3JlZF9yZWFkeT1UcnVlOyhvdXQvJ3Jlc3RvcmVkLXRyYW5zZmVyLnhtbCcpLndyaXRlX3RleHQocHJlZnMoKSk7c25hcCgncmVzdG9yZWQtdmVyaWZpZWQtaW5zdGFsbC1yZWFkeScpCiBpZiByb290IGlzIG5vdCBOb25lIGFuZCBub3QgZG93bmxvYWRfc3RhcnRlZCBhbmQgJ1doYXQgc2hvdWxkIHdlIGNhbGwgeW91PycgaW4gdGV4dHM6CiAgZm9yIG4gaW4gcm9vdC5pdGVyKCdub2RlJyk6CiAgIGlmIG4uYXR0cmliLmdldCgnY2xhc3MnKT09J2FuZHJvaWQud2lkZ2V0LkVkaXRUZXh0JyBhbmQgbi5hdHRyaWIuZ2V0KCdlbmFibGVkJyk9PSd0cnVlJyBhbmQgbm90IG4uYXR0cmliLmdldCgndGV4dCcpOgogICAgdGFwbm9kZShuKTthZGIoJ3NoZWxsJywnaW5wdXQnLCd0ZXh0JywnT1RBVGVzdCcpO2FkYignc2hlbGwnLCdpbnB1dCcsJ2tleWV2ZW50JywnNCcpO3Jvb3Q9dHJlZSgnbmFtZS1lbnRlcmVkLScrc3RyKGVsYXBzZWQpKTticmVhawogaWYgcm9vdCBpcyBub3QgTm9uZSBhbmQgYW55KG4uYXR0cmliLmdldCgnY2xhc3MnKT09J2FuZHJvaWQud2Via2l0LldlYlZpZXcnIGZvciBuIGluIHJvb3QuaXRlcignbm9kZScpKSBhbmQgYW55KCdTaWduIGluIHRvIFlvdVR1YmUnIGluIHQgZm9yIHQgaW4gdGV4dHMpOgogIHNuYXAoJ3VuZXhwZWN0ZWQtc2lnbmluJyk7cmFpc2UgUnVudGltZUVycm9yKCdVTkVYUEVDVEVEX1NJR05JTl9OT19JTlBVVF9BVFRFTVBURUQnKQogdGVybXM9WydPSycsJ0Rvd25sb2FkIE5vdycsJ0Rvd25sb2FkIHVwZGF0ZScsJ05leHQnLCdTa2lwIHNpZ24gaW4nLCdOb3Qgbm93J10gaWYgbm90IGRvd25sb2FkX3N0YXJ0ZWQgZWxzZSBbJ0luc3RhbGwgTm93JywnSW5zdGFsbCB1cGRhdGUnLCdVcGRhdGUnLCdJbnN0YWxsJ10KIGhpdD10YXAocm9vdCx0ZXJtcykKIGlmIGJhY2tncm91bmRfcHJvdmVuIGFuZCByb290IGlzIG5vdCBOb25lIGFuZCBub3QgaGl0OgogIGZvciBuIGluIHJvb3QuaXRlcignbm9kZScpOgogICBpZiAnMS45LjknIGluIG4uYXR0cmliLmdldCgnY29udGVudC1kZXNjJywnJykgYW5kICd1cGRhdGUnIGluIG4uYXR0cmliLmdldCgnY29udGVudC1kZXNjJywnJykubG93ZXIoKToKICAgIHRhcG5vZGUobik7YnJlYWsKIGlmIGhpdDoKICBwcmludChlbGFwc2VkLCd0YXBwZWQnLGhpdCxmbHVzaD1UcnVlKQogIGlmIGhpdCBpbiBbJ0Rvd25sb2FkIE5vdycsJ0Rvd25sb2FkIHVwZGF0ZSddOmRvd25sb2FkX3N0YXJ0ZWQ9VHJ1ZTtjb250aW51ZQogdGltZS5zbGVlcCgzKQplbHNlOgogKG91dC8ndGltZW91dC1wYWNrYWdlLnR4dCcpLndyaXRlX3RleHQoYWRiKCdzaGVsbCcsJ2R1bXBzeXMnLCdwYWNrYWdlJyxQS0cpKTtyYWlzZSBTeXN0ZW1FeGl0KCdCQUNLR1JPVU5EX09UQV9VSV9USU1FT1VUJykKKG91dC8nYmFja2dyb3VuZC1yZXN1bHQuanNvbicpLndyaXRlX3RleHQoanNvbi5kdW1wcyh7J2JhY2tncm91bmRfcHJvY2Vzc19hYnNlbnRfYnl0ZXNfYWR2YW5jZWQnOmJhY2tncm91bmRfcHJvdmVuLCdjZWxsdWxhcl90cmFuc3BvcnRfb2JzZXJ2ZWQnOm1vYmlsZV9wcm92ZW4sJ3Jlc3RvcmVkX3ZlcmlmaWVkX3JlYWR5JzpyZXN0b3JlZF9yZWFkeX0saW5kZW50PTIpKQo=''))
-
-        PREP
-
-        echo ''KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"'' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-
-        sudo udevadm control --reload-rules
-
-        sudo udevadm trigger --name-match=kvm
-
-        '
-    - name: Gate exact unchanged APK and baseline, no publication
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: 'set -euo pipefail
-
-        repo=JoyalGeorge2006/spool
-
-        state=$(gh api repos/$repo/actions/runs/44245372182 --jq ''.conclusion'')
-
-        test "$state" = success
-
-        apk=$(find final -name spool.apk -type f | head -1)
-
-        base=$(find baseline -name spool.apk -type f | head -1)
-
-        echo "4bb7387b1b498d99c67b2bfeb9f70cb7e64f675170c9d8db834e22870189f57d  $apk" | sha256sum -c -
-
-        echo "c380b0f5ac0a09343f80bfa1307c513422f3c27295b749ec5ee9243da4910ccb  $base" | sha256sum -c -
-
-        echo ''3ffb4a494d3eb3ff7a43016bd1b869d8ad8b4957796a208ccdbaec5550f53aea  source/spool-v1.9.9-source.tar.gz'' | sha256sum -c -
-
-        cp "$apk" spool-v1.9.9_arm64-v8a.apk
-
-        cp "$base" /tmp/baseline.apk
-
-        cp source/spool-v1.9.9-source.tar.gz .
-
-        sha256sum spool-v1.9.9_arm64-v8a.apk spool-v1.9.9-source.tar.gz > SHA256SUMS
-
-        mkdir -p verification
-
-        gh release view v1.9.9 --repo "$repo" --json url,assets > verification/published-release.json
-
-        '
-    - name: Real44to47 updater continues with process absent then restores and installs
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 37.2-beta3
-        arch: x86_64
-        target: google_apis_ps16k
-        profile: pixel_7
-        disable-animations: true
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072
-        script: bash -o pipefail -c 'timeout 720 python3 -u /tmp/ota-ui.py 2>&1 | tee verification/ota-ui-probe.txt; status=${PIPESTATUS[0]}; adb logcat -d -b all > verification/ota-logcat.txt; exit $status'
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: Spool-v78-published-real-OTA-evidence
-        path: verification
-        retention-days: 30
+      - name: Download exact published artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          curl -fL --retry 2 https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.4/spool-v1.9.4_arm64-v8a.apk -o baseline.apk
+          curl -fL --retry 2 https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.9/spool-v1.9.9_arm64-v8a.apk -o update.apk
+          echo '8e04fdcdf0847ff166f035ed58c3a83fbe29159009e45b1e5f5155b953402274  baseline.apk' | sha256sum -c -
+          echo '4bb7387b1b498d99c67b2bfeb9f70cb7e64f675170c9d8db834e22870189f57d  update.apk' | sha256sum -c -
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install exact baseline then update preserving app data
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: google_apis
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072
+          script: |
+            adb shell getprop > evidence/device-properties.txt
+            adb install --no-streaming baseline.apk | tee evidence/install42.txt
+            grep -q Success evidence/install42.txt
+            adb shell dumpsys package app.spool.music > evidence/package42.txt
+            adb shell run-as app.spool.music mkdir -p files
+            echo exact42to47-sentinel | adb shell run-as app.spool.music tee files/exact42to47.txt
+            adb install -r --no-streaming update.apk | tee evidence/install47.txt
+            grep -q Success evidence/install47.txt
+            adb shell dumpsys package app.spool.music > evidence/package47.txt
+            grep -q 'versionCode=47' evidence/package47.txt
+            adb shell run-as app.spool.music cat files/exact42to47.txt | tee evidence/sentinel-after.txt
+            grep -q exact42to47-sentinel evidence/sentinel-after.txt
+            adb shell am start -n app.spool.music/com.music.bitchord.MainActivity
+            sleep 15
+            adb shell screencap -p /sdcard/final.png
+            adb pull /sdcard/final.png evidence/final.png
+            adb shell pidof app.spool.music | tee evidence/pid.txt
+            adb shell dumpsys activity activities > evidence/activities.txt
+            adb logcat -d -b all > evidence/logcat.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact42to47-api${{ matrix.api }}
+          path: evidence
+          retention-days: 30
