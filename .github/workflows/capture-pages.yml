@@ -42,3 +42,6 @@ jobs:
         --json url,assets,isDraft
 
         '
+    permissions:
+      contents: write
+      actions: read
