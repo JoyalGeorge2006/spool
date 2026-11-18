@@ -30,7 +30,7 @@ jobs:
         cp "$apk" Spool-Mobile-Profile-Developer-Related-v77.apk
 
         gh release create spool-profile-developer-related-v77 --repo JoyalGeorge2006/spool
-        --draft --target 61a8f668a218e1599e274379ac261696d019ec9a --title ''Spool
+        --draft --target "$GITHUB_SHA" --title ''Spool
         v77 Profile Developer Related'' --notes ''Current built APK requested for
         handover. Android package/signer checks passed. Related light/dark/error and
         Profile/navigation fixture checks passed. Large-text Related and About capture
