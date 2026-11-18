@@ -12,7 +12,6 @@ jobs:
       matrix:
         variant:
         - eager-control
-        - lazy-experiment
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
@@ -28,7 +27,7 @@ jobs:
         \ and m.isfile()\n    t.extractall('.')\nPYOVERLAY\nchmod +x gradlew\n"
     - name: Control variant restores only two original startup files
       if: matrix.variant == 'eager-control'
-      run: 'tar xzf /tmp/baseline.tar.gz app/src/main/java/com/music/bitchord/data/innertube/AndroidStreamHooks.kt shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/innertube/InnerTubeXResolver.kt
+      run: 'tar xzf /tmp/baseline.tar.gz ./app/src/main/java/com/music/bitchord/data/innertube/AndroidStreamHooks.kt ./shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/innertube/InnerTubeXResolver.kt
 
         '
     - name: Compile and prepare cold-start comparison
