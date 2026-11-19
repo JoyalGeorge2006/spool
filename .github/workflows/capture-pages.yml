@@ -40,23 +40,21 @@ jobs:
         \ -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)\n\"$bt/apksigner\" verify --verbose --print-certs /tmp/reconstructed.apk | tee /tmp/certs.txt\ngrep\
         \ -q 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee' /tmp/certs.txt\n\"$bt/aapt\" dump badging /tmp/reconstructed.apk | tee /tmp/badging.txt\n\
         grep -q \"package: name='app.spool.music' versionCode='50' versionName='1.9.12'\" /tmp/badging.txt\ncp \"$apk\" /tmp/release/spool.apk\ncp \"$out/spool-v1.9.12-source.tar.gz\"\
-        \ /tmp/release/\ntest \"$(gh api repos/$repo/releases/latest --jq .tag_name)\" = v1.9.9\ngh api repos/$repo/releases --paginate > /tmp/releases.json\nif jq\
-        \ -e --arg tag \"$tag\" '.[]|select(.tag_name==$tag)' /tmp/releases.json; then echo 'Release already exists; refuse duplicate'; exit 1; fi\ncat > /tmp/notes.txt\
-        \ <<'NOTES'\nSpool1.9.12/code50 is a version-only update from1.9.11/code49 for testing the in-app OTA download and Android installation flow. Same package,\
-        \ signing identity, source and design; no unrelated feature changes. Install as an update. Do not uninstall or clear app data.\n\n54 startup/updater checks\
-        \ and105 queue checks passed. Signed final APK verified. Physical-device OTA acceptance is still pending. Existing limitations remain unchanged, including\
+        \ /tmp/release/\ntest \"$(gh api repos/$repo/releases/latest --jq .tag_name)\" = v1.9.9\ngh api repos/$repo/releases --paginate > /tmp/releases.json\ncat\
+        \ > /tmp/notes.txt <<'NOTES'\nSpool1.9.12/code50 is a version-only update from1.9.11/code49 for testing the in-app OTA download and Android installation flow.\
+        \ Same package, signing identity, source and design; no unrelated feature changes. Install as an update. Do not uninstall or clear app data.\n\n54 startup/updater\
+        \ checks and105 queue checks passed. Signed final APK verified. Physical-device OTA acceptance is still pending. Existing limitations remain unchanged, including\
         \ the active-looking disabled queue removal control.\n\nThe optional delta is only for the exact1.9.11 universal APK on arm64-v8a devices. Other bases/layouts\
         \ use the full APK with its stated size. The delta reconstructs the exact signed target and passed the production Java decoder round trip plus hostile-input\
         \ host tests. These checks do not replace phone acceptance.\n\nAPK package:app.spool.music; versionCode:50; versionName:1.9.12; bytes:153636328.\nSHA256:82e1135a7ae15a3d7dabf3c4d6b59af5092e84068a35f00785c2cf7e2353ad86.\n\
         Exact candidate source is the attached spool-v1.9.12-source.tar.gz. The automatic tag source links do not represent the exact restored build tree. Build run44471732851,\
-        \ workflow commita28c977da81e51462ba4f59f5ce7654c881c654c.\nNOTES\ngh release create \"$tag\" --repo \"$repo\" --target main --draft --latest=false --title\
-        \ 'Spool1.9.12' --notes-file /tmp/notes.txt /tmp/release/spool.apk /tmp/release/spool49-50.spdelta /tmp/release/spool-v1.9.12-source.tar.gz\ngh api repos/$repo/releases/tags/$tag\
-        \ > /tmp/draft.json\npython - <<'PY'\nimport json,pathlib,hashlib\nr=json.load(open('/tmp/draft.json'));assert r['draft'] and not r['prerelease']\na={x['name']:x\
-        \ for x in r['assets']}\nfor n in ['spool.apk','spool49-50.spdelta','spool-v1.9.12-source.tar.gz']:\n p=pathlib.Path('/tmp/release')/n;x=a[n];assert x['state']=='uploaded'\
-        \ and x['size']==p.stat().st_size and x['digest']=='sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()\nm=json.load(open('/tmp/delta.json'));d={k:m[k]for\
-        \ k in ['format','base_size','base_sha256','target_size','target_sha256','patch_size','patch_sha256']};d.update(layout='standalone',package='app.spool.music',target_version='1.9.12',target_code=50,base_code=49,min_sdk=26,abi='arm64-v8a',patch_asset_id=str(a['spool49-50.spdelta']['id']))\n\
+        \ workflow commita28c977da81e51462ba4f59f5ce7654c881c654c.\nNOTES\ngh api repos/$repo/releases --paginate --jq '.[] | select(.tag_name==\"v1.9.12\" and .draft==true)'\
+        \ > /tmp/draft.json\ntest \"$(jq -s length /tmp/draft.json)\" = 1\nrelease_id=$(jq -r .id /tmp/draft.json)\npython - <<'PY'\nimport json,pathlib,hashlib\n\
+        r=json.load(open('/tmp/draft.json'));assert r['draft'] and not r['prerelease']\na={x['name']:x for x in r['assets']}\nfor n in ['spool.apk','spool49-50.spdelta','spool-v1.9.12-source.tar.gz']:\n\
+        \ p=pathlib.Path('/tmp/release')/n;x=a[n];assert x['state']=='uploaded' and x['size']==p.stat().st_size and x['digest']=='sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()\n\
+        m=json.load(open('/tmp/delta.json'));d={k:m[k]for k in ['format','base_size','base_sha256','target_size','target_sha256','patch_size','patch_sha256']};d.update(layout='standalone',package='app.spool.music',target_version='1.9.12',target_code=50,base_code=49,min_sdk=26,abi='arm64-v8a',patch_asset_id=str(a['spool49-50.spdelta']['id']))\n\
         pathlib.Path('/tmp/release/spool-ota-v1.json').write_text(json.dumps({'schema':1,'patches':[d]},indent=2)+'\\n')\nprint(json.dumps(d,indent=2))\nPY\ngh release\
-        \ upload \"$tag\" --repo \"$repo\" /tmp/release/spool-ota-v1.json\ngh api repos/$repo/releases/tags/$tag > /tmp/draft-final.json\npython - <<'PY'\nimport\
+        \ upload \"$tag\" --repo \"$repo\" /tmp/release/spool-ota-v1.json\ngh api repos/$repo/releases/$release_id > /tmp/draft-final.json\npython - <<'PY'\nimport\
         \ json,pathlib,hashlib\nr=json.load(open('/tmp/draft-final.json'));assert r['draft'] and not r['prerelease']\na={x['name']:x for x in r['assets']};assert\
         \ len(a)==4\nfor n,x in a.items():\n p=pathlib.Path('/tmp/release')/n;assert x['state']=='uploaded' and x['size']==p.stat().st_size and x['digest']=='sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()\n\
         c=json.load(open('/tmp/release/spool-ota-v1.json'))['patches'][0];assert c['patch_asset_id']==str(a['spool49-50.spdelta']['id']) and c['target_sha256']==a['spool.apk']['digest'][7:]\n\
