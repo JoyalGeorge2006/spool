@@ -1,96 +1,175 @@
-name: Spool reviewed phone compile only, no APK
-on:
-  workflow_dispatch: {}
+name: Spool phone 1.9.16 verified candidate, draft only
 permissions:
-  contents: read
+  contents: write
 jobs:
   compile:
     if: github.ref == 'refs/heads/spool-compile-audit-20261119'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Verify and extract reviewed source only
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fL --retry 2 https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.15/spool-v1.9.15-source.tar.gz -o "$RUNNER_TEMP/base.tar.gz"
-          echo 'e79dbaee18ee9022a344c47cbb35a4037b9ef77b4624dcd7f73e781322c1d7a7  '"$RUNNER_TEMP/base.tar.gz" | sha256sum -c -
-          python3 - <<'PYCODE'
-          import os,tarfile,json,hashlib,pathlib
-          def unique(pattern):
-              found=list(pathlib.Path('.').glob(pattern))
-              assert len(found)==1,found
-              return found[0]
-          manifest=unique('*reviewed-source-manifest.json')
-          overlay=unique('*reviewed-source-overlay.tar.gz')
-          assert hashlib.sha256(manifest.read_bytes()).hexdigest()=='189c5cb1ace8c92c4c46270b0ab2094cea4dd0166deefdcbad9f83971e3aa0fd'
-          assert hashlib.sha256(overlay.read_bytes()).hexdigest()=='fecb5ccc9f13ec3b112c39003edc751e5db7dacee39130d95a521ae87d1ef3c3'
-          expected=json.loads(manifest.read_text())
-          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'reviewed-source'
-          dest.mkdir()
-          for archive in [pathlib.Path(os.environ['RUNNER_TEMP'])/'base.tar.gz',overlay]:
-              with tarfile.open(archive) as t:
-                  for m in t.getmembers():
-                      p=pathlib.PurePosixPath(m.name)
-                      assert not p.is_absolute() and '..' not in p.parts,m.name
-                      name=str(p)
-                      if name not in expected: continue
-                      assert m.isfile() and '.github' not in p.parts and '.git' not in p.parts,name
-                      m.name=name
-                      t.extract(m,dest,filter='data')
-          actual={str(p.relative_to(dest)):hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file()}
-          assert actual==expected,'Source manifest mismatch'
-          print('Exact reviewed source verified:',len(actual),'files. No extracted workflows.')
-          PYCODE
-      - name: Install local SDK prerequisites, no project changes
-        shell: bash
-        run: |
-          set -euo pipefail
-          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-          test -n "$sdk_root" || { echo 'Android SDK root missing'; exit 1; }
-          sdkmanager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
-          test -x "$sdkmanager" || { echo 'Android SDK manager executable missing'; exit 1; }
-          "$sdkmanager" --version
-          "$sdkmanager" --sdk_root="$sdk_root" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
-          test -f "$sdk_root/platforms/android-37.0/android.jar"
-          test -x "$sdk_root/build-tools/35.0.0/aapt2"
-          test -d "$sdk_root/ndk/27.0.12077973"
-          test -x "$sdk_root/cmake/3.22.1/bin/cmake"
-      - name: Inspect compile-only task graph
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/reviewed-source"
-          chmod +x gradlew
-          ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.workers.max=2 -Pkotlin.compiler.execution.strategy=in-process -Pbitchord.bundleWear=false :app:compileProdDebugKotlin :app:compileProdDebugJavaWithJavac --dry-run | tee "$RUNNER_TEMP/task-plan.txt"
-          python3 - <<'PY'
-          import os,pathlib,re
-          lines=(pathlib.Path(os.environ['RUNNER_TEMP'])/'task-plan.txt').read_text().splitlines()
-          tasks=[s.split()[0].split(':')[-1] for s in lines if s.startswith(':')]
-          assert 'compileProdDebugKotlin' in tasks and 'compileProdDebugJavaWithJavac' in tasks
-          forbidden=[t for t in tasks if re.search(r'assemble|apk|bundleWear|dex|sign|publish|install|externalNative|buildCMake',t,re.I) or (t.lower().startswith('package') and not t.endswith('Resources'))]
-          assert not forbidden,forbidden
-          print('Compile-only graph accepted. No APK/package/sign/install/release tasks.')
-          PY
-      - name: Compile phone and Android shared dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/reviewed-source"
-          ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.workers.max=2 -Pkotlin.compiler.execution.strategy=in-process -Pbitchord.bundleWear=false :app:compileProdDebugKotlin :app:compileProdDebugJavaWithJavac
-      - name: Verify no installable app output
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          if find "$RUNNER_TEMP/reviewed-source" -type f \( -name '*.apk' -o -name '*.aab' \) -print -quit | grep -q .; then
-            echo 'Unexpected installable app output'; exit 1
-          fi
-          echo 'No APK/AAB generated. Main and releases unchanged. No cache or artifact uploads.' >> "$GITHUB_STEP_SUMMARY"
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+    - name: Verify and extract reviewed source only
+      shell: bash
+      run: "set -euo pipefail\ncurl -fL --retry 2 https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.15/spool-v1.9.15-source.tar.gz\
+        \ -o \"$RUNNER_TEMP/base.tar.gz\"\necho 'e79dbaee18ee9022a344c47cbb35a4037b9ef77b4624dcd7f73e781322c1d7a7  '\"$RUNNER_TEMP/base.tar.gz\"\
+        \ | sha256sum -c -\npython3 - <<'PYCODE'\nimport os,tarfile,json,hashlib,pathlib\ndef unique(pattern):\n    found=list(pathlib.Path('.').glob(pattern))\n\
+        \    assert len(found)==1,found\n    return found[0]\nmanifest=unique('*reviewed-source-manifest.json')\noverlay=unique('*reviewed-source-overlay.tar.gz')\n\
+        assert hashlib.sha256(manifest.read_bytes()).hexdigest()=='189c5cb1ace8c92c4c46270b0ab2094cea4dd0166deefdcbad9f83971e3aa0fd'\n\
+        assert hashlib.sha256(overlay.read_bytes()).hexdigest()=='fecb5ccc9f13ec3b112c39003edc751e5db7dacee39130d95a521ae87d1ef3c3'\n\
+        expected=json.loads(manifest.read_text())\ndest=pathlib.Path(os.environ['RUNNER_TEMP'])/'reviewed-source'\ndest.mkdir()\n\
+        for archive in [pathlib.Path(os.environ['RUNNER_TEMP'])/'base.tar.gz',overlay]:\n    with tarfile.open(archive) as\
+        \ t:\n        for m in t.getmembers():\n            p=pathlib.PurePosixPath(m.name)\n            assert not p.is_absolute()\
+        \ and '..' not in p.parts,m.name\n            name=str(p)\n            if name not in expected: continue\n       \
+        \     assert m.isfile() and '.github' not in p.parts and '.git' not in p.parts,name\n            m.name=name\n   \
+        \         t.extract(m,dest,filter='data')\nactual={str(p.relative_to(dest)):hashlib.sha256(p.read_bytes()).hexdigest()\
+        \ for p in dest.rglob('*') if p.is_file()}\nassert actual==expected,'Source manifest mismatch'\nprint('Exact reviewed\
+        \ source verified:',len(actual),'files. No extracted workflows.')\nPYCODE\n"
+    - name: Install local SDK prerequisites, no project changes
+      shell: bash
+      run: 'set -euo pipefail
+
+        sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+
+        test -n "$sdk_root" || { echo ''Android SDK root missing''; exit 1; }
+
+        sdkmanager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+
+        test -x "$sdkmanager" || { echo ''Android SDK manager executable missing''; exit 1; }
+
+        "$sdkmanager" --version
+
+        "$sdkmanager" --sdk_root="$sdk_root" ''platforms;android-37.0'' ''build-tools;35.0.0'' ''ndk;27.0.12077973'' ''cmake;3.22.1''
+
+        test -f "$sdk_root/platforms/android-37.0/android.jar"
+
+        test -x "$sdk_root/build-tools/35.0.0/aapt2"
+
+        test -d "$sdk_root/ndk/27.0.12077973"
+
+        test -x "$sdk_root/cmake/3.22.1/bin/cmake"
+
+        '
+    - name: Set next install-over version and archive exact release source
+      shell: bash
+      run: "set -euo pipefail\ncd \"$RUNNER_TEMP/reviewed-source\"\npython3 - <<'PY'\nimport pathlib,hashlib,json,tarfile,gzip,os\n\
+        root=pathlib.Path('.')\np=root/'build.gradle.kts'\nassert hashlib.sha256(p.read_bytes()).hexdigest()=='4d8a26b2f08bd300f273bbc903818de9cd0008dbf55fdf44cf473d48c884d887'\n\
+        s=p.read_text().replace('extra[\"bitchordVersionCode\"] = 53','extra[\"bitchordVersionCode\"] = 54').replace('extra[\"\
+        bitchordVersionName\"] = \"1.9.15\"','extra[\"bitchordVersionName\"] = \"1.9.16\"')\np.write_text(s)\nmanifest={str(p):hashlib.sha256(p.read_bytes()).hexdigest()\
+        \ for p in root.rglob('*') if p.is_file()}\nassert hashlib.sha256((json.dumps(manifest,sort_keys=True,indent=2)+'\\\
+        n').encode()).hexdigest()=='16095d744a51c3fc72e3fe6ded3eef6fa4c8216b15ef1af27f8b2d206da30392'\nout=pathlib.Path(os.environ['RUNNER_TEMP'])/'candidate-out'\n\
+        out.mkdir()\n(out/'source-manifest.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\\n')\nwith (out/'spool-v1.9.16-source.tar.gz').open('wb')\
+        \ as f,gzip.GzipFile(filename='',fileobj=f,mode='wb',mtime=0) as gz,tarfile.open(fileobj=gz,mode='w') as t:\n    for\
+        \ name in sorted(manifest):\n        p=root/name\n        info=t.gettarinfo(str(p),arcname=name)\n        info.uid=info.gid=0;info.uname=info.gname='';info.mtime=0\n\
+        \        with p.open('rb') as inp:t.addfile(info,inp)\nprint('Exact release source archived; changes from reviewed\
+        \ source: version metadata only.')\nPY\n"
+    - name: Compile and build universal optimized phone candidate
+      shell: bash
+      run: 'set -euo pipefail
+
+        cd "$RUNNER_TEMP/reviewed-source"
+
+        chmod +x gradlew
+
+        ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.workers.max=2 -Pkotlin.compiler.execution.strategy=in-process
+        -Pbitchord.bundleWear=false :app:assembleProdRelease --stacktrace --console=plain
+
+        '
+    - name: Run phone safety, updater, queue and collapse regressions
+      shell: bash
+      run: 'set -euo pipefail
+
+        cd "$RUNNER_TEMP/reviewed-source"
+
+        ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.workers.max=2 -Pkotlin.compiler.execution.strategy=in-process
+        -Pbitchord.bundleWear=false :app:recordRoborazziProdDebug --console=plain --stacktrace --tests ''com.music.bitchord.PlayerCollapseControlTest''
+        --tests ''com.music.bitchord.DownloadSessionTest'' --tests ''com.music.bitchord.DownloadStoreTest'' --tests ''com.music.bitchord.data.settings.BackupPreferenceTypesTest''
+        --tests ''com.music.bitchord.AccountSessionsTest'' --tests ''com.music.bitchord.AccountChannelTest'' --tests ''com.music.bitchord.AppUpdateSafetyTest''
+        --tests ''com.music.bitchord.SpoolDeltaTest'' --tests ''com.music.bitchord.UpdateStoreTest'' --tests ''com.music.bitchord.UpdateDownloadsTest''
+        --tests ''com.music.bitchord.OtaFlowTest'' --tests ''com.music.bitchord.UpdateAssetSelectionTest'' --tests ''com.music.bitchord.QueueCoordinatorTest''
+        --tests ''com.music.bitchord.playback.QueueUndo*Test'' --tests ''com.music.bitchord.playback.PartyQueueMoveTest''
+
+        python3 - <<''PY''
+
+        import pathlib,xml.etree.ElementTree as E
+
+        files=list(pathlib.Path(''app/build/test-results/testProdDebugUnitTest'').glob(''TEST-*.xml''))
+
+        assert files,''No test reports''
+
+        counts={k:sum(int(E.parse(f).getroot().get(k,''0'')) for f in files) for k in [''tests'',''failures'',''errors'',''skipped'']}
+
+        print(''REGRESSION_COUNTS'',counts)
+
+        assert counts[''tests'']>0 and counts[''failures'']==counts[''errors'']==counts[''skipped'']==0,counts
+
+        PY
+
+        '
+    - name: Emit fixture screenshot evidence through logs, no artifact storage
+      if: always()
+      shell: bash
+      run: "set -euo pipefail\ncd \"$RUNNER_TEMP/reviewed-source\"\npython3 - <<'PY'\nimport pathlib,base64,textwrap\nfor\
+        \ p in sorted(pathlib.Path('app/build/outputs/roborazzi').glob('collapse_*.png')):\n    print('SCREENSHOT_BEGIN',p.name)\n\
+        \    print('\\n'.join(textwrap.wrap(base64.b64encode(p.read_bytes()).decode(),100)))\n    print('SCREENSHOT_END',p.name)\n\
+        PY\n"
+    - name: Sign with existing identity and verify final universal APK
+      shell: bash
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: "set -euo pipefail\ncd \"$RUNNER_TEMP/reviewed-source\"\ntest -n \"$SPOOL_DEBUG_KEYSTORE_B64\"\nkey=\"$RUNNER_TEMP/spool-signing.keystore\"\
+        \ntrap 'rm -f \"$key\"' EXIT\nprintf '%s' \"$SPOOL_DEBUG_KEYSTORE_B64\" | base64 -d > \"$key\"\nchmod 600 \"$key\"\
+        \nsigner=\"$ANDROID_HOME/build-tools/35.0.0/apksigner\"\naapt=\"$ANDROID_HOME/build-tools/35.0.0/aapt\"\nout=\"$RUNNER_TEMP/candidate-out\"\
+        \ninput='app/build/outputs/apk/prod/release/app-prod-universal-release-unsigned.apk'\ntest -f \"$input\"\n\"$signer\"\
+        \ sign --ks \"$key\" --ks-key-alias spooldebug --ks-pass env:SPOOL_DEBUG_STORE_PASSWORD --key-pass env:SPOOL_DEBUG_KEY_PASSWORD\
+        \ --out \"$out/spool.apk\" \"$input\"\n\"$signer\" verify --verbose --print-certs \"$out/spool.apk\" | tee \"$RUNNER_TEMP/cert.txt\"\
+        \ngrep -qi a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee \"$RUNNER_TEMP/cert.txt\"\n\"$aapt\" dump\
+        \ badging \"$out/spool.apk\" > \"$RUNNER_TEMP/badging.txt\"\ngrep -q \"package: name='app.spool.music' versionCode='54'\
+        \ versionName='1.9.16'\" \"$RUNNER_TEMP/badging.txt\"\ncp \"$out/spool.apk\" \"$out/spool-v1.9.16.apk\"\npython3 -\
+        \ <<'PY'\nimport zipfile,pathlib,os\np=pathlib.Path(os.environ['RUNNER_TEMP'])/'candidate-out/spool.apk'\nwith zipfile.ZipFile(p)\
+        \ as z:\n    libs={a:{n.split('/')[-1] for n in z.namelist() if n.startswith('lib/'+a+'/')} for a in ['armeabi-v7a','arm64-v8a','x86_64']}\n\
+        \    assert all(libs.values()) and libs['armeabi-v7a']==libs['arm64-v8a']==libs['x86_64'],libs\n    assert not any(n.startswith('lib/x86/')\
+        \ for n in z.namelist())\nprint('Verified same3ABI native library sets',len(libs['arm64-v8a']))\nPY\ncd \"$out\"\n\
+        sha256sum *.apk *.tar.gz source-manifest.json > SHA256SUMS\nstat -c '%n %s' *.apk *.tar.gz\n"
+    - name: Preserve verified candidate as draft release only, no publication
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: 'set -euo pipefail
+
+        command -v gh
+
+        out="$RUNNER_TEMP/candidate-out"
+
+        test -f "$out/spool.apk"
+
+        test -f "$out/SHA256SUMS"
+
+        gh api repos/"$GH_REPO"/releases --paginate > "$RUNNER_TEMP/existing-releases.json"
+
+        python3 - <<''PY''
+
+        import json,os,pathlib
+
+        items=json.loads((pathlib.Path(os.environ[''RUNNER_TEMP''])/''existing-releases.json'').read_text())
+
+        assert all(x[''tag_name'']!=''v1.9.16'' for x in items),''Version already exists; refusing overwrite''
+
+        PY
+
+        gh release create v1.9.16 --draft --target "$GITHUB_SHA" --title ''Spool1.9.16'' --notes '''' "$out/spool.apk" "$out/spool-v1.9.16.apk"
+        "$out/spool-v1.9.16-source.tar.gz" "$out/source-manifest.json" "$out/SHA256SUMS"
+
+        echo ''Candidate is DRAFT ONLY. Publication and OTA patch preparation remain pending.'' >> "$GITHUB_STEP_SUMMARY"
+
+        '
+'on':
+  workflow_dispatch: {}
