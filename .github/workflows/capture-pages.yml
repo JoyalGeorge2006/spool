@@ -1,83 +1,80 @@
-name: Stage approved persistent banner dismissal1.9.14 DRAFT ONLY
+name: Publish approved persistent banner dismissal1.9.14 stable latest
 'on':
   workflow_dispatch: {}
 permissions:
   contents: write
   actions: read
 jobs:
-  stage:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: '21'
-    - uses: actions/download-artifact@v4
-      with:
-        name: spool52-banner-dismiss-signed-NOT-PUBLISHED
-        run-id: '44481853779'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path: /tmp/target
-    - uses: actions/download-artifact@v4
-      with:
-        name: spool51-version-only-signed-NOT-PUBLISHED
-        run-id: '44476754637'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path: /tmp/base
-    - name: Verify exact decoder and signer then stage draft assets and pinned catalog
+    - name: Verify staged target and catalog before authorized stable publication
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: "set -euo pipefail\nrepo=JoyalGeorge2006/spool\ntag=v1.9.14\nout=/tmp/target/tmp/candidate-out\nbase=/tmp/base/tmp/candidate-out/spool.apk\napk=$out/spool.apk\n\
-        mkdir -p /tmp/release /tmp/src /tmp/classes\necho \"e0d47be8219145011114ea6e5568fecc559910edc9282d0176b50f75e42a708f  $base\" | sha256sum -c -\necho \"3346078286acfac862cc7ca43dac40dd1f618155a4de1aa6a4f063c3b624e847\
-        \  $apk\" | sha256sum -c -\ntest \"$(stat -c %s \"$apk\")\" = 153636328\ntar -xzf \"$out/spool-v1.9.14-source.tar.gz\" -C /tmp/src\npython /tmp/src/tools/ota/make_delta.py\
-        \ \"$base\" \"$apk\" /tmp/release/spool51-52.spdelta | tee /tmp/delta.json\ncat > /tmp/RoundTrip.java <<'JAVA'\nimport com.music.bitchord.data.SpoolDelta;\n\
-        import java.io.File;\npublic class RoundTrip {\n public static void main(String[] a) throws Exception {\n  SpoolDelta.apply(new File(a[0]),new File(a[1]),new\
-        \ File(a[2]),153636328L,153636328L,\"e0d47be8219145011114ea6e5568fecc559910edc9282d0176b50f75e42a708f\",\"3346078286acfac862cc7ca43dac40dd1f618155a4de1aa6a4f063c3b624e847\"\
-        ,()->{});\n }\n}\nJAVA\njavac -d /tmp/classes /tmp/src/app/src/main/java/com/music/bitchord/data/SpoolDelta.java /tmp/src/tools/ota/DeltaMutationHarness.java\
-        \ /tmp/RoundTrip.java\njava -Xmx64m -cp /tmp/classes RoundTrip \"$base\" /tmp/release/spool51-52.spdelta /tmp/reconstructed.apk\ncmp \"$apk\" /tmp/reconstructed.apk\n\
-        java -Xmx64m -cp /tmp/classes DeltaMutationHarness | tee /tmp/mutations.txt\nbt=$(find \"$ANDROID_HOME/build-tools\" -maxdepth 1 -mindepth 1 -type d | sort\
-        \ -V | tail -1)\n\"$bt/apksigner\" verify --verbose --print-certs /tmp/reconstructed.apk | tee /tmp/certs.txt\ngrep -q 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'\
-        \ /tmp/certs.txt\n\"$bt/aapt\" dump badging /tmp/reconstructed.apk | tee /tmp/badging.txt\ngrep -q \"package: name='app.spool.music' versionCode='52' versionName='1.9.14'\"\
-        \ /tmp/badging.txt\ncp \"$apk\" /tmp/release/spool.apk\ncp \"$out/spool-v1.9.14-source.tar.gz\" /tmp/release/\ntest \"$(gh api repos/$repo/releases/latest\
-        \ --jq .tag_name)\" = v1.9.13\ngh api repos/$repo/releases --paginate > /tmp/releases.json\nif jq -e --arg tag \"$tag\" '.[]|select(.tag_name==$tag)' /tmp/releases.json;\
-        \ then echo 'Release already exists; refuse duplicate'; exit 1; fi\ncat > /tmp/notes.txt <<'NOTES'\nSpool1.9.14/code52 adds a monochrome upper-right close\
-        \ button to the Home YouTube Music sign-in banner. Dismissing it hides the entire banner and its gap, without opening sign-in. The local choice survives app\
-        \ reopen/restart, ordinary updates and sign-in/out. Clearing data or reinstalling may reset it. Sign-in remains optional through Settings, account row, Profile,\
-        \ Add account. No unrelated UI or account changes.\n\n174 checks passed:69startup/updater/banner and105queue, including11new banner checks for independent48dp\
-        \ close touch, Google-button callback, Profile Add account, saved preferences reload and sign-out persistence. Actual light/dark390dp and200%text320dp before/after\
-        \ app renders inspected. No new physical-phone or data-retention acceptance is claimed.\n\nThe optional delta applies to the exact1.9.13 universal APK on\
-        \ arm64-v8a devices. Other bases/layouts use the full APK with its stated size. Exact production Java reconstruction, byte comparison, final signer and hostile-input\
-        \ host tests passed before publication. Install as an update, never uninstall or clear data.\n\nAPK package:app.spool.music; versionCode:52; versionName:1.9.14;\
-        \ bytes:153636328.\nSHA256:3346078286acfac862cc7ca43dac40dd1f618155a4de1aa6a4f063c3b624e847.\nExact candidate source is attached as spool-v1.9.14-source.tar.gz.\
-        \ Automatic tag source links do not represent the exact restored build tree. Build run44481853779 attempt2, workflow commit8a19bdf7fbf6097d96fadf20e11b8d497a86de62.\n\
-        NOTES\ngh release create \"$tag\" --repo \"$repo\" --target main --draft --latest=false --title 'Spool1.9.14' --notes-file /tmp/notes.txt /tmp/release/spool.apk\
-        \ /tmp/release/spool51-52.spdelta /tmp/release/spool-v1.9.14-source.tar.gz\ngh api repos/$repo/releases --paginate --jq '.[] | select(.tag_name==\"v1.9.14\"\
-        \ and .draft==true)' > /tmp/draft.json\ntest \"$(jq -s length /tmp/draft.json)\" = 1\nrelease_id=$(jq -r .id /tmp/draft.json)\npython - <<'PY'\nimport json,pathlib,hashlib\n\
-        r=json.load(open('/tmp/draft.json'));assert r['draft'] and not r['prerelease']\na={x['name']:x for x in r['assets']}\nfor n in ['spool.apk','spool51-52.spdelta','spool-v1.9.14-source.tar.gz']:\n\
-        \ p=pathlib.Path('/tmp/release')/n;x=a[n];assert x['state']=='uploaded' and x['size']==p.stat().st_size and x['digest']=='sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()\n\
-        m=json.load(open('/tmp/delta.json'));d={k:m[k]for k in ['format','base_size','base_sha256','target_size','target_sha256','patch_size','patch_sha256']};d.update(layout='standalone',package='app.spool.music',target_version='1.9.14',target_code=52,base_code=51,min_sdk=26,abi='arm64-v8a',patch_asset_id=str(a['spool51-52.spdelta']['id']))\n\
-        pathlib.Path('/tmp/release/spool-ota-v1.json').write_text(json.dumps({'schema':1,'patches':[d]},indent=2)+'\\n')\nprint(json.dumps(d,indent=2))\nPY\ngh release\
-        \ upload \"$tag\" --repo \"$repo\" /tmp/release/spool-ota-v1.json\ngh api repos/$repo/releases/$release_id > /tmp/draft-final.json\npython - <<'PY'\nimport\
-        \ json,pathlib,hashlib\nr=json.load(open('/tmp/draft-final.json'));assert r['draft'] and not r['prerelease']\na={x['name']:x for x in r['assets']};assert\
-        \ len(a)==4\nfor n,x in a.items():\n p=pathlib.Path('/tmp/release')/n;assert x['state']=='uploaded' and x['size']==p.stat().st_size and x['digest']=='sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()\n\
-        c=json.load(open('/tmp/release/spool-ota-v1.json'))['patches'][0];assert c['patch_asset_id']==str(a['spool51-52.spdelta']['id']) and c['target_sha256']==a['spool.apk']['digest'][7:]\n\
-        print('Draft assets, catalog, exact decoder reconstruction and final signer checks passed. Not published yet.')\nPY\n"
+      run: 'set -euo pipefail
+
+        repo=JoyalGeorge2006/spool
+
+        tag=v1.9.14
+
+        test "$(gh api repos/$repo/releases/latest --jq .tag_name)" = v1.9.13
+
+        gh api repos/$repo/releases --paginate --jq ''.[] | select(.tag_name=="v1.9.14" and .draft==true)'' > /tmp/release-before.json
+
+        test "$(jq -s length /tmp/release-before.json)" = 1
+
+        python - <<''PY''
+
+        import json
+
+        r=json.load(open(''/tmp/release-before.json''));assert r[''tag_name'']==''v1.9.14'' and r[''draft''] and not r[''prerelease''];assert r[''target_commitish'']==''main''
+
+        a={x[''name'']:x for x in r[''assets'']};assert set(a)=={''spool.apk'',''spool51-52.spdelta'',''spool-ota-v1.json'',''spool-v1.9.14-source.tar.gz''}
+
+        assert a[''spool.apk''][''size'']==153636328 and a[''spool.apk''][''digest'']==''sha256:3346078286acfac862cc7ca43dac40dd1f618155a4de1aa6a4f063c3b624e847''
+
+        assert a[''spool51-52.spdelta''][''size'']==10888141 and a[''spool51-52.spdelta''][''digest'']==''sha256:121ab061c354e1b18a45ca0a4e5fc04e906e60325f1b9140665050a2db9956f1''
+
+        assert all(x[''state'']==''uploaded''for x in a.values())
+
+        PY
+
+        mkdir /tmp/release-check
+
+        gh release download "$tag" --repo "$repo" --pattern spool-ota-v1.json --dir /tmp/release-check
+
+        python - <<''PY''
+
+        import json,hashlib,pathlib
+
+        r=json.load(open(''/tmp/release-before.json''));a={x[''name'']:x for x in r[''assets'']};p=pathlib.Path(''/tmp/release-check/spool-ota-v1.json'');assert a[p.name][''size'']==p.stat().st_size
+        and a[p.name][''digest'']==''sha256:''+hashlib.sha256(p.read_bytes()).hexdigest();c=json.loads(p.read_text());assert c[''schema'']==1 and len(c[''patches''])==1;d=c[''patches''][0]
+
+        expected=dict(format=''spdelta-1'',layout=''standalone'',package=''app.spool.music'',target_version=''1.9.14'',target_code=52,base_code=51,min_sdk=26,abi=''arm64-v8a'',base_size=153636328,base_sha256=''e0d47be8219145011114ea6e5568fecc559910edc9282d0176b50f75e42a708f'',target_size=153636328,target_sha256=''3346078286acfac862cc7ca43dac40dd1f618155a4de1aa6a4f063c3b624e847'',patch_size=10888141,patch_sha256=''121ab061c354e1b18a45ca0a4e5fc04e906e60325f1b9140665050a2db9956f1'',patch_asset_id=str(a[''spool51-52.spdelta''][''id'']))
+
+        assert d==expected
+
+        print(''Exact published-catalog candidate and latest baseline verified'')
+
+        PY
+
+        gh release edit "$tag" --repo "$repo" --draft=false --prerelease=false --latest
+
+        gh api repos/$repo/releases/latest > /tmp/release-after.json
+
+        jq -e ''.tag_name=="v1.9.14" and .draft==false and .prerelease==false'' /tmp/release-after.json
+
+        cat /tmp/release-after.json
+
+        '
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: spool52-draft-release-verification
-        path: '/tmp/delta.json
+        name: spool52-stable-publication-metadata
+        path: '/tmp/release-before.json
 
-          /tmp/mutations.txt
+          /tmp/release-after.json
 
-          /tmp/certs.txt
-
-          /tmp/badging.txt
-
-          /tmp/draft.json
-
-          /tmp/draft-final.json
-
-          /tmp/release/spool-ota-v1.json'
+          /tmp/release-check/spool-ota-v1.json'
         retention-days: 14
