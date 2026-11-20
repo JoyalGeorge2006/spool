@@ -1,0 +1,300 @@
+name: spool 2.0.0 verification APK (artifact only, no release)
+
+# Builds the blur-verified source as a prod RELEASE APK (same variant quality as
+# the shipped v1.9.17 install: R8-minified), signed with the persisted
+# spool-debug key so it installs over the existing install (same package, same
+# certificate, versionCode 56 > 55). Artifact upload only: this workflow has no
+# release, deploy, or publication steps.
+#
+# Source provenance (v3 - credential-free materialization, same model the
+# run-87 screenshots.yml verification used): no source commit push is required.
+# The exact source is materialized in-runner from:
+#   1. the pinned v1.9.17 source tarball, sha256-verified
+#      (8af044da1ce03348a42531b28fd7216056bb914640dd669233f66c95d7011bb7);
+#   2. the 13 reviewed patch files carried on this branch
+#      (verification/spool-edits{,-2..-7}.patch, root spool-edits-{8..13}.patch),
+#      EVERY ONE sha256-verified against its reviewed bytes BEFORE application;
+#   3. the version bump to 2.0.0/versionCode 56 applied as an exact two-line
+#      edit with precondition and postcondition greps.
+# The materialized tree is then hashed (git add -A + git write-tree inside the
+# extracted source, whose own .gitattributes governs normalization) and must
+# equal the dispatch input expected_tree, or the run fails closed BEFORE any
+# compile:
+#   expected_tree = the independently reviewed materialized-tree hash
+#   (local dry run of this exact procedure produced
+#    ea37edbea25eb831994f5d9cd3489c3e259f6a24, which differs from the reviewed
+#    candidate tree 14adabe11d578119213e6ff02413757009dbe104 ONLY under
+#    .github/ - 26 paths, the CI workflow directory, inert inside the build
+#    tree. All buildable source is path-for-path, blob-for-blob identical to
+#    the reviewed candidate.)
+# The lame native dependency is fetched AFTER the tree assertion so the hash
+# covers exactly the reviewed source and nothing else.
+#
+# Updater behavior preserved exactly as shipped: SEPARATELY_PROVIDED_UPDATES
+# stays false, so the in-app latest-release checker remains active, matching
+# the shipped v1.9.17 binary (verified from its DEX, not from source comments).
+# Note: the prod flavor's source comment claims the checker "stays off here";
+# the actual conditional in AppUpdateChecker.check() disables the checker only
+# when the flag is TRUE, and the shipped binary proves the flag was false.
+# This workflow asserts the false values below; the comment conflict is
+# documented here and left for the maintainer.
+#
+# Feature parity with the shipped binary needs no extra env or secrets.
+# Original release env route, as far as the record settles it: at the v1.9.17
+# tag (commit e1c93dc9) android.yml built assembleProdRelease with
+# LASTFM_API_KEY/LASTFM_SECRET/LISTEN_TOGETHER_SERVER written to
+# local.properties and signed with bitchord-release.jks. The shipped APK is
+# signed with the spool-debug key (cert a736ba23...) and its DEX references no
+# baked Last.fm-format credential, so the shipped build did not come from
+# that env route. Residual, left open rather than resolved: the record does
+# not settle whether the repo's Last.fm secrets were empty or the shipped
+# build never wrote them. What is proven is only the shipped binary's state
+# (no Last.fm credential, debug-key certificate), and that a defaults build
+# reproduces that state; the original build's env history stays unknown.
+# - LASTFM_API_KEY / LASTFM_SECRET: source defaults are empty and features
+#   gate on isNotBlank() with a user-overridable setting.
+# - LISTEN_TOGETHER_SERVER / ADDON_AUTH_SERVER: the shipped APK's DEX contains
+#   exactly the source default hosts (exact whole-host matches), and those
+#   defaults only ever enter a build through the Gradle buildConfigField
+#   assignments. Defaults reproduce shipped behavior.
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_tree:
+        description: Reviewed materialized-source tree hash (git write-tree after tarball + patches + version bump)
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Verify the 13 reviewed patch files byte-for-byte (sha256 pinned)
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE"
+        sha256sum -c - <<'HASHES'
+        ed9de94b2a0c711c1e1676b67a818d2f8cdbfafc16def2f82aff2886787401ec  verification/spool-edits.patch
+        6eae2c20beaaa72167f18a26cd71f1fe67f4634fefbbc6053dc78836eacfd5d4  verification/spool-edits-2.patch
+        f4c538832d8dc1a4bdb41ae4e1b1d518f06948a2cf3ac144ef9d7748f2cfd668  verification/spool-edits-3.patch
+        7785f7796a6efe33146212f4b75f98b72fdf5c8a43adba3536b4e601f2a89579  verification/spool-edits-4.patch
+        ab5aeea0dad59f767389e9f32cac94bd9ff39db025185b26b6cedb2bfea44771  verification/spool-edits-5.patch
+        46db1502cdc944508921e32a2fbe353298f432d7d592fe8f4cb7a72e471561fc  verification/spool-edits-6.patch
+        728d59f58a363f554664e04194ba87fb6cf3d7cc935ddb2df71fdfe89fd8ccf7  verification/spool-edits-7.patch
+        229384338db2cbdf380f17f7b92a5b9227fd67841ab852a6bd7e6dbcbea5a91e  spool-edits-8.patch
+        d5ba2b5daac5b3df55158385914ef3f48634ae3055170f1bb83f92153262ddcd  spool-edits-9.patch
+        fb5eb56678426a1e78c29b0c69e4fe580a4f5474dca4b8e5943fd02344d1f822  spool-edits-10.patch
+        d44fb00c9e0b5beafba9a749db5d26f349cb820545543d9f574bc01c15c54628  spool-edits-11.patch
+        42addb0ef526e6615cbe6d707b4bfcf4c114f83f3523addac292588e24e03dd6  spool-edits-12.patch
+        b8a26736f9f26f978660634ac753cf952158286d3375e94ffff5fcb1df39f21a  spool-edits-13.patch
+        HASHES
+
+    - name: Materialize exact reviewed source (pinned tarball + verified patches + version bump)
+      run: |
+        set -euo pipefail
+        curl -fsSL -o /tmp/spool-source.tar.gz "https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.17/spool-v1.9.17-source.tar.gz"
+        echo '8af044da1ce03348a42531b28fd7216056bb914640dd669233f66c95d7011bb7  /tmp/spool-source.tar.gz' | sha256sum -c -
+        SRC="$RUNNER_TEMP/asset"
+        mkdir -p "$SRC"
+        tar xzf /tmp/spool-source.tar.gz -C "$SRC"
+        cd "$SRC"
+        git init -q
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-7.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-8.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-9.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-10.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-11.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-12.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-13.patch"
+        # Version bump: exact two-line edit, preconditions and postconditions asserted.
+        test "$(grep -c '^extra\["bitchordVersionCode"\] = 55$' build.gradle.kts)" -eq 1
+        test "$(grep -c '^extra\["bitchordVersionName"\] = "1.9.17"$' build.gradle.kts)" -eq 1
+        sed -i -e 's/^extra\["bitchordVersionCode"\] = 55$/extra["bitchordVersionCode"] = 56/' \
+               -e 's/^extra\["bitchordVersionName"\] = "1.9.17"$/extra["bitchordVersionName"] = "2.0.0"/' \
+               build.gradle.kts
+        grep -n '^extra\["bitchordVersionCode"\] = 56$' build.gradle.kts
+        grep -n '^extra\["bitchordVersionName"\] = "2.0.0"$' build.gradle.kts
+
+    - name: Assert materialized source tree hash (fail closed before any compile)
+      run: |
+        set -euo pipefail
+        cd "$RUNNER_TEMP/asset"
+        git add -A
+        actual="$(git write-tree)"
+        echo "materialized tree: $actual"
+        echo "expected tree:     ${{ inputs.expected_tree }}"
+        test "$actual" = "${{ inputs.expected_tree }}"
+        echo "SRC_DIR=$RUNNER_TEMP/asset" >> "$GITHUB_ENV"
+
+    - name: Fetch lame native dependency (after the tree assertion, not covered by it)
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+
+    - name: Verify committed version is 2.0.0 (versionCode 56)
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        grep -n '^extra\["bitchordVersionCode"\] = 56$' build.gradle.kts
+        grep -n '^extra\["bitchordVersionName"\] = "2.0.0"$' build.gradle.kts
+
+    - name: Verify updater guard stays exactly as shipped (checker active)
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        test "$(grep -c 'SEPARATELY_PROVIDED_UPDATES", "false"' app/build.gradle.kts)" -eq 2
+        if grep -n 'SEPARATELY_PROVIDED_UPDATES", "true"' app/build.gradle.kts; then
+          echo '::error::updater flag flipped to true - shipped behavior must be preserved'
+          exit 1
+        fi
+
+    - name: Restore persisted signing key, preflight alias, write keystore.properties
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        # Fail fast: without all three secrets the release build would still
+        # succeed but come out UNSIGNED (the release signing config is skipped
+        # when keystore.properties is missing); the final apksigner gate below
+        # fails closed on that too, but fail here first with a clear reason.
+        test -n "$SPOOL_DEBUG_KEYSTORE_B64"
+        test -n "$SPOOL_DEBUG_STORE_PASSWORD"
+        test -n "$SPOOL_DEBUG_KEY_PASSWORD"
+        printf '%s' "$SPOOL_DEBUG_KEYSTORE_B64" | base64 -d > spool-debug.keystore
+        test -s spool-debug.keystore
+        chmod 600 spool-debug.keystore
+        # Alias preflight: fail before a 30-minute compile if the keystore
+        # does not contain the expected spooldebug alias.
+        keytool -list -keystore spool-debug.keystore \
+          -storepass "$SPOOL_DEBUG_STORE_PASSWORD" -alias spooldebug \
+          | grep -qi 'spooldebug'
+        {
+          echo "storeFile=spool-debug.keystore"
+          echo "storePassword=$SPOOL_DEBUG_STORE_PASSWORD"
+          echo "keyAlias=spooldebug"
+          echo "keyPassword=$SPOOL_DEBUG_KEY_PASSWORD"
+        } > keystore.properties
+        chmod 600 keystore.properties
+
+    - name: Build signed prod release APKs
+      id: compile
+      run: |
+        cd "$SRC_DIR"
+        chmod +x gradlew
+        ./gradlew :app:assembleProdRelease -Pbitchord.bundleWear=false
+
+    - name: Verify package, version, updater guard and signer (fail closed)
+      id: verify
+      run: |
+        set -euo pipefail
+        aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+        mkdir -p "$RUNNER_TEMP/apk-out"
+        cp "$SRC_DIR"/app/build/outputs/apk/prod/release/*-arm64-v8a-release.apk "$RUNNER_TEMP/apk-out/spool.apk"
+        cp "$SRC_DIR"/app/build/outputs/apk/prod/release/*-universal-release.apk "$RUNNER_TEMP/apk-out/spool-universal.apk"
+
+        "$aapt" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | head -3 | tee /tmp/badging.txt
+        grep -q "package: name='app.spool.music'" /tmp/badging.txt
+        grep -q "versionCode='56'" /tmp/badging.txt
+        grep -q "versionName='2.0.0'" /tmp/badging.txt
+        if grep -q "package: name='app.spool.music.dev'" /tmp/badging.txt; then
+          echo '::error::wrong package'
+          exit 1
+        fi
+
+        # apksigner fails closed: an unsigned or differently-signed APK stops here.
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee /tmp/certs.txt
+        grep -qi 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee' /tmp/certs.txt
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool-universal.apk" \
+          | grep -qi 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
+        sha256sum "$RUNNER_TEMP/apk-out/"*.apk | tee /tmp/apk-sha256.txt
+
+    - name: Download shipped v1.9.17 universal APK for upgrade smoke
+      id: shipped
+      run: |
+        set -euo pipefail
+        curl -fL --retry 3 -o "$RUNNER_TEMP/spool-v1.9.17.apk" \
+          https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.17/spool-v1.9.17.apk
+        echo '79ac9cd96a2a4ca10475b37b28ba42c3121552b80e04103b5734aaceb2778aa7  '"$RUNNER_TEMP/spool-v1.9.17.apk" | sha256sum -c -
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Upgrade install and launch smoke on emulator
+      id: smoke
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        script: |
+          set -euo pipefail
+          # Upgrade path: install the actual shipped universal, then install -r
+          # the 2.0.0 universal over it (same package, same cert, 56 > 55).
+          adb install "$RUNNER_TEMP/spool-v1.9.17.apk"
+          adb install -r "$RUNNER_TEMP/apk-out/spool-universal.apk"
+          # Clear the log buffer BEFORE launch, then capture only the app's
+          # process so unrelated system noise cannot mask or fake a crash.
+          adb logcat -b all -c
+          adb shell monkey -p app.spool.music -c android.intent.category.LAUNCHER 1
+          sleep 20
+          app_pid=$(adb shell pidof app.spool.music | tr -d '\r')
+          test -n "$app_pid"
+          adb logcat -b all -v threadtime --pid="$app_pid" -d > /tmp/smoke-logcat.txt
+          adb exec-out screencap -p > /tmp/smoke-launch.png
+          if grep -iE 'FATAL EXCEPTION|ANR in app.spool.music' /tmp/smoke-logcat.txt; then
+            echo '::error::crash detected in app process log after upgrade launch'
+            exit 1
+          fi
+
+    - name: Upload 2.0.0 APK artifact (only on verify+smoke success)
+      if: steps.verify.outcome == 'success' && steps.smoke.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-2.0.0-apk
+        path: |
+          ${{ runner.temp }}/apk-out/spool.apk
+          ${{ runner.temp }}/apk-out/spool-universal.apk
+          /tmp/apk-sha256.txt
+          /tmp/badging.txt
+          /tmp/certs.txt
+        if-no-files-found: error
+
+    - name: Upload smoke diagnostics (always, never contains APKs)
+      if: always() && steps.compile.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-2.0.0-smoke-diagnostics
+        path: |
+          /tmp/smoke-launch.png
+          /tmp/smoke-logcat.txt
+        if-no-files-found: warn
