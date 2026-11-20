@@ -837,6 +837,54 @@ index 0000000..7e24a28
 +        compose.onNodeWithText("page body").assertExists()
 +    }
 +}
+diff --git a/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt b/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
+index 4045e48..538065c 100644
+--- a/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
++++ b/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
+@@ -116,16 +116,19 @@ class SpoolFrostScreenshotTest {
+      * backdrop, Blur effects ON versus OFF. ON must frost over the page's
+      * haze; OFF must draw the solid container fill.
+      */
+-    private fun sheetShot(name: String, blurOn: Boolean) {
++    private fun sheetShot(name: String, dark: Boolean, blurOn: Boolean) {
++        val storedTheme = AppSettings.themeMode.value
+         val storedBlur = AppSettings.blurEffects.value
++        AppSettings.setThemeMode(if (dark) ThemeMode.DARK else ThemeMode.LIGHT)
+         AppSettings.blurEffects.value = blurOn
+         try {
+             captureRoboImage("build/outputs/roborazzi/$name.png") {
+-                BitChordTheme(darkTheme = true) {
++                BitChordTheme(darkTheme = dark) {
+                     SheetScene()
+                 }
+             }
+         } finally {
++            AppSettings.setThemeMode(storedTheme)
+             AppSettings.blurEffects.value = storedBlur
+         }
+     }
+@@ -165,10 +168,19 @@ class SpoolFrostScreenshotTest {
+     }
+ 
+     @Test
+-    fun inline_sheet_on_dark() = sheetShot("inline_sheet_on_dark", blurOn = true)
++    fun inline_sheet_on_dark() = sheetShot("inline_sheet_on_dark", dark = true, blurOn = true)
++
++    @Test
++    fun inline_sheet_off_dark() = sheetShot("inline_sheet_off_dark", dark = true, blurOn = false)
++
++    // The Material You light appearance gets the same on/off pair as dark:
++    // the frost tint differs per scheme, so one scheme's capture proves
++    // nothing about the other.
++    @Test
++    fun inline_sheet_on_light() = sheetShot("inline_sheet_on_light", dark = false, blurOn = true)
+ 
+     @Test
+-    fun inline_sheet_off_dark() = sheetShot("inline_sheet_off_dark", blurOn = false)
++    fun inline_sheet_off_light() = sheetShot("inline_sheet_off_light", dark = false, blurOn = false)
+ 
+     @Test
+     fun frost_on_dark() = frostShot("frost_on_dark", dark = true, blurOn = true)
 diff --git a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/PlayerFrostGateTest.kt b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/PlayerFrostGateTest.kt
 new file mode 100644
 index 0000000..0ece2d3
