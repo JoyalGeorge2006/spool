@@ -33,14 +33,13 @@ jobs:
         SRC="$RUNNER_TEMP/asset"
         mkdir -p "$SRC"
         tar xzf /tmp/spool-source.tar.gz -C "$SRC"
-        inner=$(find "$SRC" -mindepth 1 -maxdepth 1 -type d | head -1)
-        cd "$inner"
+        cd "$SRC"
         git init -q
         git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
-        echo "SRC_DIR=$inner" >> "$GITHUB_ENV"
+        echo "SRC_DIR=$SRC" >> "$GITHUB_ENV"
 
     - name: Prove the task graph builds no APK
       run: |
@@ -77,14 +76,13 @@ jobs:
         SRC="$RUNNER_TEMP/asset"
         mkdir -p "$SRC"
         tar xzf /tmp/spool-source.tar.gz -C "$SRC"
-        inner=$(find "$SRC" -mindepth 1 -maxdepth 1 -type d | head -1)
-        cd "$inner"
+        cd "$SRC"
         git init -q
         git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
-        echo "SRC_DIR=$inner" >> "$GITHUB_ENV"
+        echo "SRC_DIR=$SRC" >> "$GITHUB_ENV"
 
     - name: Full unit test suite (candidate gate)
       timeout-minutes: 60
@@ -123,14 +121,13 @@ jobs:
         SRC="$RUNNER_TEMP/asset"
         mkdir -p "$SRC"
         tar xzf /tmp/spool-source.tar.gz -C "$SRC"
-        inner=$(find "$SRC" -mindepth 1 -maxdepth 1 -type d | head -1)
-        cd "$inner"
+        cd "$SRC"
         git init -q
         git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
-        echo "SRC_DIR=$inner" >> "$GITHUB_ENV"
+        echo "SRC_DIR=$SRC" >> "$GITHUB_ENV"
 
     - name: Prove the screenshot task graph builds no APK
       run: |
