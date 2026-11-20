@@ -1,0 +1,275 @@
+From ded854bcb2a59ba012b99c631476a5aad621766b Mon Sep 17 00:00:00 2001
+From: Instinct <instinct@local>
+Date: Fri, 20 Nov 2026 14:20:37 +0530
+Subject: [PATCH] patch 13: deterministic art-ready captures; drawer test via
+ live landscape entry path
+
+---
+ .../music/bitchord/PlayerArtworkShotTest.kt   | 72 +++++++++++---
+ .../bitchord/PlayerDrawerFrostShotTest.kt     | 93 +++++++++++++++----
+ 2 files changed, 131 insertions(+), 34 deletions(-)
+
+diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+index e831d5f..034bfdc 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+@@ -2,6 +2,7 @@ package com.music.bitchord
+ 
+ import android.graphics.Bitmap
+ import android.graphics.BitmapFactory
++import android.graphics.Color
+ import android.net.Uri
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Column
+@@ -31,20 +32,32 @@ import org.robolectric.annotation.GraphicsMode
+ 
+ /**
+  * The player over REAL artwork, Blur effects on vs off. The empty-artwork
+- * captures (player_dark/light) have a uniform backdrop, which can prove
+- * nothing about full-player blur wiring.
++ * captures (player_dark/light) have a uniform hero tile, which can prove
++ * nothing about the switch's reach into the artwork path.
+  *
+  * What this pins down, per the production design:
+- * - the artwork backdrop is UNCONDITIONAL (a per-song 128px decode + CPU
+- *   blur, NowPlayingScreen prewarm stage 1) - it must NOT flip with the
+- *   switch, so the artwork band must be pixel-identical between ON and OFF;
+- * - the switch-gated part is the overlay frost over the player (the exact
+- *   PlayerDrawer.kt conditional), which PlayerFrostGateTest already renders
+- *   and asserts over busy art.
++ * - spool's flat player stands the main page on the theme background, not on
++ *   artwork (PlayerChrome.kt:20-24); there is no full-player blurred backdrop
++ *   in flat portrait to sample. The switch-invariant artwork surface on this
++ *   page is the HERO TILE (AsyncImage, NowPlayingScreen.kt:2804), which
++ *   consults no blur flag: the Blur effects switch gates only drawer/panel
++ *   frost (PlayerDrawer.kt:114 via PlayerFrost), and FrostedPlayerFrame's
++ *   frost machinery captures stills for those panels without touching page
++ *   pixels (PlayerFrost.kt:61-109).
++ * - So the hero band must be pixel-identical with Blur effects on and off;
++ *   the switch-gated frost over the player is PlayerDrawerFrostShotTest's job.
+  *
+  * The artwork travels the production path: Song.thumbnailUrl ->
+  * rememberRemoteArtworkUrl -> artworkAt (file URLs pass through untouched) ->
+- * Coil file fetch.
++ * Coil file fetch (NowPlayingScreen.kt:771).
++ *
++ * Coil loads on its own dispatchers, which the compose test clock does not
++ * drive: run 44701227680 showed the first capture racing the load (placeholder
++ * band, "found 1 colors") while a capture moments later saw the art. The
++ * captures below therefore poll: capture, inspect the fixture's saturated red
++ * cells, and re-capture on a real-time deadline until the art is actually on
++ * screen. The assertions are unchanged - if the art never loads, the band
++ * check still fails loudly.
+  *
+  * Pixels come from Roborazzi's capture path plus a BitmapFactory read-back:
+  * captureToImage is unusable under Robolectric here - its WindowCapture
+@@ -94,6 +107,34 @@ class PlayerArtworkShotTest {
+             ?: error("$name capture must decode")
+     }
+ 
++    /** The checker's red cell is saturated; nothing in the placeholder or theme is. */
++    private fun artLoaded(b: Bitmap): Boolean {
++        var red = 0
++        for (y in 0 until b.height step 6) for (x in 0 until b.width step 6) {
++            val p = b.getPixel(x, y)
++            if (Color.red(p) > 180 && Color.green(p) < 100 && Color.blue(p) < 100) red++
++        }
++        return red > 200
++    }
++
++    /**
++     * Coil's file fetch and decode run on its own dispatchers, off the compose
++     * test clock, so a fixed virtual-time wait can capture the placeholder
++     * (run 44701227680). Capture, check, and re-capture until the art is
++     * really on screen or the real-time deadline passes; the caller's band
++     * assertion still decides pass/fail.
++     */
++    private fun captureWhenArtLoaded(name: String, timeoutMs: Long = 45_000): Bitmap {
++        val deadline = System.currentTimeMillis() + timeoutMs
++        var bmp = captureAndStore(name)
++        while (!artLoaded(bmp) && System.currentTimeMillis() < deadline) {
++            Thread.sleep(300)
++            compose.waitForIdle()
++            bmp = captureAndStore(name)
++        }
++        return bmp
++    }
++
+     @Test fun artworkBackdropIsSwitchInvariant() {
+         val art = writeFixtureArt()
+         val v6 = V6ScreenshotTest()
+@@ -111,9 +152,10 @@ class PlayerArtworkShotTest {
+                     }
+                 }
+             }
+-            // Coil loads the file asynchronously; give it settled frames.
+-            repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+-            val on = captureAndStore("player_artwork_blur_on_dark")
++            // Coil loads the file asynchronously off the test clock; settle a
++            // few frames, then let the polling capture wait out the load.
++            repeat(4) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
++            val on = captureWhenArtLoaded("player_artwork_blur_on_dark")
+ 
+             // Flip the very flow the production frost gate collects; the
+             // composition recomposes in place, no second setContent.
+@@ -121,7 +163,7 @@ class PlayerArtworkShotTest {
+             compose.mainClock.advanceTimeBy(500)
+             compose.waitForIdle()
+             repeat(4) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+-            val off = captureAndStore("player_artwork_blur_off_dark")
++            val off = captureWhenArtLoaded("player_artwork_blur_off_dark")
+ 
+             Assert.assertTrue("captures must be the same size", on.width == off.width && on.height == off.height)
+ 
+@@ -140,8 +182,8 @@ class PlayerArtworkShotTest {
+                 onColors.size >= 3,
+             )
+ 
+-            // 2. Switch invariance: the unconditional backdrop must not change
+-            //    with Blur effects. Exact pixel equality across the band.
++            // 2. Switch invariance: the hero artwork must not change with Blur
++            //    effects. Exact pixel equality across the band.
+             val mismatches = (x0 until x1).count { on.getPixel(it, y) != off.getPixel(it, y) }
+             Assert.assertTrue(
+                 "artwork backdrop must be identical with Blur effects on and off ($mismatches of ${x1 - x0} band pixels differ)",
+diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+index c29da72..cf7b745 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+@@ -2,6 +2,7 @@ package com.music.bitchord
+ 
+ import android.graphics.Bitmap
+ import android.graphics.BitmapFactory
++import android.graphics.Color
+ import android.net.Uri
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Column
+@@ -37,19 +38,31 @@ import org.robolectric.annotation.GraphicsMode
+  *
+  * This is the integration proof the bare player shot cannot give: the sheet
+  * under test is the production [com.music.bitchord.ui.player.LyricsProviderSheet],
+- * reached exactly the way a user reaches it - a tap on the live lyric strip
+- * (CurrentLyricStrip onClick = openLyrics, the production entry into the
+- * lyrics pane; lastPlayerScreen is write-only persistence and does NOT drive
+- * the UI), then a click on the "Lyrics by lrc.red" status caption, whose
+- * onStatusClick is wired in production to showLyricsProviders = true
+- * (NowPlayingScreen.kt:1918). The caption only renders when the pane is open
+- * and lyricsSource is non-null (PlayerLyrics.kt:3190), so a broken host
+- * wiring fails this test loudly at the click. The sheet is a PlayerDrawer,
+- * frost-gated at PlayerDrawer.kt:114 (PlayerPlatform.host.frostEnabled()),
+- * drawing over the player's own haze source (NowPlayingScreen.kt:1666) with
+- * the loaded fixture artwork behind it. Nothing about the conditional is
++ * reached through live production wiring: the landscape player's lyric strip
++ * (CurrentLyricStrip onClick = openLyrics, NowPlayingScreen.kt:1832-1843)
++ * opens the lyrics pane (pane = PlayerPane.Lyrics at :1736), whose status
++ * caption "Lyrics by lrc.red" (PlayerLyrics.kt:3188-3190 builds it from
++ * lyricsSource) has onStatusClick wired to showLyricsProviders = true
++ * (NowPlayingScreen.kt:1917-1918), opening the sheet at :1480 with the
++ * player's own haze source (:1666-1670), frost-gated at PlayerDrawer.kt:114
++ * (PlayerPlatform.host.frostEnabled()). Nothing about the conditional is
+  * copied into this test; every step goes through production composables.
+  *
++ * Why landscape: flatPlayer is hardcoded true (NowPlayingScreen.kt:838), so
++ * in PORTRAIT the player is always the flat tabbed layout - the portrait
++ * strip and caption live in the unreachable !flatPage block (:3419-3455) and
++ * the flat portrait lyrics tab carries no provider caption. Run 44701227680
++ * proved it: the scripted portrait click landed on an offscreen-composed
++ * pager page (PlayerSwipePages uses beyondViewportPageCount = 2), hit a stub
++ * seek, and the caption never existed. In landscape the pane AnimatedContent
++ * composes only the selected pane (LandscapePlayer.kt:200-243), so the strip
++ * is the only "First line of the song" node; the click below additionally
++ * waits for exactly one matching node, so a silently offscreen or duplicated
++ * match fails loudly instead of tapping the wrong thing.
++ * (The flat-portrait provider-sheet reachability gap - the sheet is reachable
++ * only from landscape or Settings - is base v1.9.17 behavior, reported
++ * separately as a product finding; this test does not paper over it.)
++ *
+  * Assertions are limited to what the JVM renderer can honestly prove:
+  * - the sheet opens through the production path in both switch positions
+  *   (title + provider rows present in semantics);
+@@ -60,6 +73,12 @@ import org.robolectric.annotation.GraphicsMode
+  * JVM, and a pixel-identity result is a renderer limitation, not a wiring
+  * failure. The branch itself is pinned by PlayerFrostGateTest.
+  *
++ * Coil loads artwork on its own dispatchers, off the compose test clock (run
++ * 44701227680 captured the placeholder by racing it), so the control capture
++ * polls on a real-time deadline until the fixture's saturated red cells are
++ * actually on screen; if the art never loads the test fails loudly on the
++ * explicit artLoaded check before any drawer step.
++ *
+  * Pixels come from Roborazzi's capture path plus a BitmapFactory read-back:
+  * captureToImage is unusable under Robolectric here - its WindowCapture
+  * forceRedraw is never satisfied within the timeout on this runner (run
+@@ -108,6 +127,28 @@ class PlayerDrawerFrostShotTest {
+             ?: error("$name capture must decode")
+     }
+ 
++    /** The checker's red cell is saturated; nothing in the placeholder or theme is. */
++    private fun artLoaded(b: Bitmap): Boolean {
++        var red = 0
++        for (y in 0 until b.height step 6) for (x in 0 until b.width step 6) {
++            val p = b.getPixel(x, y)
++            if (Color.red(p) > 180 && Color.green(p) < 100 && Color.blue(p) < 100) red++
++        }
++        return red > 200
++    }
++
++    /** See PlayerArtworkShotTest: poll the real pixels until Coil's load lands. */
++    private fun captureWhenArtLoaded(name: String, timeoutMs: Long = 45_000): Bitmap {
++        val deadline = System.currentTimeMillis() + timeoutMs
++        var bmp = captureAndStore(name)
++        while (!artLoaded(bmp) && System.currentTimeMillis() < deadline) {
++            Thread.sleep(300)
++            compose.waitForIdle()
++            bmp = captureAndStore(name)
++        }
++        return bmp
++    }
++
+     private fun assertDrawerOpen() {
+         compose.onNodeWithText("Choose lyrics provider").assertExists()
+         compose.onNodeWithText("BiniLyrics").assertExists()
+@@ -126,18 +167,32 @@ class PlayerDrawerFrostShotTest {
+             compose.setContent {
+                 BitChordTheme(darkTheme = true) {
+                     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+-                        v6.PlayerShot(artworkUrl = art)
++                        v6.PlayerShot(landscape = true, artworkUrl = art)
+                     }
+                 }
+             }
+-            // Coil loads the file asynchronously; give it settled frames.
+-            repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+-            val control = captureAndStore("player_drawer_control_on_dark")
++            // Coil loads the file asynchronously off the test clock; settle a
++            // few frames, then let the polling capture wait out the load.
++            repeat(4) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
++            val control = captureWhenArtLoaded("player_drawer_control_on_dark")
++            Assert.assertTrue(
++                "fixture art must be on screen before the drawer opens",
++                artLoaded(control),
++            )
+ 
+-            // Production entry point: tap the live lyric strip to open the
+-            // lyrics pane, then the status caption the player wires to the
+-            // provider sheet. Both fail loudly if the wiring breaks.
+-            compose.onAllNodesWithText("First line of the song")[0].performClick()
++            // Production entry point: tap the live lyric strip under the
++            // landscape credits to open the lyrics pane, then the source
++            // caption the pane wires to the provider sheet. Both fail loudly
++            // if the wiring breaks. In landscape only the selected pane is
++            // composed (LandscapePlayer.kt:200-243), so the strip is the one
++            // node with this text; the wait pins that uniqueness instead of
++            // trusting it.
++            compose.waitUntil(timeoutMillis = 10_000) {
++                compose.onAllNodesWithText("First line of the song").fetchSemanticsNodes().size == 1
++            }
++            compose.onNodeWithText("First line of the song").performClick()
++            compose.waitForIdle()
++            compose.mainClock.advanceTimeBy(1000)
+             compose.waitForIdle()
+             compose.onNodeWithText("Lyrics by lrc.red").performClick()
+             compose.waitForIdle()
+-- 
+2.34.1
+
