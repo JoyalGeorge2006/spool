@@ -1,0 +1,98 @@
+diff --git a/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt b/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
+index adf29b6..9f4afc7 100644
+--- a/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
++++ b/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
+@@ -156,10 +156,12 @@ class AppearanceMatrixTest {
+   // One setContent per test: both palettes sampled in the same composition.
+   compose.setContent {
+    BitChordTheme(darkTheme=false,palette=PaletteMode.ASTRYX) {
+-    SideEffect { pair=MaterialTheme.colorScheme.onSurfaceVariant to MaterialTheme.colorScheme.surface }
++    val scheme=MaterialTheme.colorScheme
++    SideEffect { pair=scheme.onSurfaceVariant to scheme.surface }
+    }
+    BitChordTheme(darkTheme=false,palette=PaletteMode.MATERIAL_YOU) {
+-    SideEffect { myPair=MaterialTheme.colorScheme.onSurfaceVariant to MaterialTheme.colorScheme.surface }
++    val scheme=MaterialTheme.colorScheme
++    SideEffect { myPair=scheme.onSurfaceVariant to scheme.surface }
+    }
+   }
+   compose.waitForIdle()
+diff --git a/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt b/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+index d3caa91..cbd2fde 100644
+--- a/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
++++ b/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+@@ -61,8 +61,8 @@ class LyricsSourcesDialogScrollTest {
+         lastRow.assertIsDisplayed()
+         val row = lastRow.fetchSemanticsNode().boundsInRoot
+         Assert.assertTrue(
+-            row.top >= viewport.top && row.bottom <= viewport.bottom,
+             "last source row must be fully inside the scrolled viewport (row=$row viewport=$viewport)",
++            row.top >= viewport.top && row.bottom <= viewport.bottom,
+         )
+ 
+         // The actions below the capped list stay put the whole time.
+diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+index a0e2a0b..7f4599f 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+@@ -95,7 +95,7 @@ class PlayerArtworkShotTest {
+ 
+             val on = BitmapFactory.decodeFile(onPng.absolutePath) ?: error("ON capture must decode")
+             val off = BitmapFactory.decodeFile(offPng.absolutePath) ?: error("OFF capture must decode")
+-            Assert.assertTrue(on.width == off.width && on.height == off.height, "captures must be the same size")
++            Assert.assertTrue("captures must be the same size", on.width == off.width && on.height == off.height)
+ 
+             // A horizontal band through the hero artwork (fractions of the
+             // frame, so the exact layout may move a little without breaking this).
+@@ -108,16 +108,16 @@ class PlayerArtworkShotTest {
+             //    checker fixture yields several saturated colors per band.
+             val onColors = (x0 until x1).map { on.getPixel(it, y) }.toSet()
+             Assert.assertTrue(
+-                onColors.size >= 3,
+                 "artwork band must show the loaded fixture art, not the placeholder (found ${onColors.size} colors)",
++                onColors.size >= 3,
+             )
+ 
+             // 2. Switch invariance: the unconditional backdrop must not change
+             //    with Blur effects. Exact pixel equality across the band.
+             val mismatches = (x0 until x1).count { on.getPixel(it, y) != off.getPixel(it, y) }
+             Assert.assertTrue(
+-                mismatches == 0,
+                 "artwork backdrop must be identical with Blur effects on and off ($mismatches of ${x1 - x0} band pixels differ)",
++                mismatches == 0,
+             )
+         } finally {
+             AppSettings.blurEffects.value = oldBlur
+diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+index c8014e8..8db9880 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.test.junit4.createComposeRule
++import androidx.compose.ui.test.onAllNodesWithText
++import androidx.compose.ui.test.onNodeWithText
+ import androidx.compose.ui.test.performClick
+ import androidx.test.core.app.ApplicationProvider
+ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+@@ -123,8 +125,8 @@ class PlayerDrawerFrostShotTest {
+             val on = BitmapFactory.decodeFile(onPng.absolutePath) ?: error("ON capture must decode")
+             val off = BitmapFactory.decodeFile(offPng.absolutePath) ?: error("OFF capture must decode")
+             Assert.assertTrue(
+-                control.width == on.width && control.height == on.height && on.width == off.width && on.height == off.height,
+                 "captures must be the same size",
++                control.width == on.width && control.height == on.height && on.width == off.width && on.height == off.height,
+             )
+ 
+             // The bottom-anchored drawer band, sampled through the frame
+@@ -143,8 +145,8 @@ class PlayerDrawerFrostShotTest {
+                 if (on.getPixel(x, y) != control.getPixel(x, y)) bandDiff++
+             }
+             Assert.assertTrue(
+-                bandDiff * 2 > bandTotal,
+                 "production drawer must visibly cover the player over real artwork ($bandDiff of $bandTotal sampled band pixels differ)",
++                bandDiff * 2 > bandTotal,
+             )
+ 
+             // 2. ON vs OFF over the same band: reported as evidence, never
