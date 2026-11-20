@@ -562,6 +562,7 @@ jobs:
         git diff --check
         chmod +x gradlew
         echo "SRC_DIR=$RUNNER_TEMP/asset" >> "$GITHUB_ENV"
+    - uses: android-actions/setup-android@v3
     - name: Prepare platform and native dependency
       shell: bash
       run: |
