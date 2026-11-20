@@ -170,7 +170,7 @@ jobs:
           }
         }
         GRADLE
-        ./gradlew --init-script /tmp/capture-diagnostics.gradle :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.player_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_player_overflow_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_language_dialog_*' --tests 'com.music.bitchord.SpoolFrostScreenshotTest.*' &
+        ./gradlew --init-script /tmp/capture-diagnostics.gradle :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.player_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_player_overflow_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_language_dialog_*' --tests 'com.music.bitchord.SpoolFrostScreenshotTest.*' --tests 'com.music.bitchord.AppearanceMatrixTest.*' --tests 'com.music.bitchord.HeaderControlsScreenshotTest.*' --tests 'com.music.bitchord.BroadDialogScreenshotTest.*' &
         gradle_pid=$!
         (
           sleep 360
