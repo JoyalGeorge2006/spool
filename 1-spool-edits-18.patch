@@ -1,0 +1,765 @@
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 7213147..12eb239 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -334,6 +334,9 @@ dependencies {
+     implementation("androidx.compose.ui:ui-graphics")
+     implementation("androidx.compose.ui:ui-tooling-preview")
+     implementation("androidx.compose.material3:material3")
++    // Official Material Color Utilities schemes (HCT) for the Material You
++    // Theme Style setting: Tonal Spot / Expressive / Vibrant.
++    implementation("com.materialkolor:material-color-utilities:4.1.1")
+     implementation("androidx.compose.material:material-icons-extended")
+     implementation("androidx.activity:activity-compose:1.9.3")
+     implementation("androidx.navigation:navigation-compose:2.8.5")
+diff --git a/app/src/main/java/com/music/bitchord/MainActivity.kt b/app/src/main/java/com/music/bitchord/MainActivity.kt
+index f4d6f8e..ffa378f 100644
+--- a/app/src/main/java/com/music/bitchord/MainActivity.kt
++++ b/app/src/main/java/com/music/bitchord/MainActivity.kt
+@@ -434,6 +434,7 @@ class MainActivity : AppCompatActivity() {
+             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
+             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
+             val paletteMode by AppSettings.paletteMode.collectAsStateWithLifecycle()
++            val themeStyle by AppSettings.themeStyle.collectAsStateWithLifecycle()
+             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
+             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
+             val iosOverscrollFactory = rememberIosOverscrollFactory()
+@@ -447,7 +448,7 @@ class MainActivity : AppCompatActivity() {
+                 ThemeMode.LIGHT -> false
+                 ThemeMode.DARK -> true
+             }
+-            BitChordTheme(darkTheme = darkTheme, font = appFont, palette = paletteMode) {
++            BitChordTheme(darkTheme = darkTheme, font = appFont, palette = paletteMode, style = themeStyle) {
+                 // The glass surfaces sample this layer, and a layer records only
+                 // what is drawn into it — which, for BitChord, is a page that
+                 // paints no background of its own. Everywhere a page is not
+diff --git a/app/src/main/java/com/music/bitchord/data/settings/AppSettings.kt b/app/src/main/java/com/music/bitchord/data/settings/AppSettings.kt
+index 750b8df..071c614 100644
+--- a/app/src/main/java/com/music/bitchord/data/settings/AppSettings.kt
++++ b/app/src/main/java/com/music/bitchord/data/settings/AppSettings.kt
+@@ -136,6 +136,16 @@ enum class PaletteMode(val label: String) {
+     ASTRYX("Astryx"), MATERIAL_YOU("Material You")
+ }
+ 
++/**
++ * The Material You theme style: how the seed colour becomes the full palette.
++ * [EXPRESSIVE] is the default - the listener's pick. [TONAL_SPOT] is the low
++ * chroma original Material You look; [VIBRANT] is maximum chroma. Only applies
++ * while [PaletteMode.MATERIAL_YOU] is the palette.
++ */
++enum class ThemeStyle(val label: String) {
++    TONAL_SPOT("Tonal Spot"), EXPRESSIVE("Expressive"), VIBRANT("Vibrant")
++}
++
+ /**
+  * How the app's SF Pro Display is set. [DEFAULT] draws each weight one cut
+  * lighter and spaces it to Apple Music's own screens; [LEGACY] is the cut the
+@@ -534,6 +544,9 @@ object AppSettings {
+     /** The app's colour palette; [PaletteMode.ASTRYX] unless the listener picks Material You. */
+     val paletteMode = MutableStateFlow(PaletteMode.ASTRYX)
+ 
++    /** The Material You theme style; [ThemeStyle.EXPRESSIVE] unless the listener picks another. */
++    val themeStyle = MutableStateFlow(ThemeStyle.EXPRESSIVE)
++
+     /**
+      * Frosted backdrop blur behind the mini player and the navigation bar,
+      * Android 12+ only; both bars keep a tint so text stays readable. Off by
+@@ -1101,6 +1114,9 @@ object AppSettings {
+         paletteMode.value = runCatching {
+             PaletteMode.valueOf(prefs.getString(KEY_PALETTE, null) ?: PaletteMode.ASTRYX.name)
+         }.getOrDefault(PaletteMode.ASTRYX)
++        themeStyle.value = runCatching {
++            ThemeStyle.valueOf(prefs.getString(KEY_THEME_STYLE, null) ?: ThemeStyle.EXPRESSIVE.name)
++        }.getOrDefault(ThemeStyle.EXPRESSIVE)
+         blurEffects.value = prefs.getBoolean(KEY_BLUR_EFFECTS, false)
+         disableBlendEffects.value = true // Flat design: blend effects off, always.
+         liquidGlass.value = false // Flat design: liquid glass removed.
+@@ -1465,6 +1481,11 @@ object AppSettings {
+         prefs.edit().putString(KEY_PALETTE, value.name).apply()
+     }
+ 
++    fun setThemeStyle(value: ThemeStyle) {
++        themeStyle.value = value
++        prefs.edit().putString(KEY_THEME_STYLE, value.name).apply()
++    }
++
+     fun setBlurEffects(value: Boolean) {
+         blurEffects.value = value
+         prefs.edit().putBoolean(KEY_BLUR_EFFECTS, value).apply()
+@@ -2340,6 +2361,7 @@ object AppSettings {
+     private const val KEY_SPEED = "playback_speed"
+     private const val KEY_THEME = "theme_mode"
+     private const val KEY_PALETTE = "palette_mode"
++    private const val KEY_THEME_STYLE = "theme_style"
+     private const val KEY_BLUR_EFFECTS = "blur_effects"
+     private const val KEY_APP_FONT = "app_font"
+     private const val KEY_AUTOPLAY = "autoplay"
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt b/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt
+index aa5ecf5..bf5359d 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt
+@@ -8,6 +8,7 @@ import androidx.compose.animation.core.spring
+ import androidx.compose.animation.core.tween
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.border
++import com.music.bitchord.ui.theme.LocalHairline
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.selection.selectable
+ import androidx.compose.ui.semantics.Role
+@@ -203,7 +204,7 @@ fun FloatingBottomBar(
+                     Modifier.background(MaterialTheme.colorScheme.surface)
+                 },
+             )
+-            .border(GLASS_EDGE_WIDTH, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
++            .border(GLASS_EDGE_WIDTH, LocalHairline.current ?: MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+             .padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+             tabs.withIndex().toList().chunked(2).forEach { pair ->
+                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+@@ -306,7 +307,7 @@ fun FloatingBottomBar(
+                     Modifier.background(container)
+                 },
+             )
+-            .border(GLASS_EDGE_WIDTH, MaterialTheme.colorScheme.outline, dockShape)
++            .border(GLASS_EDGE_WIDTH, LocalHairline.current ?: MaterialTheme.colorScheme.outline, dockShape)
+             .padding(horizontal = PILL_INSET, vertical = PILL_INSET),
+     ) {
+         if (tabWidthPx > 0f) {
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/GlassNavBar.kt b/app/src/main/java/com/music/bitchord/ui/components/GlassNavBar.kt
+index 5a8702e..bc73755 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/GlassNavBar.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/GlassNavBar.kt
+@@ -17,6 +17,7 @@ import androidx.compose.animation.core.animateFloatAsState
+ import androidx.compose.animation.core.spring
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.border
++import com.music.bitchord.ui.theme.LocalHairline
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.interaction.MutableInteractionSource
+ import androidx.compose.foundation.interaction.collectIsPressedAsState
+@@ -132,7 +133,7 @@ fun GlassNavBar(
+     val standaloneIndex = tabs.lastIndex
+ 
+     // v6: flat surface with a hairline - no liquid glass.
+-    val outline = MaterialTheme.colorScheme.outline
++    val outline = LocalHairline.current ?: MaterialTheme.colorScheme.outline
+     val container = MaterialTheme.colorScheme.surface
+     val glassSurface: @Composable () -> Modifier = {
+         Modifier
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt b/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt
+index ab94d78..47d8eca 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt
+@@ -66,6 +66,7 @@ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.sharedui.resources.Res as SharedRes
+ import com.music.bitchord.sharedui.resources.ic_player_next
+ import com.music.bitchord.ui.components.thumbnailBorder
++import com.music.bitchord.ui.theme.LocalHairline
+ import com.music.bitchord.ui.haptics.Haptic
+ import com.music.bitchord.ui.haptics.rememberHaptics
+ import com.music.bitchord.playback.PlaybackPosition
+@@ -440,7 +441,7 @@ fun MiniPlayer(
+                     Modifier.background(MaterialTheme.colorScheme.surface)
+                 },
+             )
+-            .border(0.5.dp, MaterialTheme.colorScheme.outline, shape)
++            .border(0.5.dp, LocalHairline.current ?: MaterialTheme.colorScheme.outline, shape)
+             // Deliberately silent: the whole bar is the target, so it catches
+             // stray taps meant for the page behind it, and the sheet rising is
+             // its own confirmation. The glyphs on it still buzz.
+diff --git a/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt b/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
+index 91b67c6..534b400 100644
+--- a/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
++++ b/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
+@@ -189,6 +189,8 @@ import com.music.bitchord.data.settings.DownloadQuality
+ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.data.settings.AppFont
+ import com.music.bitchord.data.settings.PaletteMode
++import com.music.bitchord.data.settings.ThemeStyle
++import com.music.bitchord.ui.theme.LocalHairline
+ import com.music.bitchord.data.stats.Backup
+ import com.music.bitchord.playback.AudioCache
+ import com.music.bitchord.ui.player.fullBleedArtworkAvailable
+@@ -283,6 +285,7 @@ fun SettingsScreen(
+     val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
+     val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
+     val paletteMode by AppSettings.paletteMode.collectAsStateWithLifecycle()
++    val themeStyle by AppSettings.themeStyle.collectAsStateWithLifecycle()
+     val blurEffects by AppSettings.blurEffects.collectAsStateWithLifecycle()
+     val sessionId by AppSettings.audioSessionId.collectAsStateWithLifecycle()
+     val outputPcmMode by AppSettings.outputPcmMode.collectAsStateWithLifecycle()
+@@ -1107,6 +1110,22 @@ fun SettingsScreen(
+                     modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                 )
+             }
++            if (paletteMode == PaletteMode.MATERIAL_YOU) {
++                val styleTitle = stringResource(R.string.theme_style)
++                row(styleTitle, "theme style", "tonal spot", "expressive", "vibrant") {
++                    SettingsRow(
++                        icon = SfIcons.Appearance,
++                        title = styleTitle,
++                        subtitle = stringResource(R.string.theme_style_subtitle),
++                    )
++                    SegmentedControl(
++                        options = ThemeStyle.entries.map { it.localizedLabel() },
++                        selectedIndex = ThemeStyle.entries.indexOf(themeStyle),
++                        onSelect = { AppSettings.setThemeStyle(ThemeStyle.entries[it]) },
++                        modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
++                    )
++                }
++            }
+             val blurTitle = stringResource(R.string.blur_effects)
+             row(blurTitle, "blur", "frosted", "glass") {
+                 SettingsRow(
+@@ -1860,6 +1879,15 @@ private fun PaletteMode.localizedLabel(): String = stringResource(
+     }
+ )
+ 
++@Composable
++private fun ThemeStyle.localizedLabel(): String = stringResource(
++    when (this) {
++        ThemeStyle.TONAL_SPOT -> R.string.theme_style_tonal_spot
++        ThemeStyle.EXPRESSIVE -> R.string.theme_style_expressive
++        ThemeStyle.VIBRANT -> R.string.theme_style_vibrant
++    }
++)
++
+ /** The line under each palette card's name. */
+ @Composable
+ private fun PaletteMode.description(): String = stringResource(
+@@ -2463,9 +2491,12 @@ internal fun SettingsGroup(
+ @Composable
+ internal fun RowDivider(inset: Dp = if (LocalApprovedSettingsDetail.current) ROW_INSET else TEXT_INSET) {
+     HorizontalDivider(
+-        modifier = Modifier.padding(start = inset),
++        // Faint line, symmetric margins: starts at the text's left edge and
++        // stops the same distance short of the card's right edge instead of
++        // running flush into it.
++        modifier = Modifier.padding(start = inset, end = inset),
+         thickness = 0.5.dp,
+-        color = MaterialTheme.colorScheme.outline,
++        color = LocalHairline.current ?: MaterialTheme.colorScheme.outline,
+     )
+ }
+ 
+diff --git a/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt b/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt
+index 397dcb7..3ad9b17 100644
+--- a/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt
++++ b/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt
+@@ -1,6 +1,7 @@
+ package com.music.bitchord.ui.theme
+ 
+ import android.app.Activity
++import android.app.WallpaperManager
+ import android.os.Build
+ import androidx.compose.foundation.isSystemInDarkTheme
+ import androidx.compose.material3.MaterialTheme
+@@ -12,6 +13,8 @@ import androidx.compose.material3.Shapes
+ import androidx.compose.material3.Typography
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.SideEffect
++import androidx.compose.runtime.compositionLocalOf
++import androidx.compose.runtime.CompositionLocalProvider
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.platform.LocalView
+@@ -26,6 +29,7 @@ import androidx.compose.ui.unit.sp
+ import com.music.bitchord.R
+ import com.music.bitchord.data.settings.AppFont
+ import com.music.bitchord.data.settings.PaletteMode
++import com.music.bitchord.data.settings.ThemeStyle
+ 
+ private val DarkColors = darkColorScheme(
+     primary = Color(0xFFF1F1F1),
+@@ -270,21 +274,50 @@ private val SpoolShapes = Shapes(
+     extraLarge = RoundedCornerShape(24.dp),
+ )
+ 
++/**
++ * The hairline colour for floating-card edges and settings dividers. Always a
++ * whisper of the content tone, never the full-strength `outline`: the listener
++ * asked for soft edges and faint dividers, with cards separating through fill.
++ * Null outside [BitChordTheme]; call sites fall back to `colorScheme.outline`.
++ */
++val LocalHairline = compositionLocalOf<Color?> { null }
++
++/** Seed for phones without a wallpaper-derived one: the Material baseline purple. */
++private val FallbackSeed = Color(0xFF6750A4)
++
+ @Composable
+ fun BitChordTheme(
+     darkTheme: Boolean = isSystemInDarkTheme(),
+     font: AppFont = AppFont.DEFAULT,
+     palette: PaletteMode = PaletteMode.ASTRYX,
++    style: ThemeStyle = ThemeStyle.EXPRESSIVE,
+     content: @Composable () -> Unit,
+ ) {
+     val colorScheme = when {
+         palette == PaletteMode.MATERIAL_YOU -> {
+-            val base = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+-                val context = LocalContext.current
+-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
++            val context = LocalContext.current
++            // Seed the style schemes from the wallpaper's own colour when the
++            // system exposes it (API 27+, no permission needed); fall back to
++            // the system dynamic scheme's primary (itself wallpaper-derived on
++            // API 31+), then to the static fallback seed below that.
++            // WallpaperColors.getPrimaryColor() returns android.graphics.Color
++            // (instance class since API 26; this method stable since API 27),
++            // so convert with toArgb() before constructing the Compose Color.
++            val wallpaperSeedArgb: Int? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++                WallpaperManager.getInstance(context)
++                    .getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
++                    ?.primaryColor
++                    ?.toArgb()
+             } else {
+-                if (darkTheme) FixedM3Dark else FixedM3Light
++                null
+             }
++            val seed: Color = wallpaperSeedArgb?.let { Color(it) }
++                ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++                    (if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)).primary
++                } else {
++                    FallbackSeed
++                }
++            val base = themeStyleScheme(seed, darkTheme, style)
+             // Material You sets `surface` equal to `background`, so every card
+             // and bar drawn with `surface` disappears into the page. Google's
+             // own surface guidance draws contained areas from the raised
+@@ -295,15 +328,24 @@ fun BitChordTheme(
+         }
+         else -> if (darkTheme) DarkColors else LightColors
+     }
+-    MaterialTheme(
+-        colorScheme = colorScheme,
+-        shapes = SpoolShapes,
+-        typography = when (font) {
+-            AppFont.DEFAULT -> SpoolTypography
+-            AppFont.LEGACY -> LegacyTypography
+-        },
+-        content = content,
+-    )
++    // Astryx keeps its long-standing hairline tones exactly; Material You's
++    // generated `outline` is far louder than either, so it gets a 10% whisper
++    // of the content tone instead.
++    val hairline = when (palette) {
++        PaletteMode.ASTRYX -> if (darkTheme) Color(0x1AFFFFFF) else Color(0x0F000000)
++        PaletteMode.MATERIAL_YOU -> colorScheme.onSurface.copy(alpha = 0.10f)
++    }
++    CompositionLocalProvider(LocalHairline provides hairline) {
++        MaterialTheme(
++            colorScheme = colorScheme,
++            shapes = SpoolShapes,
++            typography = when (font) {
++                AppFont.DEFAULT -> SpoolTypography
++                AppFont.LEGACY -> LegacyTypography
++            },
++            content = content,
++        )
++    }
+ }
+ 
+ /**
+diff --git a/app/src/main/java/com/music/bitchord/ui/theme/ThemeStyleScheme.kt b/app/src/main/java/com/music/bitchord/ui/theme/ThemeStyleScheme.kt
+new file mode 100644
+index 0000000..5257f67
+--- /dev/null
++++ b/app/src/main/java/com/music/bitchord/ui/theme/ThemeStyleScheme.kt
+@@ -0,0 +1,72 @@
++package com.music.bitchord.ui.theme
++
++import androidx.compose.material3.ColorScheme
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.toArgb
++import com.materialkolor.dynamiccolor.DynamicColor
++import com.materialkolor.dynamiccolor.MaterialDynamicColors
++import com.materialkolor.hct.Hct
++import com.materialkolor.scheme.DynamicScheme
++import com.materialkolor.scheme.SchemeExpressive
++import com.materialkolor.scheme.SchemeTonalSpot
++import com.materialkolor.scheme.SchemeVibrant
++import com.music.bitchord.data.settings.ThemeStyle
++
++/**
++ * Builds a full Material 3 [ColorScheme] for one Material You [ThemeStyle] from
++ * a single seed colour, using the official Material Color Utilities schemes
++ * (the materialkolor fork, same HCT/2025-spec math Google ships).
++ *
++ * The three styles on offer are the spread the listener approved: Tonal Spot
++ * (low chroma, the 2021 Material You default), Expressive (medium chroma, hue
++ * rotated for variety - Spool's default) and Vibrant (maximum chroma). The
++ * other five variants stay out of the picker.
++ */
++fun themeStyleScheme(seed: Color, dark: Boolean, style: ThemeStyle): ColorScheme {
++    val sourceHct = Hct.fromInt(seed.toArgb())
++    val scheme: DynamicScheme = when (style) {
++        ThemeStyle.TONAL_SPOT -> SchemeTonalSpot(sourceHct, dark, 0.0)
++        ThemeStyle.EXPRESSIVE -> SchemeExpressive(sourceHct, dark, 0.0)
++        ThemeStyle.VIBRANT -> SchemeVibrant(sourceHct, dark, 0.0)
++    }
++    val colors = MaterialDynamicColors()
++    fun DynamicColor.resolve(): Color = Color(getArgb(scheme))
++    return ColorScheme(
++        primary = colors.primary().resolve(),
++        onPrimary = colors.onPrimary().resolve(),
++        primaryContainer = colors.primaryContainer().resolve(),
++        onPrimaryContainer = colors.onPrimaryContainer().resolve(),
++        inversePrimary = colors.inversePrimary().resolve(),
++        secondary = colors.secondary().resolve(),
++        onSecondary = colors.onSecondary().resolve(),
++        secondaryContainer = colors.secondaryContainer().resolve(),
++        onSecondaryContainer = colors.onSecondaryContainer().resolve(),
++        tertiary = colors.tertiary().resolve(),
++        onTertiary = colors.onTertiary().resolve(),
++        tertiaryContainer = colors.tertiaryContainer().resolve(),
++        onTertiaryContainer = colors.onTertiaryContainer().resolve(),
++        background = colors.background().resolve(),
++        onBackground = colors.onBackground().resolve(),
++        surface = colors.surface().resolve(),
++        onSurface = colors.onSurface().resolve(),
++        surfaceVariant = colors.surfaceVariant().resolve(),
++        onSurfaceVariant = colors.onSurfaceVariant().resolve(),
++        surfaceTint = colors.surfaceTint().resolve(),
++        inverseSurface = colors.inverseSurface().resolve(),
++        inverseOnSurface = colors.inverseOnSurface().resolve(),
++        error = colors.error().resolve(),
++        onError = colors.onError().resolve(),
++        errorContainer = colors.errorContainer().resolve(),
++        onErrorContainer = colors.onErrorContainer().resolve(),
++        outline = colors.outline().resolve(),
++        outlineVariant = colors.outlineVariant().resolve(),
++        scrim = colors.scrim().resolve(),
++        surfaceBright = colors.surfaceBright().resolve(),
++        surfaceDim = colors.surfaceDim().resolve(),
++        surfaceContainer = colors.surfaceContainer().resolve(),
++        surfaceContainerHigh = colors.surfaceContainerHigh().resolve(),
++        surfaceContainerHighest = colors.surfaceContainerHighest().resolve(),
++        surfaceContainerLow = colors.surfaceContainerLow().resolve(),
++        surfaceContainerLowest = colors.surfaceContainerLowest().resolve(),
++    )
++}
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index e2db96b..b77eb6d 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -375,6 +375,11 @@
+     <string name="palette_astryx_subtitle">The current look</string>
+     <string name="palette_material_you">Material You</string>
+     <string name="palette_material_you_subtitle">Wallpaper colours on Android 12+; fixed palette on older phones.</string>
++    <string name="theme_style">Theme Style</string>
++    <string name="theme_style_subtitle">How Material You builds its colours from the seed</string>
++    <string name="theme_style_tonal_spot">Tonal Spot</string>
++    <string name="theme_style_expressive">Expressive</string>
++    <string name="theme_style_vibrant">Vibrant</string>
+     <string name="blur_effects">Blur effects</string>
+     <string name="blur_effects_subtitle">Frost the mini player and navigation bar. Solid fallback where unsupported.</string>
+     <string name="font_default_subtitle">Figtree</string>
+diff --git a/app/src/test/java/com/music/bitchord/AppearanceThemingTest.kt b/app/src/test/java/com/music/bitchord/AppearanceThemingTest.kt
+index fcf9d22..80d48e2 100644
+--- a/app/src/test/java/com/music/bitchord/AppearanceThemingTest.kt
++++ b/app/src/test/java/com/music/bitchord/AppearanceThemingTest.kt
+@@ -55,7 +55,8 @@ class PaletteCardsScreenshotTest {
+ 
+ /**
+  * Scheme selection below Android 12, where Material You cannot read the
+- * wallpaper: the fixed M3 baseline palette, never the neutral Astryx scheme.
++ * wallpaper: a generated Material You scheme from the fixed baseline seed
++ * (#6750A4) in the chosen Theme Style, never the neutral Astryx scheme.
+  * The dynamic path (sdk 31+) is deliberately not asserted here - what the
+  * phone's wallpaper yields is not the fixture's business.
+  */
+@@ -64,21 +65,38 @@ class PaletteCardsScreenshotTest {
+ @Config(sdk=[30])
+ class PaletteFallbackTest {
+  @get:Rule val compose=createComposeRule()
+- @Test fun materialYouBelowAndroid12UsesFixedM3Light() {
++ @Test fun materialYouBelowAndroid12UsesGeneratedLightScheme() {
+   var primary:Color?=null;var background:Color?=null
+   compose.setContent { BitChordTheme(darkTheme=false,palette=PaletteMode.MATERIAL_YOU) {
+    primary=MaterialTheme.colorScheme.primary;background=MaterialTheme.colorScheme.background
+   } }
+-  assertEquals(Color(0xFF6750A4),primary)
+-  assertEquals(Color(0xFFFEF7FF),background)
++  // Not the neutral Astryx scheme, and light: the generated Material You one.
++  assertNotEquals(Color(0xFF1B1B1B),primary)
++  assertNotEquals(Color(0xFFF1F1F1),background)
++  assertTrue(background!!.red>0.9f&&background!!.green>0.9f&&background!!.blue>0.9f)
+  }
+- @Test fun materialYouBelowAndroid12UsesFixedM3Dark() {
++ @Test fun materialYouBelowAndroid12UsesGeneratedDarkScheme() {
+   var primary:Color?=null;var background:Color?=null
+   compose.setContent { BitChordTheme(darkTheme=true,palette=PaletteMode.MATERIAL_YOU) {
+    primary=MaterialTheme.colorScheme.primary;background=MaterialTheme.colorScheme.background
+   } }
+-  assertEquals(Color(0xFFD0BCFF),primary)
+-  assertEquals(Color(0xFF141218),background)
++  assertNotEquals(Color(0xFFF1F1F1),primary)
++  assertTrue(background!!.red<0.2f&&background!!.green<0.2f&&background!!.blue<0.2f)
++ }
++ @Test fun themeStyleIsRespectedBelowAndroid12() {
++  // One setContent per test rule: flip a state instead of re-calling setContent.
++  val styleState=androidx.compose.runtime.mutableStateOf(com.music.bitchord.data.settings.ThemeStyle.TONAL_SPOT)
++  var primary:Color?=null
++  compose.setContent { BitChordTheme(darkTheme=true,palette=PaletteMode.MATERIAL_YOU,style=styleState.value) {
++   primary=MaterialTheme.colorScheme.primary
++  } }
++  compose.waitForIdle()
++  val tonalSpot=primary
++  styleState.value=com.music.bitchord.data.settings.ThemeStyle.VIBRANT
++  compose.waitForIdle()
++  val vibrant=primary
++  assertNotNull(tonalSpot);assertNotNull(vibrant)
++  assertNotEquals(tonalSpot,vibrant)
+  }
+  @Test fun astryxKeepsNeutralSchemeBelowAndroid12() {
+   var primary:Color?=null;var background:Color?=null
+@@ -97,12 +115,21 @@ class PaletteSettingsPersistenceTest {
+  private val context=ApplicationProvider.getApplicationContext<Context>()
+  private val prefs get()=context.getSharedPreferences("bitchord_settings",Context.MODE_PRIVATE)
+  private fun boot(){AppSettings.init(context,AuthStore(context))}
+- @Before fun setup(){prefs.edit().remove("palette_mode").remove("blur_effects").commit();boot()}
+- @After fun cleanup(){prefs.edit().remove("palette_mode").remove("blur_effects").commit();AppSettings.reload()}
++ @Before fun setup(){prefs.edit().remove("palette_mode").remove("blur_effects").remove("theme_style").commit();boot()}
++ @After fun cleanup(){prefs.edit().remove("palette_mode").remove("blur_effects").remove("theme_style").commit();AppSettings.reload()}
+  @Test fun defaultsAreAstryxAndBlurOff() {
+   assertEquals(PaletteMode.ASTRYX,AppSettings.paletteMode.value)
+   assertFalse(AppSettings.blurEffects.value)
+  }
++ @Test fun themeStyleDefaultsToExpressive() {
++  assertEquals(com.music.bitchord.data.settings.ThemeStyle.EXPRESSIVE,AppSettings.themeStyle.value)
++ }
++ @Test fun themeStyleChoiceSurvivesReload() {
++  AppSettings.setThemeStyle(com.music.bitchord.data.settings.ThemeStyle.VIBRANT)
++  assertEquals("VIBRANT",prefs.getString("theme_style",null))
++  AppSettings.themeStyle.value=com.music.bitchord.data.settings.ThemeStyle.EXPRESSIVE;AppSettings.reload()
++  assertEquals(com.music.bitchord.data.settings.ThemeStyle.VIBRANT,AppSettings.themeStyle.value)
++ }
+  @Test fun paletteChoiceSurvivesReload() {
+   AppSettings.setPaletteMode(PaletteMode.MATERIAL_YOU)
+   assertEquals("MATERIAL_YOU",prefs.getString("palette_mode",null))
+diff --git a/app/src/test/java/com/music/bitchord/ThemeStyleContrastTest.kt b/app/src/test/java/com/music/bitchord/ThemeStyleContrastTest.kt
+new file mode 100644
+index 0000000..3602654
+--- /dev/null
++++ b/app/src/test/java/com/music/bitchord/ThemeStyleContrastTest.kt
+@@ -0,0 +1,67 @@
++package com.music.bitchord
++
++import androidx.compose.ui.graphics.Color
++import com.music.bitchord.data.settings.ThemeStyle
++import com.music.bitchord.ui.theme.themeStyleScheme
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import kotlin.math.max
++import kotlin.math.pow
++
++/**
++ * WCAG contrast guard for the Material You Theme Style schemes. Every style x
++ * mode x seed combination must keep text/icon roles readable; hairlines and
++ * dividers are decorative and deliberately exempt.
++ */
++class ThemeStyleContrastTest {
++
++    private fun luminance(c: Color): Double {
++        fun ch(v: Float) = if (v <= 0.04045f) v / 12.92 else ((v + 0.055f) / 1.055f).toDouble().pow(2.4)
++        return 0.2126 * ch(c.red) + 0.7152 * ch(c.green) + 0.0722 * ch(c.blue)
++    }
++
++    private fun ratio(a: Color, b: Color): Double {
++        val l1 = luminance(a); val l2 = luminance(b)
++        return (max(l1, l2) + 0.05) / (minOf(l1, l2) + 0.05)
++    }
++
++    private fun check(seed: Color, dark: Boolean, style: ThemeStyle) {
++        // The production override hands `surface` the low container tone.
++        val s = themeStyleScheme(seed, dark, style).let { it.copy(surface = it.surfaceContainerLow) }
++        val where = "style=$style dark=$dark seed=${Integer.toHexString(seed.value.toInt())}"
++        val body = mapOf(
++            "onBackground/background" to (s.onBackground to s.background),
++            "onSurface/surface" to (s.onSurface to s.surface),
++            "onSurface/background" to (s.onSurface to s.background),
++            "onSurfaceVariant/surface" to (s.onSurfaceVariant to s.surface),
++            "onPrimary/primary" to (s.onPrimary to s.primary),
++            "onSecondary/secondary" to (s.onSecondary to s.secondary),
++            "onTertiary/tertiary" to (s.onTertiary to s.tertiary),
++            "onError/error" to (s.onError to s.error),
++            "onPrimaryContainer/primaryContainer" to (s.onPrimaryContainer to s.primaryContainer),
++            "onSecondaryContainer/secondaryContainer" to (s.onSecondaryContainer to s.secondaryContainer),
++            "onTertiaryContainer/tertiaryContainer" to (s.onTertiaryContainer to s.tertiaryContainer),
++            "onErrorContainer/errorContainer" to (s.onErrorContainer to s.errorContainer),
++            "onSurface/surfaceContainer" to (s.onSurface to s.surfaceContainer),
++            "onSurface/surfaceContainerHigh" to (s.onSurface to s.surfaceContainerHigh),
++            "onSurface/surfaceContainerHighest" to (s.onSurface to s.surfaceContainerHighest),
++        )
++        for ((name, pair) in body) {
++            val r = ratio(pair.first, pair.second)
++            assertTrue("$where $name contrast %.2f below WCAG AA 4.5".format(r), r >= 4.5)
++        }
++    }
++
++    @Test
++    fun allStylesAllModesKeepReadableRoles() {
++        val seeds = listOf(
++            Color(0xFF6750A4), // Material baseline purple (the fallback seed)
++            Color(0xFFA3C9A8), // green wallpaper
++            Color(0xFFB3261E), // red wallpaper
++            Color(0xFF0B57D0), // blue wallpaper
++        )
++        for (seed in seeds) for (dark in listOf(false, true)) for (style in ThemeStyle.entries) {
++            check(seed, dark, style)
++        }
++    }
++}
+diff --git a/app/src/test/java/com/music/bitchord/ThemeStyleMatrixTest.kt b/app/src/test/java/com/music/bitchord/ThemeStyleMatrixTest.kt
+new file mode 100644
+index 0000000..c063ce9
+--- /dev/null
++++ b/app/src/test/java/com/music/bitchord/ThemeStyleMatrixTest.kt
+@@ -0,0 +1,148 @@
++@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
++package com.music.bitchord
++
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.rememberScrollState
++import androidx.compose.foundation.verticalScroll
++import androidx.compose.material.icons.Icons
++import androidx.compose.material.icons.rounded.*
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.material3.Text
++import androidx.compose.runtime.*
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.*
++import androidx.compose.ui.test.junit4.createComposeRule
++import androidx.compose.ui.unit.dp
++import com.github.takahirom.roborazzi.captureRoboImage
++import com.music.bitchord.data.settings.AppSettings
++import com.music.bitchord.data.settings.PaletteMode
++import com.music.bitchord.data.settings.ThemeStyle
++import com.music.bitchord.data.model.Song
++import com.music.bitchord.ui.components.*
++import com.music.bitchord.ui.icons.SfIcons
++import com.music.bitchord.ui.screens.RowDivider
++import com.music.bitchord.ui.screens.SettingsCategory
++import com.music.bitchord.ui.screens.SettingsRow
++import com.music.bitchord.ui.theme.BitChordTheme
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.hazeSource
++import org.junit.*
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import org.robolectric.annotation.GraphicsMode
++
++/**
++ * Visual evidence for the Material You Theme Style setting: the settings card
++ * with its faint dividers and the floating bars (soft hairline edges), in each
++ * style x light/dark.
++ */
++@RunWith(RobolectricTestRunner::class)
++@GraphicsMode(GraphicsMode.Mode.NATIVE)
++@Config(sdk=[35],qualifiers="w390dp-h844dp-mdpi")
++class ThemeStyleMatrixTest {
++ @get:Rule val compose=createComposeRule()
++
++ private fun probe(dark:Boolean,style:ThemeStyle) {
++  V6ScreenshotTest().installUiHost()
++  val old=AppSettings.blurEffects.value
++  AppSettings.blurEffects.value=false
++  try {
++   compose.setContent {
++    BitChordTheme(darkTheme=dark,palette=PaletteMode.MATERIAL_YOU,style=style) {
++     val haze=remember { HazeState() }
++     Box(Modifier.width(390.dp).height(844.dp).testTag("themestyle-matrix")) {
++      Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).hazeSource(haze).background(MaterialTheme.colorScheme.background)) {
++       Text("Appearance",color=MaterialTheme.colorScheme.onBackground,style=MaterialTheme.typography.headlineMedium,modifier=Modifier.padding(16.dp))
++       // The settings card: three production rows over the production dividers.
++       Column(Modifier.padding(16.dp).background(MaterialTheme.colorScheme.surface,MaterialTheme.shapes.large)) {
++        SettingsRow(icon=SfIcons.Notes,title="Synced lyrics")
++        RowDivider()
++        SettingsRow(icon=SfIcons.Font,title="Lyrics sources",subtitle="LRCLIB, Musixmatch")
++        RowDivider()
++        SettingsRow(icon=SfIcons.Appearance,title="Translation language",value="English")
++       }
++       Spacer(Modifier.height(16.dp))
++       Text("Theme style: ${style.label}",color=MaterialTheme.colorScheme.onBackground,modifier=Modifier.padding(16.dp))
++      }
++      Column(Modifier.align(Alignment.BottomCenter)) {
++       MiniPlayer(song=Song(videoId="fixture",title="Midnight Rain",artist="Nova Rae",thumbnailUrl=null,durationText="3:48"),isPlaying=false,isLoading=false,hazeState=haze,onPlayPause={},onNext={},onPrevious={},onExpand={})
++       Spacer(Modifier.height(8.dp))
++       FloatingBottomBar(tabs=listOf(BottomTab("Home",Icons.Rounded.Home),BottomTab("Explore",Icons.Rounded.Search),BottomTab("Library",Icons.Rounded.LibraryMusic),BottomTab("Settings",Icons.Rounded.Settings)),selectedIndex=0,onTabSelected={},hazeState=haze)
++      }
++     }
++    }
++   }
++   compose.mainClock.advanceTimeBy(1500);compose.waitForIdle()
++   compose.onNodeWithText("Synced lyrics").assertIsDisplayed()
++   compose.onNodeWithTag("themestyle-matrix").captureRoboImage("build/outputs/roborazzi/themestyle_${style.name.lowercase()}_dark${dark}.png")
++  } finally { AppSettings.blurEffects.value=old }
++ }
++
++ /** The real Appearance settings page (production SettingsScreen) with the
++  * Theme Style picker, captured per style x light/dark. The style is selected
++  * through the same AppSettings entry the picker writes to, so the capture
++  * shows the production row, segmented control and dividers, not a mock. */
++ private fun pickerProbe(dark:Boolean,style:ThemeStyle) {
++  V6ScreenshotTest().installUiHost()
++  val oldPalette=AppSettings.paletteMode.value
++  val oldStyle=AppSettings.themeStyle.value
++  AppSettings.setPaletteMode(PaletteMode.MATERIAL_YOU)
++  AppSettings.setThemeStyle(style)
++  try {
++   compose.setContent {
++    BitChordTheme(darkTheme=dark,palette=PaletteMode.MATERIAL_YOU,style=style) {
++     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).testTag("themestyle-picker")) {
++      com.music.bitchord.ui.screens.SettingsScreen(
++       windowWidth=390.dp,
++       signedIn=false,
++       account=null,
++       onSignIn={},
++       onSignOut={},
++       onAccountScrobbling={},
++       onEqualizer={},
++       onOpenReplay={},
++       onLyricsSources={},
++       onTranslationLanguage={},
++       onSources={},
++       onListenTogether={},
++       onWearOs={},
++       onSpotifyCanvasAuth={},
++       onAppLanguage={},
++       onEditSignatureApi={},
++       onConfirmBitPerfect={},
++       onConfirmFixedVolume={},
++       contentPadding=PaddingValues(0.dp),
++       section=SettingsCategory.APPEARANCE,
++      )
++     }
++    }
++   }
++   compose.mainClock.advanceTimeBy(1500);compose.waitForIdle()
++   compose.onNodeWithText("Theme Style",useUnmergedTree=true).performScrollTo().assertIsDisplayed()
++   compose.onNodeWithText(style.label,useUnmergedTree=true).assertIsDisplayed()
++   compose.waitForIdle()
++   compose.onRoot().captureRoboImage("build/outputs/roborazzi/themestyle_picker_${style.name.lowercase()}_dark${dark}.png")
++  } finally {
++   AppSettings.setPaletteMode(oldPalette)
++   AppSettings.setThemeStyle(oldStyle)
++  }
++ }
++
++ @Test fun pickerLightTonalSpot()=pickerProbe(false,ThemeStyle.TONAL_SPOT)
++ @Test fun pickerLightExpressive()=pickerProbe(false,ThemeStyle.EXPRESSIVE)
++ @Test fun pickerLightVibrant()=pickerProbe(false,ThemeStyle.VIBRANT)
++ @Test fun pickerDarkTonalSpot()=pickerProbe(true,ThemeStyle.TONAL_SPOT)
++ @Test fun pickerDarkExpressive()=pickerProbe(true,ThemeStyle.EXPRESSIVE)
++ @Test fun pickerDarkVibrant()=pickerProbe(true,ThemeStyle.VIBRANT)
++
++ @Test fun lightTonalSpot()=probe(false,ThemeStyle.TONAL_SPOT)
++ @Test fun lightExpressive()=probe(false,ThemeStyle.EXPRESSIVE)
++ @Test fun lightVibrant()=probe(false,ThemeStyle.VIBRANT)
++ @Test fun darkTonalSpot()=probe(true,ThemeStyle.TONAL_SPOT)
++ @Test fun darkExpressive()=probe(true,ThemeStyle.EXPRESSIVE)
++ @Test fun darkVibrant()=probe(true,ThemeStyle.VIBRANT)
++}
