@@ -1,0 +1,329 @@
+name: spool 2.1.0 verification APK (artifact only, no release)
+
+# Builds the Theme Style source (Material You styles Tonal Spot / Expressive /
+# Vibrant with Expressive default, soft hairline card edges, faint settings
+# dividers with even margins) as a prod RELEASE APK (same variant quality as
+# the shipped v2.0.0 install: R8-minified), signed with the persisted
+# spool-debug key so it installs over the existing install (same package, same
+# certificate, versionCode 57 > 56). Artifact upload only: this workflow has no
+# release, deploy, or publication steps.
+#
+# Source provenance (same credential-free materialization model as the 2.0.0
+# v4 workflow): no source commit push is required. The exact source is
+# materialized in-runner from:
+#   1. the pinned v2.0.0 production source tarball (the 4 published parts,
+#      reassembled), sha256-verified
+#      (938ca5b092ea53dba19d6078ffd6655bce56aca8d50ad923e88463d0a6720c37);
+#   2. the single reviewed patch file carried on this branch
+#      (the spool-edits-15 patch, resolved by glob so an upload-UI
+#      numeric filename prefix cannot break the pin), sha256-verified
+#      against its reviewed bytes BEFORE application;
+#   3. the version bump to 2.1.0/versionCode 57 applied as an exact two-line
+#      edit with precondition and postcondition greps.
+# The materialized tree is then hashed (git add -A + git write-tree inside the
+# extracted source, whose own .gitattributes governs normalization) and must
+# equal the dispatch input expected_tree, or the run fails closed BEFORE any
+# compile. Local dry run of this exact procedure produced
+# 44023cb9fc93ca5960508f81af60e2477ba65e41 (after the material3 fixed-role
+# compatibility fix in ThemeStyleScheme.kt).
+#
+# The lame native dependency is fetched AFTER the tree assertion so the hash
+# covers exactly the reviewed source and nothing else.
+#
+# Updater behavior preserved exactly as shipped: SEPARATELY_PROVIDED_UPDATES
+# stays false, so the in-app latest-release checker remains active, matching
+# the shipped binaries (see the 2.0.0 workflow header for the full note).
+#
+# The smoke step is the v4 single-shell repair: the whole smoke logic is one
+# bash script invoked as ONE emulator-runner script line, with diagnostics
+# captured by the EXIT trap on every outcome.
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_tree:
+        description: Reviewed materialized-source tree hash (git write-tree after tarball + patch + version bump)
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Verify the reviewed patch file byte-for-byte (sha256 pinned)
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE"
+        PATCH_FILE=$(ls "$GITHUB_WORKSPACE"/*spool-edits-15.patch)
+        echo "reviewed patch: $PATCH_FILE"
+        echo "3650e9ccb38d984e0722bb60d2ddb277875f541eada3f274e6a8347815ed46dd  $PATCH_FILE" | sha256sum -c -
+        echo "PATCH_FILE=$PATCH_FILE" >> "$GITHUB_ENV"
+
+    - name: Materialize exact reviewed source (pinned tarball + verified patch + version bump)
+      run: |
+        set -euo pipefail
+        for part in aa ab ac ad; do
+          curl -fsSL -o "/tmp/spool-2.0.0-source.tar.gz.part-$part" "https://github.com/JoyalGeorge2006/spool/releases/download/v2.0.0/spool-v2.0.0-source.tar.gz.part-$part"
+        done
+        cat /tmp/spool-2.0.0-source.tar.gz.part-aa /tmp/spool-2.0.0-source.tar.gz.part-ab /tmp/spool-2.0.0-source.tar.gz.part-ac /tmp/spool-2.0.0-source.tar.gz.part-ad > /tmp/spool-source.tar.gz
+        echo '938ca5b092ea53dba19d6078ffd6655bce56aca8d50ad923e88463d0a6720c37  /tmp/spool-source.tar.gz' | sha256sum -c -
+        SRC="$RUNNER_TEMP/asset"
+        mkdir -p "$SRC"
+        tar xzf /tmp/spool-source.tar.gz -C "$SRC"
+        cd "$SRC"
+        git init -q
+        git apply "$PATCH_FILE"
+        # Version bump: exact two-line edit, preconditions and postconditions asserted.
+        test "$(grep -c '^extra\["bitchordVersionCode"\] = 56$' build.gradle.kts)" -eq 1
+        test "$(grep -c '^extra\["bitchordVersionName"\] = "2.0.0"$' build.gradle.kts)" -eq 1
+        sed -i -e 's/^extra\["bitchordVersionCode"\] = 56$/extra["bitchordVersionCode"] = 57/' \
+               -e 's/^extra\["bitchordVersionName"\] = "2.0.0"$/extra["bitchordVersionName"] = "2.1.0"/' \
+               build.gradle.kts
+        grep -n '^extra\["bitchordVersionCode"\] = 57$' build.gradle.kts
+        grep -n '^extra\["bitchordVersionName"\] = "2.1.0"$' build.gradle.kts
+
+    - name: Assert materialized source tree hash (fail closed before any compile)
+      run: |
+        set -euo pipefail
+        cd "$RUNNER_TEMP/asset"
+        git add -A
+        actual="$(git write-tree)"
+        echo "materialized tree: $actual"
+        echo "expected tree:     ${{ inputs.expected_tree }}"
+        test "$actual" = "${{ inputs.expected_tree }}"
+        echo "SRC_DIR=$RUNNER_TEMP/asset" >> "$GITHUB_ENV"
+
+    - name: Fetch lame native dependency (after the tree assertion, not covered by it)
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+
+    - name: Verify committed version is 2.1.0 (versionCode 57)
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        grep -n '^extra\["bitchordVersionCode"\] = 57$' build.gradle.kts
+        grep -n '^extra\["bitchordVersionName"\] = "2.1.0"$' build.gradle.kts
+
+    - name: Verify updater guard stays exactly as shipped (checker active)
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        test "$(grep -c 'SEPARATELY_PROVIDED_UPDATES", "false"' app/build.gradle.kts)" -eq 2
+        if grep -n 'SEPARATELY_PROVIDED_UPDATES", "true"' app/build.gradle.kts; then
+          echo '::error::updater flag flipped to true - shipped behavior must be preserved'
+          exit 1
+        fi
+
+    - name: Run theme, appearance and palette unit + capture tests on the materialized source
+      run: |
+        cd "$SRC_DIR"
+        chmod +x gradlew
+        ./gradlew :app:testDevDebugUnitTest -Pbitchord.bundleWear=false \
+          --tests 'com.music.bitchord.ThemeStyleContrastTest' \
+          --tests 'com.music.bitchord.ThemeStyleMatrixTest' \
+          --tests 'com.music.bitchord.AppearanceMatrixTest' \
+          --tests 'com.music.bitchord.PaletteCardsScreenshotTest' \
+          --tests 'com.music.bitchord.PaletteFallbackTest' \
+          --tests 'com.music.bitchord.PaletteSettingsPersistenceTest'
+
+    - name: Upload theme visual evidence (roborazzi captures + test results)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-2.1.0-theme-evidence
+        path: |
+          ${{ runner.temp }}/asset/app/build/outputs/roborazzi/*.png
+          ${{ runner.temp }}/asset/app/build/test-results/testDevDebugUnitTest/*.xml
+        if-no-files-found: warn
+
+    - name: Restore persisted signing key, preflight alias, write keystore.properties
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        set -euo pipefail
+        cd "$SRC_DIR"
+        # Fail fast: without all three secrets the release build would still
+        # succeed but come out UNSIGNED (the release signing config is skipped
+        # when keystore.properties is missing); the final apksigner gate below
+        # fails closed on that too, but fail here first with a clear reason.
+        test -n "$SPOOL_DEBUG_KEYSTORE_B64"
+        test -n "$SPOOL_DEBUG_STORE_PASSWORD"
+        test -n "$SPOOL_DEBUG_KEY_PASSWORD"
+        printf '%s' "$SPOOL_DEBUG_KEYSTORE_B64" | base64 -d > spool-debug.keystore
+        test -s spool-debug.keystore
+        chmod 600 spool-debug.keystore
+        # Alias preflight: fail before a 30-minute compile if the keystore
+        # does not contain the expected spooldebug alias.
+        keytool -list -keystore spool-debug.keystore \
+          -storepass "$SPOOL_DEBUG_STORE_PASSWORD" -alias spooldebug \
+          | grep -qi 'spooldebug'
+        {
+          echo "storeFile=spool-debug.keystore"
+          echo "storePassword=$SPOOL_DEBUG_STORE_PASSWORD"
+          echo "keyAlias=spooldebug"
+          echo "keyPassword=$SPOOL_DEBUG_KEY_PASSWORD"
+        } > keystore.properties
+        chmod 600 keystore.properties
+
+    - name: Build signed prod release APKs
+      id: compile
+      run: |
+        cd "$SRC_DIR"
+        chmod +x gradlew
+        ./gradlew :app:assembleProdRelease -Pbitchord.bundleWear=false
+
+    - name: Verify package, version, updater guard and signer (fail closed)
+      id: verify
+      run: |
+        set -euo pipefail
+        aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+        mkdir -p "$RUNNER_TEMP/apk-out"
+        cp "$SRC_DIR"/app/build/outputs/apk/prod/release/*-arm64-v8a-release.apk "$RUNNER_TEMP/apk-out/spool.apk"
+        cp "$SRC_DIR"/app/build/outputs/apk/prod/release/*-universal-release.apk "$RUNNER_TEMP/apk-out/spool-universal.apk"
+
+        "$aapt" dump badging "$RUNNER_TEMP/apk-out/spool.apk" | head -3 | tee /tmp/badging.txt
+        grep -q "package: name='app.spool.music'" /tmp/badging.txt
+        grep -q "versionCode='57'" /tmp/badging.txt
+        grep -q "versionName='2.1.0'" /tmp/badging.txt
+        if grep -q "package: name='app.spool.music.dev'" /tmp/badging.txt; then
+          echo '::error::wrong package'
+          exit 1
+        fi
+
+        # apksigner fails closed: an unsigned or differently-signed APK stops here.
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool.apk" | tee /tmp/certs.txt
+        grep -qi 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee' /tmp/certs.txt
+        "$signer" verify --verbose --print-certs "$RUNNER_TEMP/apk-out/spool-universal.apk" \
+          | grep -qi 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+
+        test "$(unzip -l "$RUNNER_TEMP/apk-out/spool.apk" | grep -c 'lib/arm64-v8a/')" -gt 0
+        sha256sum "$RUNNER_TEMP/apk-out/"*.apk | tee /tmp/apk-sha256.txt
+
+    - name: Download shipped v2.0.0 universal APK for upgrade smoke
+      id: shipped
+      run: |
+        set -euo pipefail
+        curl -fL --retry 3 -o "$RUNNER_TEMP/spool-v2.0.0.apk" \
+          https://github.com/JoyalGeorge2006/spool/releases/download/v2.0.0/spool-v2.0.0.apk
+        echo 'e0170ce9d39601393cb4780760e988ff16b1c2bcba8dc36bdf6bf7b4080b5599  '"$RUNNER_TEMP/spool-v2.0.0.apk" | sha256sum -c -
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Write upgrade smoke script (single-shell; emulator-runner executes each script line in its own sh -c)
+      run: |
+        set -euo pipefail
+        cat > /tmp/spool-smoke.sh <<'SMOKE'
+        #!/usr/bin/env bash
+        set -euo pipefail
+        LOG=/tmp/smoke-logcat.txt
+        CRASH=/tmp/smoke-crash.txt
+        PNG=/tmp/smoke-launch.png
+        PS=/tmp/smoke-ps.txt
+        PIDF=/tmp/smoke-pid.txt
+        app_pid=""
+        capture() {
+          adb logcat -b all -v threadtime -d > "$LOG" 2>/dev/null || true
+          adb logcat -b crash -v threadtime -d > "$CRASH" 2>/dev/null || true
+          adb exec-out screencap -p > "$PNG" 2>/dev/null || true
+          { adb shell ps -A 2>/dev/null | grep -i 'spool' || true; } > "$PS"
+          printf '%s\n' "$app_pid" > "$PIDF"
+        }
+        # Evidence capture on EVERY exit (success, assert failure, install
+        # failure), before any assertion outcome is known.
+        trap capture EXIT
+        # Upgrade path: install the actual shipped universal, then install -r
+        # the 2.1.0 universal over it (same package, same cert, 57 > 56).
+        adb install "$RUNNER_TEMP/spool-v2.0.0.apk"
+        adb install -r "$RUNNER_TEMP/apk-out/spool-universal.apk"
+        # Clear the log buffer BEFORE launch so the crash record belongs to
+        # this launch only.
+        adb logcat -b all -c
+        adb shell monkey -p app.spool.music -c android.intent.category.LAUNCHER 1
+        # Startup poll: up to 60s for the process to appear (first-launch
+        # dexopt after an upgrade can be slow on an emulator).
+        for i in $(seq 1 30); do
+          app_pid=$(adb shell pidof app.spool.music | tr -d '\r' || true)
+          [ -n "$app_pid" ] && break
+          sleep 2
+        done
+        test -n "$app_pid"
+        echo "app process appeared: pid $app_pid"
+        # Stabilization: the process must REMAIN alive ~15s after appearing;
+        # appearing-then-dying is a failure, not a pass.
+        sleep 15
+        app_pid=$(adb shell pidof app.spool.music | tr -d '\r' || true)
+        test -n "$app_pid"
+        echo "app process stable: pid $app_pid"
+        # Refresh evidence before the crash assertions.
+        capture
+        # Crash record fails the run even when a pid exists (process
+        # auto-restart can mask a fatal; the crash buffer survives death).
+        crash_evt=$(grep -cE 'FATAL EXCEPTION|Fatal signal [0-9]+|ANR in app\.spool\.music' "$CRASH" || true)
+        crash_pkg=$(grep -c 'app\.spool\.music' "$CRASH" || true)
+        if [ "$crash_evt" -gt 0 ] && [ "$crash_pkg" -gt 0 ]; then
+          echo '::error::crash record for app.spool.music in crash buffer after upgrade launch'
+          exit 1
+        fi
+        if grep -qE 'FATAL EXCEPTION.*app\.spool\.music|ANR in app\.spool\.music' "$LOG"; then
+          echo '::error::fatal/ANR for app.spool.music in log after upgrade launch'
+          exit 1
+        fi
+        SMOKE
+        bash -n /tmp/spool-smoke.sh
+
+    - name: Upgrade install and launch smoke on emulator
+      id: smoke
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        script: bash /tmp/spool-smoke.sh
+
+    - name: Upload 2.1.0 APK artifact (only on verify+smoke success)
+      if: steps.verify.outcome == 'success' && steps.smoke.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-2.1.0-apk
+        path: |
+          ${{ runner.temp }}/apk-out/spool.apk
+          ${{ runner.temp }}/apk-out/spool-universal.apk
+          /tmp/apk-sha256.txt
+          /tmp/badging.txt
+          /tmp/certs.txt
+        if-no-files-found: error
+
+    - name: Upload smoke diagnostics (always, never contains APKs)
+      if: always() && steps.compile.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: spool-2.1.0-smoke-diagnostics
+        path: |
+          /tmp/smoke-launch.png
+          /tmp/smoke-logcat.txt
+          /tmp/smoke-crash.txt
+          /tmp/smoke-ps.txt
+          /tmp/smoke-pid.txt
+        if-no-files-found: warn
