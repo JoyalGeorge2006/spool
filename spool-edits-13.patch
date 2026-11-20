@@ -1,4 +1,4 @@
-From ded854bcb2a59ba012b99c631476a5aad621766b Mon Sep 17 00:00:00 2001
+From 68e878bcf69a581b24c3b5acb10fcd2ea1df511e Mon Sep 17 00:00:00 2001
 From: Instinct <instinct@local>
 Date: Fri, 20 Nov 2026 14:20:37 +0530
 Subject: [PATCH] patch 13: deterministic art-ready captures; drawer test via
@@ -6,8 +6,8 @@ Subject: [PATCH] patch 13: deterministic art-ready captures; drawer test via
 
 ---
  .../music/bitchord/PlayerArtworkShotTest.kt   | 72 +++++++++++---
- .../bitchord/PlayerDrawerFrostShotTest.kt     | 93 +++++++++++++++----
- 2 files changed, 131 insertions(+), 34 deletions(-)
+ .../bitchord/PlayerDrawerFrostShotTest.kt     | 98 +++++++++++++++----
+ 2 files changed, 136 insertions(+), 34 deletions(-)
 
 diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
 index e831d5f..034bfdc 100644
@@ -133,7 +133,7 @@ index e831d5f..034bfdc 100644
              Assert.assertTrue(
                  "artwork backdrop must be identical with Blur effects on and off ($mismatches of ${x1 - x0} band pixels differ)",
 diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
-index c29da72..cf7b745 100644
+index c29da72..6f87064 100644
 --- a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
 +++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
 @@ -2,6 +2,7 @@ package com.music.bitchord
@@ -229,7 +229,14 @@ index c29da72..cf7b745 100644
      private fun assertDrawerOpen() {
          compose.onNodeWithText("Choose lyrics provider").assertExists()
          compose.onNodeWithText("BiniLyrics").assertExists()
-@@ -126,18 +167,32 @@ class PlayerDrawerFrostShotTest {
+@@ -123,21 +164,39 @@ class PlayerDrawerFrostShotTest {
+         try {
+             AppSettings.setThemeMode(ThemeMode.DARK)
+             AppSettings.blurEffects.value = true
++            // The landscape player's lyric clock intentionally never becomes
++            // idle (LandscapePlayerFrameTest.kt:30-32): advance the test clock
++            // explicitly instead of letting waitForIdle drain it forever.
++            compose.mainClock.autoAdvance = false
              compose.setContent {
                  BitChordTheme(darkTheme = true) {
                      Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -270,6 +277,14 @@ index c29da72..cf7b745 100644
              compose.waitForIdle()
              compose.onNodeWithText("Lyrics by lrc.red").performClick()
              compose.waitForIdle()
+@@ -190,6 +249,7 @@ class PlayerDrawerFrostShotTest {
+                 "PlayerDrawerFrostShotTest: drawer band switch-sensitivity = $switchDiff of $bandTotal sampled pixels differ (0 means Skiko rendered haze identically; visual frost quality is device-only evidence)",
+             )
+         } finally {
++            compose.mainClock.autoAdvance = true
+             AppSettings.blurEffects.value = oldBlur
+             AppSettings.setThemeMode(storedTheme)
+             com.music.bitchord.ui.player.PlayerPlatform.install(restore)
 -- 
 2.34.1
 
