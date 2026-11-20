@@ -40,6 +40,7 @@ jobs:
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -87,16 +88,29 @@ jobs:
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
         echo "SRC_DIR=$SRC" >> "$GITHUB_ENV"
 
-    - name: App and sharedUi unit test suites (changed modules)
+    # One step per module, each if: always(): Gradle fail-fast inside a single
+    # invocation let a sharedUi failure block :app:testDevDebugUnitTest from
+    # ever starting (run 44682926167). Split so every module executes and
+    # reports; any failure still fails the job.
+    - name: App unit test suite (changed module)
+      if: always()
       timeout-minutes: 60
       run: |
         cd "$SRC_DIR"
-        ./gradlew :app:testDevDebugUnitTest :sharedUi:jvmTest -Pbitchord.bundleWear=false
+        ./gradlew :app:testDevDebugUnitTest -Pbitchord.bundleWear=false
+
+    - name: sharedUi unit test suite (changed module; 2 RelatedMusicPanelTest failures tracked pre-existing on base, run 44682302890)
+      if: always()
+      timeout-minutes: 60
+      run: |
+        cd "$SRC_DIR"
+        ./gradlew :sharedUi:jvmTest -Pbitchord.bundleWear=false
 
     - name: shared data-layer unit tests (tracked base toolchain failure)
       if: always()
@@ -112,6 +126,7 @@ jobs:
         name: full-suite-results
         path: |
           ${{ env.SRC_DIR }}/app/build/test-results/**/*.xml
+          ${{ env.SRC_DIR }}/sharedUi/build/test-results/**/*.xml
           ${{ env.SRC_DIR }}/shared/build/test-results/**/*.xml
         if-no-files-found: ignore
 
@@ -143,6 +158,7 @@ jobs:
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
