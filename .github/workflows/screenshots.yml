@@ -39,6 +39,7 @@ jobs:
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -85,6 +86,7 @@ jobs:
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -133,6 +135,7 @@ jobs:
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
         git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
