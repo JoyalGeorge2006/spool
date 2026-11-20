@@ -92,11 +92,18 @@ jobs:
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
         echo "SRC_DIR=$SRC" >> "$GITHUB_ENV"
 
-    - name: Full unit test suite (candidate gate)
+    - name: App and sharedUi unit test suites (changed modules)
       timeout-minutes: 60
       run: |
         cd "$SRC_DIR"
-        ./gradlew :app:testDevDebugUnitTest :shared:jvmTest -Pbitchord.bundleWear=false
+        ./gradlew :app:testDevDebugUnitTest :sharedUi:jvmTest -Pbitchord.bundleWear=false
+
+    - name: shared data-layer unit tests (tracked base toolchain failure)
+      if: always()
+      timeout-minutes: 60
+      run: |
+        cd "$SRC_DIR"
+        ./gradlew :shared:jvmTest -Pbitchord.bundleWear=false
 
     - name: Upload full suite results
       if: always()
