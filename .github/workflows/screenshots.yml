@@ -36,6 +36,7 @@ jobs:
         cd "$SRC"
         git init -q
         git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -79,6 +80,7 @@ jobs:
         cd "$SRC"
         git init -q
         git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -124,6 +126,7 @@ jobs:
         cd "$SRC"
         git init -q
         git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -158,7 +161,7 @@ jobs:
           }
         }
         GRADLE
-        ./gradlew --init-script /tmp/capture-diagnostics.gradle :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.player_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_player_overflow_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_language_dialog_*' &
+        ./gradlew --init-script /tmp/capture-diagnostics.gradle :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.player_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_player_overflow_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_language_dialog_*' --tests 'com.music.bitchord.SpoolFrostScreenshotTest.*' &
         gradle_pid=$!
         (
           sleep 360
