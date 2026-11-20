@@ -1,7 +1,713 @@
-diff --git a/BASELINE_MARKER_4.txt b/BASELINE_MARKER_4.txt
+From f82811f819e8494296361a28c71c3ece2b84d64d Mon Sep 17 00:00:00 2001
+From: Instinct Agent <agent@instinct.com>
+Date: Fri, 20 Nov 2026 09:23:27 +0530
+Subject: [PATCH] Own-window sheets and Song Info to inline frost containers
+
+- New InlineFrostSheet + InlineFrostDialog: the page-window inline
+  counterparts of ModalBottomSheet and Dialog. Scrim tap-outside with
+  drag fade, back dismiss, drag-down dismiss past a quarter of the
+  sheet with nested-scroll leftover so inner lists keep their scroll,
+  IME and navigation-bar insets, the 640dp cap, drag handle, reduced
+  animation, traversal group + pane title, and a hiddenBehindSheet
+  hook for the covered page. Frost-or-solid via frostedCard.
+- Converted: Replay share, browse rename, Listen Together party
+  sheets (hazeState threaded from MainActivity), the player overflow
+  (hazeState over pages, null inside the player's source-less window),
+  and Song Info (inline dialog; haze flows down the new LocalSheetHaze
+  from the hosting sheet or held menu, so the player's window keeps
+  the solid fill).
+- Kept with reason: the NowPlaying host sheet (transparent player
+  container, not a fill surface), PlaylistPickerSheet (full-screen,
+  nothing behind to blur), the Library sort menu (anchored popup,
+  different mechanics).
+- LocalSheetHaze provided by InlineFrostSheet, InlineFrostDialog and
+  HeldContextMenu so anything opened from inside them frosts against
+  the window it actually draws in.
+- Roborazzi on/off captures for the inline sheet wrapper.
+---
+ .../java/com/music/bitchord/MainActivity.kt   |  27 +-
+ .../bitchord/ui/components/HeldContextMenu.kt |   7 +-
+ .../ui/components/InlineFrostSheet.kt         | 321 ++++++++++++++++++
+ .../bitchord/ui/components/SongInfoDialog.kt  |  25 +-
+ .../ui/components/SpoolPlayerOverflow.kt      |  24 +-
+ .../ui/screens/ListenTogetherScreen.kt        |  16 +-
+ .../bitchord/SpoolFrostScreenshotTest.kt      |  60 ++++
+ 7 files changed, 438 insertions(+), 42 deletions(-)
+ create mode 100644 app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
+
+diff --git a/app/src/main/java/com/music/bitchord/MainActivity.kt b/app/src/main/java/com/music/bitchord/MainActivity.kt
+index 0a501b0..a547402 100644
+--- a/app/src/main/java/com/music/bitchord/MainActivity.kt
++++ b/app/src/main/java/com/music/bitchord/MainActivity.kt
+@@ -3017,6 +3017,7 @@ private fun BitChordApp(
+                                     webSession = WebSessionMode.SIGN_IN
+                                 },
+                                 contentPadding = listPadding,
++                                hazeState = hazeState,
+                                 onEditServer = { editingPartyServer = true },
+                             )
+                         } else if (pageRoute == AppRoute.Equalizer) {
+@@ -4714,13 +4715,13 @@ private fun BitChordApp(
+         // ---- Share the Replay ----
+         if (showReplayShare) {
+             replay.summary?.takeUnless { it.isEmpty }?.let { summary ->
+-                ModalBottomSheet(
+-                    onDismissRequest = { showReplayShare = false },
+-                    // Straight to full height. The sheet is a picture and two
+-                    // buttons, and half-open it showed the picture with both
+-                    // buttons below the fold — a sheet whose only two controls
+-                    // need a drag to reach.
+-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
++                // Inline, so the sheet frosts over the page behind it; the
++                // window sheet it replaces could only ever be solid. Straight
++                // to full height, as before — the picture and both buttons
++                // stay above the fold.
++                InlineFrostSheet(
++                    onDismiss = { showReplayShare = false },
++                    hazeState = hazeState,
+                     containerColor = MaterialTheme.colorScheme.background,
+                 ) {
+                     ReplayShareSheet(
+@@ -4779,6 +4780,10 @@ private fun BitChordApp(
+                 songActions?.let { menuSong ->
+                     com.music.bitchord.ui.components.SpoolPlayerOverflow(
+                         onDismiss = { songActions = null },
++                        // Over the page, not the raised player: the page's haze
++                        // carries the frost. The raised player's own window has
++                        // no source, and that call site leaves this null.
++                        hazeState = hazeState,
+                     ) { songMenuBody(menuSong) }
+                 }
+             }
+@@ -5145,8 +5150,12 @@ private fun BitChordApp(
+             // floating over the page: the menu hands it on, and the form comes up
+             // here on a sheet of its own.
+             browseActions?.takeIf { browseRenameInSheet }?.let { target ->
+-                ModalBottomSheet(
+-                    onDismissRequest = { browseActions = null },
++                // Inline, so the rename form frosts over the page behind it;
++                // the window sheet it replaces could only ever be solid. The
++                // wrapper keeps the IME inset the field and keyboard need.
++                InlineFrostSheet(
++                    onDismiss = { browseActions = null },
++                    hazeState = hazeState,
+                     containerColor = MaterialTheme.colorScheme.background,
+                 ) {
+                     browseMenuBody(target)
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt b/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
+index dbbfc57..cc666d4 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
+@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.safeDrawing
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.CompositionLocalProvider
+ import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.SideEffect
+ import androidx.compose.runtime.getValue
+@@ -220,7 +221,11 @@ fun <T : Any> HeldContextMenu(
+             ) {
+                 // Added onto the plate, on a dark one only: see [IosMenuPopover].
+                 Column(Modifier.additiveChrome(dark && !plain)) {
+-                    actions(menuItem)
++                    // Anything the actions open (Song Info) frosts against the
++                    // same window the plate drew in.
++                    CompositionLocalProvider(LocalSheetHaze provides hazeState) {
++                        actions(menuItem)
++                    }
+                 }
+             }
+         },
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt b/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
 new file mode 100644
-index 0000000..f4209e5
+index 0000000..807470d
 --- /dev/null
-+++ b/BASELINE_MARKER_4.txt
-@@ -0,0 +1 @@
-+baseline no-op marker 4
++++ b/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
+@@ -0,0 +1,321 @@
++package com.music.bitchord.ui.components
++
++import androidx.activity.compose.BackHandler
++import androidx.compose.animation.AnimatedVisibility
++import androidx.compose.animation.EnterTransition
++import androidx.compose.animation.ExitTransition
++import androidx.compose.animation.core.FastOutSlowInEasing
++import androidx.compose.animation.core.Spring
++import androidx.compose.animation.core.animateFloatAsState
++import androidx.compose.animation.core.spring
++import androidx.compose.animation.core.tween
++import androidx.compose.animation.fadeIn
++import androidx.compose.animation.fadeOut
++import androidx.compose.animation.slideInVertically
++import androidx.compose.animation.slideOutVertically
++import androidx.compose.foundation.background
++import androidx.compose.foundation.clickable
++import androidx.compose.foundation.gestures.detectVerticalDragGestures
++import androidx.compose.foundation.interaction.MutableInteractionSource
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.ColumnScope
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.foundation.layout.heightIn
++import androidx.compose.foundation.layout.imePadding
++import androidx.compose.foundation.layout.navigationBarsPadding
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.padding
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.layout.width
++import androidx.compose.foundation.layout.widthIn
++import androidx.compose.foundation.shape.CircleShape
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.material3.LocalContentColor
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.runtime.LaunchedEffect
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableFloatStateOf
++import androidx.compose.runtime.mutableIntStateOf
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.remember
++import androidx.compose.runtime.setValue
++import androidx.compose.runtime.staticCompositionLocalOf
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.clip
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.Shape
++import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
++import androidx.compose.ui.input.nestedscroll.NestedScrollSource
++import androidx.compose.ui.input.nestedscroll.nestedScroll
++import androidx.compose.ui.input.pointer.pointerInput
++import androidx.compose.ui.layout.onSizeChanged
++import androidx.compose.ui.platform.LocalConfiguration
++import androidx.compose.ui.semantics.invisibleToUser
++import androidx.compose.ui.semantics.isTraversalGroup
++import androidx.compose.ui.semantics.paneTitle
++import androidx.compose.ui.semantics.semantics
++import androidx.compose.ui.unit.Dp
++import androidx.compose.ui.unit.IntOffset
++import androidx.compose.ui.unit.Velocity
++import androidx.compose.ui.unit.dp
++import androidx.lifecycle.compose.collectAsStateWithLifecycle
++import com.music.bitchord.data.settings.AppSettings
++import com.music.bitchord.ui.utils.containSheetGestures
++import dev.chrisbanes.haze.HazeState
++import kotlin.math.roundToInt
++
++/** The widest any sheet gets, however wide the window is — M3's own cap. */
++private val INLINE_SHEET_MAX_WIDTH = 640.dp
++
++/**
++ * The haze of whatever inline sheet or menu is hosting this composition, so a
++ * dialog opened from inside one frosts against the same window its host drew
++ * in. Null outside a host, or inside one whose window has no source (the
++ * raised player's), where the dialog keeps its solid fill. Provided by
++ * [InlineFrostSheet] and [HeldContextMenu].
++ */
++val LocalSheetHaze = staticCompositionLocalOf<HazeState?> { null }
++
++/** Dragged this share of its height down, a released sheet is dismissed. */
++private const val INLINE_DISMISS_DRAG_FRACTION = 0.25f
++
++/**
++ * Hides what a sheet covers from the accessibility tree while it is open: a
++ * [androidx.compose.material3.ModalBottomSheet] does this by living in a
++ * window of its own, and an inline sheet has to ask for it. Apply to the page
++ * container the sheet is drawn over, with the sheet's open state.
++ */
++fun Modifier.hiddenBehindSheet(open: Boolean): Modifier = semantics {
++    if (open) invisibleToUser()
++}
++
++/**
++ * A bottom sheet drawn inline, in the page's own window and composition,
++ * instead of a [androidx.compose.material3.ModalBottomSheet]'s window of its
++ * own — the one change that lets the sheet frost: Haze cannot sample across
++ * windows, so a window sheet could only ever be a solid slab, while this one
++ * blurs the page behind it through [hazeState] while Blur effects is on and
++ * draws [containerColor] solid when it is off (or when it is composed inside
++ * another window that has no haze source, where the caller passes null).
++ *
++ * Kept behaviours, matching the window sheet it replaces: a scrim that fades
++ * with the drag and dismisses on a tap outside, back dismiss, drag down past
++ * a quarter of the sheet's height dismisses while the list's own scroll keeps
++ * its scroll (the pull reaches the sheet only past the list's top), the IME
++ * and navigation bar insets, the 640dp tablet cap, reduced animation, and
++ * touches contained so nothing leaks to the page underneath.
++ *
++ * Accessibility: the sheet is a traversal group titled [paneTitle]; callers
++ * hide the covered page with [hiddenBehindSheet] on the page's container.
++ *
++ * Not kept, by design: the exit animation on dismiss — the caller removes the
++ * sheet from composition, as every inline drawer here already behaves — and
++ * the partially-expanded stop (the sheets converted to this all used
++ * skipPartiallyExpanded or reached full height).
++ */
++@Composable
++fun InlineFrostSheet(
++    onDismiss: () -> Unit,
++    hazeState: HazeState?,
++    modifier: Modifier = Modifier,
++    paneTitle: String? = null,
++    shape: Shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
++    containerColor: Color = MaterialTheme.colorScheme.surface,
++    contentColor: Color = MaterialTheme.colorScheme.onSurface,
++    /** The tallest the sheet gets, as a share of the window's height. */
++    maxHeightFraction: Float = 0.92f,
++    /** The grab handle every M3 sheet here wore; false for full-bleed looks. */
++    dragHandle: Boolean = true,
++    content: @Composable ColumnScope.() -> Unit,
++) {
++    val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
++
++    BackHandler(onBack = onDismiss)
++
++    // How far the sheet has been dragged down, in pixels. Released, it either
++    // springs back or goes — see [INLINE_DISMISS_DRAG_FRACTION].
++    var drag by remember { mutableFloatStateOf(0f) }
++    var height by remember { mutableIntStateOf(0) }
++    val offset by animateFloatAsState(
++        targetValue = drag,
++        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
++        label = "inlineSheetOffset",
++    )
++    // Fades with the sheet rather than staying at full strength under a sheet
++    // halfway off the screen.
++    val scrimAlpha = if (height > 0) (1f - offset / height).coerceIn(0f, 1f) else 1f
++
++    var shown by remember { mutableStateOf(false) }
++    LaunchedEffect(Unit) { shown = true }
++    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * maxHeightFraction
++
++    val dismissOnRelease: () -> Unit = {
++        if (height > 0 && drag > height * INLINE_DISMISS_DRAG_FRACTION) onDismiss() else drag = 0f
++    }
++    // The sheet's rows scroll, and that scroll takes the finger before the
++    // drag detector below ever sees it. A pull down past the top of the list
++    // moves the sheet itself, and pushing back up returns it before the list
++    // scrolls again. Kept here rather than handed on to the page, which would
++    // otherwise be dragged down along with the sheet.
++    val sheetScroll = remember {
++        object : NestedScrollConnection {
++            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
++                if (drag <= 0f || available.y >= 0f) return Offset.Zero
++                val used = available.y.coerceAtLeast(-drag)
++                drag += used
++                return Offset(0f, used)
++            }
++
++            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
++                if (source == NestedScrollSource.UserInput && available.y > 0f) drag += available.y
++                if (drag > 0f && available.y < 0f) {
++                    val used = available.y.coerceAtLeast(-drag)
++                    drag += used
++                    return Offset(0f, used)
++                }
++                return Offset.Zero
++            }
++
++            override suspend fun onPreFling(available: Velocity): Velocity {
++                if (drag <= 0f) return Velocity.Zero
++                dismissOnRelease()
++                return available
++            }
++        }
++    }
++
++    Box(
++        modifier = modifier
++            .fillMaxSize()
++            .containSheetGestures()
++            .background(SHEET_SCRIM.copy(alpha = SHEET_SCRIM.alpha * scrimAlpha))
++            .clickable(
++                indication = null,
++                interactionSource = remember { MutableInteractionSource() },
++                onClick = onDismiss,
++            ),
++        contentAlignment = Alignment.BottomCenter,
++    ) {
++        AnimatedVisibility(
++            visible = shown,
++            enter = if (reduceAnimation) {
++                EnterTransition.None
++            } else {
++                slideInVertically(tween(260, easing = FastOutSlowInEasing)) { it }
++            },
++            exit = if (reduceAnimation) ExitTransition.None else slideOutVertically(tween(180)) { it },
++        ) {
++            Column(
++                modifier = Modifier
++                    .heightIn(max = maxHeight)
++                    .widthIn(max = INLINE_SHEET_MAX_WIDTH)
++                    .fillMaxWidth()
++                    .onSizeChanged { height = it.height }
++                    .offset { IntOffset(0, offset.roundToInt()) }
++                    .frostedCard(hazeState, containerColor, shape)
++                    .semantics {
++                        isTraversalGroup = true
++                        paneTitle?.let { this.paneTitle = it }
++                    }
++                    .clickable(
++                        indication = null,
++                        interactionSource = remember { MutableInteractionSource() },
++                        onClick = {},
++                    )
++                    .nestedScroll(sheetScroll)
++                    .pointerInput(Unit) {
++                        detectVerticalDragGestures(
++                            onDragEnd = dismissOnRelease,
++                            onDragCancel = { drag = 0f },
++                        ) { _, delta ->
++                            drag = (drag + delta).coerceAtLeast(0f)
++                        }
++                    }
++                    .imePadding()
++                    .navigationBarsPadding(),
++            ) {
++                if (dragHandle) {
++                    Box(
++                        Modifier
++                            .align(Alignment.CenterHorizontally)
++                            .padding(top = 10.dp, bottom = 4.dp)
++                            .size(width = 32.dp, height = 4.dp)
++                            .clip(CircleShape)
++                            .background(contentColor.copy(alpha = 0.4f)),
++                    )
++                }
++                CompositionLocalProvider(LocalContentColor provides contentColor,
++                    LocalSheetHaze provides hazeState) {
++                    content()
++                }
++            }
++        }
++    }
++}
++
++private val SHEET_SCRIM = Color.Black.copy(alpha = 0.32f)
++
++/**
++ * A centred alert drawn inline, in the page's own window and composition,
++ * instead of a [androidx.compose.ui.window.Dialog]'s window of its own — the
++ * same trade as [InlineFrostSheet]: the card frosts over the page through
++ * [hazeState] while Blur effects is on and draws [containerColor] solid when
++ * it is off. Scrim tap and back both dismiss, and the card is a traversal
++ * group titled [paneTitle]; callers hide the covered page with
++ * [hiddenBehindSheet].
++ */
++@Composable
++fun InlineFrostDialog(
++    onDismiss: () -> Unit,
++    hazeState: HazeState?,
++    modifier: Modifier = Modifier,
++    paneTitle: String? = null,
++    shape: Shape = RoundedCornerShape(ALERT_CORNER),
++    containerColor: Color = MaterialTheme.colorScheme.surface,
++    contentColor: Color = MaterialTheme.colorScheme.onSurface,
++    width: Dp = ALERT_WIDTH,
++    content: @Composable ColumnScope.() -> Unit,
++) {
++    BackHandler(onBack = onDismiss)
++
++    Box(
++        modifier = modifier
++            .fillMaxSize()
++            .containSheetGestures()
++            .background(SHEET_SCRIM)
++            .clickable(
++                indication = null,
++                interactionSource = remember { MutableInteractionSource() },
++                onClick = onDismiss,
++            ),
++        contentAlignment = Alignment.Center,
++    ) {
++        Column(
++            modifier = Modifier
++                .width(width)
++                .frostedCard(hazeState, containerColor, shape)
++                .semantics {
++                    isTraversalGroup = true
++                    paneTitle?.let { this.paneTitle = it }
++                }
++                .clickable(
++                    indication = null,
++                    interactionSource = remember { MutableInteractionSource() },
++                    onClick = {},
++                )
++                .imePadding()
++                .navigationBarsPadding(),
++        ) {
++            CompositionLocalProvider(LocalContentColor provides contentColor,
++                LocalSheetHaze provides hazeState) {
++                content()
++            }
++        }
++    }
++}
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/SongInfoDialog.kt b/app/src/main/java/com/music/bitchord/ui/components/SongInfoDialog.kt
+index 67b6c03..c6e36ad 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/SongInfoDialog.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/SongInfoDialog.kt
+@@ -3,21 +3,17 @@ package com.music.bitchord.ui.components
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.*
+ import androidx.compose.foundation.rememberScrollState
+-import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.foundation.verticalScroll
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+-import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextAlign
+ import androidx.compose.ui.text.style.TextOverflow
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.unit.sp
+-import androidx.compose.ui.window.Dialog
+-import androidx.compose.ui.window.DialogProperties
+ import com.music.bitchord.R
+ import com.music.bitchord.data.SongInfo
+ import com.music.bitchord.data.SongInfoRepository
+@@ -33,11 +29,13 @@ private val INFO_BODY_MAX_HEIGHT = 360.dp
+  * title, hairline [AlertRule]s, full-width [AlertAction]s — rather than a
+  * Material [AlertDialog], so it reads as one of the app's own alerts.
+  *
+- * Kept in a window [Dialog] because it opens from the song actions menu, which
+- * can sit inside the player's own window; an in-tree overlay would be drawn
+- * underneath it. A
+- * separate window can't sample the app's haze, so the card takes the plain
+- * surface the other alerts fall back to under "reduce dynamic blur".
++ * Drawn inline via [InlineFrostDialog], in whatever window hosts the menu it
++ * opens from, so over a page it frosts through the page's haze while Blur
++ * effects is on. Composed inside the song actions menu, it always draws in
++ * the same window as that menu — never underneath the player's window the way
++ * an overlay hoisted to the activity would — and the haze comes down
++ * [LocalSheetHaze], so a menu in the player's source-less window leaves it
++ * the same solid fill the window dialog drew.
+  */
+ @Composable
+ internal fun SongInfoDialog(song: Song, onDismiss: () -> Unit) {
+@@ -48,13 +46,7 @@ internal fun SongInfoDialog(song: Song, onDismiss: () -> Unit) {
+     }
+     val onSurface = MaterialTheme.colorScheme.onSurface
+ 
+-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+-        Column(
+-            Modifier
+-                .width(ALERT_WIDTH)
+-                .clip(RoundedCornerShape(ALERT_CORNER))
+-                .background(MaterialTheme.colorScheme.surface),
+-        ) {
++    InlineFrostDialog(onDismiss = onDismiss, hazeState = LocalSheetHaze.current) {
+             Column(
+                 Modifier
+                     .fillMaxWidth()
+@@ -125,7 +117,6 @@ internal fun SongInfoDialog(song: Song, onDismiss: () -> Unit) {
+                 AlertRule()
+             }
+             AlertAction(label = stringResource(R.string.done), emphasised = true, onClick = onDismiss)
+-        }
+     }
+ }
+ 
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/SpoolPlayerOverflow.kt b/app/src/main/java/com/music/bitchord/ui/components/SpoolPlayerOverflow.kt
+index f75b74e..a3f9b84 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/SpoolPlayerOverflow.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/SpoolPlayerOverflow.kt
+@@ -3,10 +3,7 @@ package com.music.bitchord.ui.components
+ import androidx.compose.foundation.layout.Box
+ import androidx.compose.foundation.layout.heightIn
+ import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.material3.ExperimentalMaterial3Api
+ import androidx.compose.material3.MaterialTheme
+-import androidx.compose.material3.ModalBottomSheet
+-import androidx.compose.material3.rememberModalBottomSheetState
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.CompositionLocalProvider
+ import androidx.compose.runtime.staticCompositionLocalOf
+@@ -15,20 +12,31 @@ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.graphics.luminance
+ import androidx.compose.ui.platform.LocalConfiguration
+ import androidx.compose.ui.unit.dp
++import dev.chrisbanes.haze.HazeState
+ 
+ /** Only the player's overflow opts in; ordinary held-row menus keep their layout. */
+ internal val LocalSpoolPlayerMenu = staticCompositionLocalOf { false }
+ 
+-@OptIn(ExperimentalMaterial3Api::class)
++/**
++ * The player overflow's sheet. Inline, so over a page it frosts through the
++ * page's haze while Blur effects is on; over the player it is composed inside
++ * the player's own window, which has no haze source — the caller passes null
++ * there and the sheet keeps the same solid fill the window sheet drew.
++ */
+ @Composable
+-fun SpoolPlayerOverflow(onDismiss: () -> Unit, content: @Composable () -> Unit) {
++fun SpoolPlayerOverflow(
++    onDismiss: () -> Unit,
++    hazeState: HazeState? = null,
++    content: @Composable () -> Unit,
++) {
+     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+-    ModalBottomSheet(
+-        onDismissRequest = onDismiss,
+-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
++    InlineFrostSheet(
++        onDismiss = onDismiss,
++        hazeState = hazeState,
+         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+         containerColor = if (dark) Color(0xFF1B1B1B) else Color.White,
+         contentColor = if (dark) Color(0xFFF1F1F1) else Color(0xFF1B1B1B),
++        maxHeightFraction = 0.86f,
+     ) {
+         CompositionLocalProvider(LocalSpoolPlayerMenu provides true) {
+             Box(Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.86f)) {
+diff --git a/app/src/main/java/com/music/bitchord/ui/screens/ListenTogetherScreen.kt b/app/src/main/java/com/music/bitchord/ui/screens/ListenTogetherScreen.kt
+index 49d9144..1602c10 100644
+--- a/app/src/main/java/com/music/bitchord/ui/screens/ListenTogetherScreen.kt
++++ b/app/src/main/java/com/music/bitchord/ui/screens/ListenTogetherScreen.kt
+@@ -51,12 +51,12 @@ import androidx.compose.material3.CircularProgressIndicator
+ import androidx.compose.material3.ExperimentalMaterial3Api
+ import androidx.compose.material3.Icon
+ import androidx.compose.material3.MaterialTheme
+-import androidx.compose.material3.ModalBottomSheet
++import com.music.bitchord.ui.components.InlineFrostSheet
+ import com.music.bitchord.ui.components.IosSwitch
+ import androidx.compose.material3.Text
+ import androidx.compose.material3.TextButton
+-import androidx.compose.material3.rememberModalBottomSheetState
+ import androidx.compose.runtime.Composable
++import dev.chrisbanes.haze.HazeState
+ import androidx.compose.runtime.DisposableEffect
+ import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+@@ -137,6 +137,8 @@ fun ListenTogetherScreen(
+     onInviteHandled: () -> Unit = {},
+     onSignIn: () -> Unit,
+     contentPadding: PaddingValues,
++    /** The page's haze, so the party sheets frost over it; null stays solid. */
++    hazeState: HazeState? = null,
+     /**
+      * Opens the server editor, which is mounted at the root rather than here.
+      *
+@@ -166,7 +168,6 @@ fun ListenTogetherScreen(
+     // Hoisted so a sheet can be *animated* away rather than dropped out of the
+     // composition, which is the only way one sheet can hand over to another:
+     // see the invite that follows a create.
+-    val sheetState = rememberModalBottomSheetState()
+ 
+     /**
+      * Hands the create sheet over to the invite sheet, with the party page
+@@ -182,7 +183,6 @@ fun ListenTogetherScreen(
+      * then the invite, from a fresh mount, so it slides.
+      */
+     val showInviteAfterCreate: suspend () -> Unit = {
+-        runCatching { sheetState.hide() }
+         sheet = null
+         delay(INVITE_SHEET_DELAY_MS)
+         // A second is long enough to have gone and opened something else in,
+@@ -347,15 +347,17 @@ fun ListenTogetherScreen(
+     }
+ 
+     sheet?.let { open ->
+-        ModalBottomSheet(
+-            onDismissRequest = {
++        // Inline, so the party sheets frost over the page behind them; the
++        // window sheet they replace could only ever be solid.
++        InlineFrostSheet(
++            onDismiss = {
+                 sheet = null
+                 // Closed with the message unread is still read: leaving it set
+                 // would surface it on the page underneath, as a line about a
+                 // sheet that is no longer there.
+                 failure = null
+             },
+-            sheetState = sheetState,
++            hazeState = hazeState,
+             containerColor = MaterialTheme.colorScheme.surface,
+             shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+         ) {
+diff --git a/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt b/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
+index 17baa1e..4045e48 100644
+--- a/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
++++ b/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
+@@ -20,6 +20,7 @@ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+ import com.github.takahirom.roborazzi.captureRoboImage
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.data.settings.ThemeMode
++import com.music.bitchord.ui.components.InlineFrostSheet
+ import com.music.bitchord.ui.components.frostedCard
+ import com.music.bitchord.ui.theme.BitChordTheme
+ import dev.chrisbanes.haze.HazeState
+@@ -110,6 +111,65 @@ class SpoolFrostScreenshotTest {
+         }
+     }
+ 
++    /**
++     * The same proof for the inline sheet wrapper: the sheet over the busy
++     * backdrop, Blur effects ON versus OFF. ON must frost over the page's
++     * haze; OFF must draw the solid container fill.
++     */
++    private fun sheetShot(name: String, blurOn: Boolean) {
++        val storedBlur = AppSettings.blurEffects.value
++        AppSettings.blurEffects.value = blurOn
++        try {
++            captureRoboImage("build/outputs/roborazzi/$name.png") {
++                BitChordTheme(darkTheme = true) {
++                    SheetScene()
++                }
++            }
++        } finally {
++            AppSettings.blurEffects.value = storedBlur
++        }
++    }
++
++    @Composable
++    private fun SheetScene() {
++        val haze = remember { HazeState() }
++        Box(Modifier.fillMaxSize()) {
++            Canvas(Modifier.fillMaxSize().hazeSource(haze)) {
++                val cell = 24.dp.toPx()
++                var y = 0f
++                var row = 0
++                while (y < size.height) {
++                    var x = 0f
++                    var col = row
++                    while (x < size.width) {
++                        drawRect(
++                            color = when (col % 3) { 0 -> Color(0xFF7A3FF2); 1 -> Color(0xFF00B8A9); else -> Color(0xFFFFC641) },
++                            topLeft = Offset(x, y),
++                            size = Size(cell, cell),
++                        )
++                        x += cell
++                        col++
++                    }
++                    y += cell
++                    row++
++                }
++            }
++            InlineFrostSheet(onDismiss = {}, hazeState = haze) {
++                Text(
++                    text = "Inline sheet",
++                    style = MaterialTheme.typography.titleMedium,
++                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 20.dp),
++                )
++            }
++        }
++    }
++
++    @Test
++    fun inline_sheet_on_dark() = sheetShot("inline_sheet_on_dark", blurOn = true)
++
++    @Test
++    fun inline_sheet_off_dark() = sheetShot("inline_sheet_off_dark", blurOn = false)
++
+     @Test
+     fun frost_on_dark() = frostShot("frost_on_dark", dark = true, blurOn = true)
+ 
+-- 
+2.34.1
