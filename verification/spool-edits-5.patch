@@ -745,10 +745,11 @@ index 5f0d2f4..28a1567 100644
          }
 diff --git a/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 new file mode 100644
-index 0000000..9c16956
+index 0000000..a55709e
 --- /dev/null
 +++ b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,150 @@
++@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 +package com.music.bitchord
 +
 +import androidx.compose.foundation.layout.Box
