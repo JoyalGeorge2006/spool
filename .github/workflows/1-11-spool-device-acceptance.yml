@@ -32,6 +32,8 @@ jobs:
         shutil.copy2(next(candidate.rglob('SHA256SUMS.txt')),root/'apk-out/SHA256SUMS.txt')
         FILES
     - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
     - name: Download and verify the published 2.1.0 universal for upgrade test
       run: |
         set -euo pipefail
