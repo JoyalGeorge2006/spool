@@ -1,0 +1,165 @@
+From ed411f78ab05d3aac6af3fcfa91dc99cb7d3f108 Mon Sep 17 00:00:00 2001
+From: agent <agent@local>
+Date: Fri, 20 Nov 2026 13:21:16 +0530
+Subject: [PATCH] patch-12: capture tests - Roborazzi capture + decodeFile
+ read-back (captureToImage WindowCapture times out under Robolectric, run
+ 44695670032); forced Record taskType so capture also runs under the plain
+ unit-test task
+
+---
+ .../music/bitchord/PlayerArtworkShotTest.kt   | 33 +++++++++++++------
+ .../bitchord/PlayerDrawerFrostShotTest.kt     | 33 +++++++++++++------
+ 2 files changed, 46 insertions(+), 20 deletions(-)
+
+diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+index 60a0214..e831d5f 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+@@ -1,18 +1,21 @@
+ package com.music.bitchord
+ 
+ import android.graphics.Bitmap
++import android.graphics.BitmapFactory
+ import android.net.Uri
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.ui.Modifier
+-import androidx.compose.ui.graphics.asAndroidBitmap
+ import androidx.compose.ui.test.SemanticsNodeInteraction
+-import androidx.compose.ui.test.captureToImage
+ import androidx.compose.ui.test.junit4.createComposeRule
+ import androidx.test.core.app.ApplicationProvider
++import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
++import com.github.takahirom.roborazzi.captureRoboImage
++import com.github.takahirom.roborazzi.RoborazziOptions
++import com.github.takahirom.roborazzi.RoborazziTaskType
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.ui.theme.BitChordTheme
+@@ -43,14 +46,17 @@ import org.robolectric.annotation.GraphicsMode
+  * rememberRemoteArtworkUrl -> artworkAt (file URLs pass through untouched) ->
+  * Coil file fetch.
+  *
+- * Pixels are captured in-JVM with captureToImage, not by reading back a
+- * Roborazzi output file: the plain unit-test task does not run in Roborazzi
+- * record mode, so no output file exists there. The bitmap is also written to
+- * build/outputs/roborazzi so the captures land in the shots artifact either
+- * way. The switch is exercised by toggling the same MutableStateFlow the
++ * Pixels come from Roborazzi's capture path plus a BitmapFactory read-back:
++ * captureToImage is unusable under Robolectric here - its WindowCapture
++ * forceRedraw is never satisfied within the timeout on this runner (run
++ * 44695670032), while captureRoboImage is the path the whole v6 screenshot
++ * set passes with. The capture lands in build/outputs/roborazzi, so the PNGs
++ * reach the shots artifact in record mode.
++ * The switch is exercised by toggling the same MutableStateFlow the
+  * production frost gate collects (rememberFrostEnabled), inside ONE
+  * composition - createComposeRule permits a single setContent per test.
+  */
++@OptIn(ExperimentalRoborazziApi::class)
+ @RunWith(RobolectricTestRunner::class)
+ @GraphicsMode(GraphicsMode.Mode.NATIVE)
+ @Config(sdk = [34], qualifiers = RobolectricDeviceQualifiers.Pixel7)
+@@ -74,11 +80,18 @@ class PlayerArtworkShotTest {
+         compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
+ 
+     private fun captureAndStore(name: String): Bitmap {
+-        val bmp = lastRoot().captureToImage().asAndroidBitmap()
+         val out = File("build/outputs/roborazzi/$name.png")
+         out.parentFile?.mkdirs()
+-        FileOutputStream(out).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+-        return bmp
++        // Force Record task type: the default comes from the roborazzi gradle
++        // task system property, which is None under the plain unit-test task -
++        // captureRoboImage is then a no-op and the read-back would fail. The
++        // record path is the supported capture route on this runner either way.
++        lastRoot().captureRoboImage(
++            out.absolutePath,
++            RoborazziOptions(taskType = RoborazziTaskType.Record),
++        )
++        return BitmapFactory.decodeFile(out.absolutePath)
++            ?: error("$name capture must decode")
+     }
+ 
+     @Test fun artworkBackdropIsSwitchInvariant() {
+diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+index 12650e8..c29da72 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+@@ -1,21 +1,24 @@
+ package com.music.bitchord
+ 
+ import android.graphics.Bitmap
++import android.graphics.BitmapFactory
+ import android.net.Uri
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.ui.Modifier
+-import androidx.compose.ui.graphics.asAndroidBitmap
+ import androidx.compose.ui.test.SemanticsNodeInteraction
+-import androidx.compose.ui.test.captureToImage
+ import androidx.compose.ui.test.junit4.createComposeRule
+ import androidx.compose.uk.test.onAllNodesWithText
+ import androidx.compose.ui.test.onNodeWithText
+ import androidx.compose.ui.test.performClick
+ import androidx.test.core.app.ApplicationProvider
++import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
++import com.github.takahirom.roborazzi.captureRoboImage
++import com.github.takahirom.roborazzi.RoborazziOptions
++import com.github.takahirom.roborazzi.RoborazziTaskType
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.ui.theme.BitChordTheme
+@@ -57,14 +60,17 @@ import org.robolectric.annotation.GraphicsMode
+  * JVM, and a pixel-identity result is a renderer limitation, not a wiring
+  * failure. The branch itself is pinned by PlayerFrostGateTest.
+  *
+- * Pixels are captured in-JVM with captureToImage, not by reading back a
+- * Roborazzi output file: the plain unit-test task does not run in Roborazzi
+- * record mode, so no output file exists there. Each bitmap is also written to
+- * build/outputs/roborazzi so the captures land in the shots artifact either
+- * way. All three captures come from ONE composition - createComposeRule
++ * Pixels come from Roborazzi's capture path plus a BitmapFactory read-back:
++ * captureToImage is unusable under Robolectric here - its WindowCapture
++ * forceRedraw is never satisfied within the timeout on this runner (run
++ * 44695670032), while captureRoboImage is the path the whole v6 screenshot
++ * set passes with. The capture lands in build/outputs/roborazzi, so the PNGs
++ * reach the shots artifact in record mode.
++ * All three captures come from ONE composition - createComposeRule
+  * permits a single setContent per test - with the switch exercised by
+  * toggling the same MutableStateFlow the production frost gate collects.
+  *.
++@OptIn(ExperimentalRoborazziApi::class)
+ @RunWith(RobolectricTestRunner::class)
+ @GraphicsMode(GraphicsMode.Mode.NATIVE)
+ @Config(sdk = [34], qualifiers = RobolectricDeviceTualifiers.Pixel7)
+@@ -88,11 +94,18 @@ class PlayerDrawerFrostShotTest {
+         compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
+ 
+     private fun captureAndStore(name: String): Bitmap {
+-        val bmp = lastRoot().captureToImage().asAndroidBitmap()
+         val out = File("build/outputs/roborazzi/$name.png")
+         out.parentFile?.mkdirs()
+-        FileOutputStream(out).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+-        return bmp
++        // Force Record task type: the default comes from the roborazzi gradle
++        // task system property, which is None under the plain unit-test task -
++        // captureRoboImage is then a no-op and the read-back would fail. The
++        // record path is the supported capture route on this runner either way.
++        lastRoot().captureRoboImage(
++            out.absolutePath,
++            RoborazziOptions(taskType = RoborazziTaskType.Record),
++        )
++        return BitmapFactory.decodeFile(out.absolutePath)
++            ?: error("$name capture must decode")
+     }
+ 
+     private fun assertDrawerOpen() {
+-- 
+2.34.1
+
