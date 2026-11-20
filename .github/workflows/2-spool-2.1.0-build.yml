@@ -15,7 +15,7 @@ name: spool 2.1.0 verification APK (artifact only, no release)
 #      reassembled), sha256-verified
 #      (938ca5b092ea53dba19d6078ffd6655bce56aca8d50ad923e88463d0a6720c37);
 #   2. the single reviewed patch file carried on this branch
-#      (the spool-edits-15 patch, resolved by glob so an upload-UI
+#      (the spool-edits-16 patch, resolved by glob so an upload-UI
 #      numeric filename prefix cannot break the pin), sha256-verified
 #      against its reviewed bytes BEFORE application;
 #   3. the version bump to 2.1.0/versionCode 57 applied as an exact two-line
@@ -24,8 +24,9 @@ name: spool 2.1.0 verification APK (artifact only, no release)
 # extracted source, whose own .gitattributes governs normalization) and must
 # equal the dispatch input expected_tree, or the run fails closed BEFORE any
 # compile. Local dry run of this exact procedure produced
-# 44023cb9fc93ca5960508f81af60e2477ba65e41 (after the material3 fixed-role
-# compatibility fix in ThemeStyleScheme.kt).
+# 41b009a7676cd12d25ecfbd9be57581a01950f9f (after the material3
+# compatibility fixes: no fixed roles exist in this ColorScheme, and the
+# wallpaper seed now comes from the dynamic scheme primary).
 #
 # The lame native dependency is fetched AFTER the tree assertion so the hash
 # covers exactly the reviewed source and nothing else.
@@ -66,9 +67,9 @@ jobs:
       run: |
         set -euo pipefail
         cd "$GITHUB_WORKSPACE"
-        PATCH_FILE=$(ls "$GITHUB_WORKSPACE"/*spool-edits-15.patch)
+        PATCH_FILE=$(ls "$GITHUB_WORKSPACE"/*spool-edits-16.patch)
         echo "reviewed patch: $PATCH_FILE"
-        echo "3650e9ccb38d984e0722bb60d2ddb277875f541eada3f274e6a8347815ed46dd  $PATCH_FILE" | sha256sum -c -
+        echo "b11ce6d166b8f3bc9096fe751e38b20c81cfc7d6e67f031672a79085029094ab  $PATCH_FILE" | sha256sum -c -
         echo "PATCH_FILE=$PATCH_FILE" >> "$GITHUB_ENV"
 
     - name: Materialize exact reviewed source (pinned tarball + verified patch + version bump)
