@@ -1,0 +1,318 @@
+From b58f2694c57014028db8de563220c80169d2c3f6 Mon Sep 17 00:00:00 2001
+From: agent <agent@local>
+Date: Fri, 20 Nov 2026 12:30:12 +0530
+Subject: [PATCH] patch-10: repair 2 new capture tests (single setContent +
+ captureToImage in-JVM pixels + manual PNG write)
+
+---
+ .../music/bitchord/PlayerArtworkShotTest.kt   | 62 +++++++-----
+ .../bitchord/PlayerDrawerFrostShotTest.kt     | 95 +++++++++++--------
+ .../ui/player/RelatedMusicPanelTest.kt        | 14 ++-
+ 3 files changed, 108 insertions(+), 63 deletions(-)
+
+diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+index 7f4599f..60a0214 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+@@ -1,17 +1,18 @@
+ package com.music.bitchord
+ 
+ import android.graphics.Bitmap
+-import android.graphics.BitmapFactory
+ import android.net.Uri
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.asAndroidBitmap
++import androidx.compose.ui.test.SemanticsNodeInteraction
++import androidx.compose.ui.test.captureToImage
+ import androidx.compose.ui.test.junit4.createComposeRule
+ import androidx.test.core.app.ApplicationProvider
+ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+-import com.github.takahirom.roborazzi.captureRoboImage
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.ui.theme.BitChordTheme
+@@ -41,6 +42,14 @@ import org.robolectric.annotation.GraphicsMode
+  * The artwork travels the production path: Song.thumbnailUrl ->
+  * rememberRemoteArtworkUrl -> artworkAt (file URLs pass through untouched) ->
+  * Coil file fetch.
++ *
++ * Pixels are captured in-JVM with captureToImage, not by reading back a
++ * Roborazzi output file: the plain unit-test task does not run in Roborazzi
++ * record mode, so no output file exists there. The bitmap is also written to
++ * build/outputs/roborazzi so the captures land in the shots artifact either
++ * way. The switch is exercised by toggling the same MutableStateFlow the
++ * production frost gate collects (rememberFrostEnabled), inside ONE
++ * composition - createComposeRule permits a single setContent per test.
+  */
+ @RunWith(RobolectricTestRunner::class)
+ @GraphicsMode(GraphicsMode.Mode.NATIVE)
+@@ -61,11 +70,27 @@ class PlayerArtworkShotTest {
+         return Uri.fromFile(file).toString()
+     }
+ 
+-    private fun renderWithArt(v6: V6ScreenshotTest, art: String, blur: Boolean, name: String): File {
++    private fun lastRoot(): SemanticsNodeInteraction =
++        compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
++
++    private fun captureAndStore(name: String): Bitmap {
++        val bmp = lastRoot().captureToImage().asAndroidBitmap()
++        val out = File("build/outputs/roborazzi/$name.png")
++        out.parentFile?.mkdirs()
++        FileOutputStream(out).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
++        return bmp
++    }
++
++    @Test fun artworkBackdropIsSwitchInvariant() {
++        val art = writeFixtureArt()
++        val v6 = V6ScreenshotTest()
++        v6.installUiHost()
++        val restore = v6.installVideoStubHost()
+         val storedTheme = AppSettings.themeMode.value
+-        AppSettings.setThemeMode(ThemeMode.DARK)
+-        AppSettings.blurEffects.value = blur
++        val oldBlur = AppSettings.blurEffects.value
+         try {
++            AppSettings.setThemeMode(ThemeMode.DARK)
++            AppSettings.blurEffects.value = true
+             compose.setContent {
+                 BitChordTheme(darkTheme = true) {
+                     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+@@ -75,26 +100,16 @@ class PlayerArtworkShotTest {
+             }
+             // Coil loads the file asynchronously; give it settled frames.
+             repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+-            compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
+-                .captureRoboImage("build/outputs/roborazzi/$name.png")
+-            return File("build/outputs/roborazzi/$name.png")
+-        } finally {
+-            AppSettings.setThemeMode(storedTheme)
+-        }
+-    }
++            val on = captureAndStore("player_artwork_blur_on_dark")
+ 
+-    @Test fun artworkBackdropIsSwitchInvariant() {
+-        val art = writeFixtureArt()
+-        val v6 = V6ScreenshotTest()
+-        v6.installUiHost()
+-        val restore = v6.installVideoStubHost()
+-        val oldBlur = AppSettings.blurEffects.value
+-        try {
+-            val onPng = renderWithArt(v6, art, blur = true, name = "player_artwork_blur_on_dark")
+-            val offPng = renderWithArt(v6, art, blur = false, name = "player_artwork_blur_off_dark")
++            // Flip the very flow the production frost gate collects; the
++            // composition recomposes in place, no second setContent.
++            AppSettings.blurEffects.value = false
++            compose.mainClock.advanceTimeBy(500)
++            compose.waitForIdle()
++            repeat(4) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
++            val off = captureAndStore("player_artwork_blur_off_dark")
+ 
+-            val on = BitmapFactory.decodeFile(onPng.absolutePath) ?: error("ON capture must decode")
+-            val off = BitmapFactory.decodeFile(offPng.absolutePath) ?: error("OFF capture must decode")
+             Assert.assertTrue("captures must be the same size", on.width == off.width && on.height == off.height)
+ 
+             // A horizontal band through the hero artwork (fractions of the
+@@ -121,6 +136,7 @@ class PlayerArtworkShotTest {
+             )
+         } finally {
+             AppSettings.blurEffects.value = oldBlur
++            AppSettings.setThemeMode(storedTheme)
+             com.music.bitchord.ui.player.PlayerPlatform.install(restore)
+         }
+     }
+diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+index 8db9880..12650e8 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+@@ -1,20 +1,21 @@
+ package com.music.bitchord
+ 
+ import android.graphics.Bitmap
+-import android.graphics.BitmapFactory
+ import android.net.Uri
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.asAndroidBitmap
++import androidx.compose.ui.test.SemanticsNodeInteraction
++import androidx.compose.ui.test.captureToImage
+ import androidx.compose.ui.test.junit4.createComposeRule
+ import androidx.compose.ui.test.onAllNodesWithText
+ import androidx.compose.ui.test.onNodeWithText
+ import androidx.compose.ui.test.performClick
+ import androidx.test.core.app.ApplicationProvider
+ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+-import com.github.takahirom.roborazzi.captureRoboImage
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.ui.theme.BitChordTheme
+@@ -55,6 +56,14 @@ import org.robolectric.annotation.GraphicsMode
+  * asserted: Skiko may render haze identically in both switch positions on the
+  * JVM, and a pixel-identity result is a renderer limitation, not a wiring
+  * failure. The branch itself is pinned by PlayerFrostGateTest.
++ *
++ * Pixels are captured in-JVM with captureToImage, not by reading back a
++ * Roborazzi output file: the plain unit-test task does not run in Roborazzi
++ * record mode, so no output file exists there. Each bitmap is also written to
++ * build/outputs/roborazzi so the captures land in the shots artifact either
++ * way. All three captures come from ONE composition - createComposeRule
++ * permits a single setContent per test - with the switch exercised by
++ * toggling the same MutableStateFlow the production frost gate collects.
+  */
+ @RunWith(RobolectricTestRunner::class)
+ @GraphicsMode(GraphicsMode.Mode.NATIVE)
+@@ -75,11 +84,32 @@ class PlayerDrawerFrostShotTest {
+         return Uri.fromFile(file).toString()
+     }
+ 
+-    private fun render(v6: V6ScreenshotTest, art: String, blur: Boolean, openDrawer: Boolean, name: String): File {
++    private fun lastRoot(): SemanticsNodeInteraction =
++        compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
++
++    private fun captureAndStore(name: String): Bitmap {
++        val bmp = lastRoot().captureToImage().asAndroidBitmap()
++        val out = File("build/outputs/roborazzi/$name.png")
++        out.parentFile?.mkdirs()
++        FileOutputStream(out).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
++        return bmp
++    }
++
++    private fun assertDrawerOpen() {
++        compose.onNodeWithText("Choose lyrics provider").assertExists()
++        compose.onNodeWithText("BiniLyrics").assertExists()
++    }
++
++    @Test fun productionDrawerOpensOverRealArtwork() {
++        val art = writeFixtureArt()
++        val v6 = V6ScreenshotTest()
++        v6.installUiHost()
++        val restore = v6.installVideoStubHost()
+         val storedTheme = AppSettings.themeMode.value
+-        AppSettings.setThemeMode(ThemeMode.DARK)
+-        AppSettings.blurEffects.value = blur
++        val oldBlur = AppSettings.blurEffects.value
+         try {
++            AppSettings.setThemeMode(ThemeMode.DARK)
++            AppSettings.blurEffects.value = true
+             compose.setContent {
+                 BitChordTheme(darkTheme = true) {
+                     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+@@ -89,41 +119,29 @@ class PlayerDrawerFrostShotTest {
+             }
+             // Coil loads the file asynchronously; give it settled frames.
+             repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+-            if (openDrawer) {
+-                // Production entry point: tap the live lyric strip to open the
+-                // lyrics pane, then the status caption the player wires to the
+-                // provider sheet. Both fail loudly if the wiring breaks.
+-                compose.onAllNodesWithText("First line of the song")[0].performClick()
+-                compose.waitForIdle()
+-                compose.onNodeWithText("Lyrics by lrc.red").performClick()
+-                compose.waitForIdle()
+-                compose.mainClock.advanceTimeBy(1000)
+-                compose.waitForIdle()
+-                compose.onNodeWithText("Choose lyrics provider").assertExists()
+-                compose.onNodeWithText("BiniLyrics").assertExists()
+-            }
+-            compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
+-                .captureRoboImage("build/outputs/roborazzi/$name.png")
+-            return File("build/outputs/roborazzi/$name.png")
+-        } finally {
+-            AppSettings.setThemeMode(storedTheme)
+-        }
+-    }
++            val control = captureAndStore("player_drawer_control_on_dark")
+ 
+-    @Test fun productionDrawerOpensOverRealArtwork() {
+-        val art = writeFixtureArt()
+-        val v6 = V6ScreenshotTest()
+-        v6.installUiHost()
+-        val restore = v6.installVideoStubHost()
+-        val oldBlur = AppSettings.blurEffects.value
+-        try {
+-            val controlPng = render(v6, art, blur = true, openDrawer = false, name = "player_drawer_control_on_dark")
+-            val onPng = render(v6, art, blur = true, openDrawer = true, name = "player_drawer_frost_on_dark")
+-            val offPng = render(v6, art, blur = false, openDrawer = true, name = "player_drawer_frost_off_dark")
++            // Production entry point: tap the live lyric strip to open the
++            // lyrics pane, then the status caption the player wires to the
++            // provider sheet. Both fail loudly if the wiring breaks.
++            compose.onAllNodesWithText("First line of the song")[0].performClick()
++            compose.waitForIdle()
++            compose.onNodeWithText("Lyrics by lrc.red").performClick()
++            compose.waitForIdle()
++            compose.mainClock.advanceTimeBy(1000)
++            compose.waitForIdle()
++            assertDrawerOpen()
++            val on = captureAndStore("player_drawer_frost_on_dark")
++
++            // Flip the very flow the production frost gate collects; the
++            // composition recomposes in place, no second setContent.
++            AppSettings.blurEffects.value = false
++            compose.mainClock.advanceTimeBy(500)
++            compose.waitForIdle()
++            repeat(4) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
++            assertDrawerOpen()
++            val off = captureAndStore("player_drawer_frost_off_dark")
+ 
+-            val control = BitmapFactory.decodeFile(controlPng.absolutePath) ?: error("control capture must decode")
+-            val on = BitmapFactory.decodeFile(onPng.absolutePath) ?: error("ON capture must decode")
+-            val off = BitmapFactory.decodeFile(offPng.absolutePath) ?: error("OFF capture must decode")
+             Assert.assertTrue(
+                 "captures must be the same size",
+                 control.width == on.width && control.height == on.height && on.width == off.width && on.height == off.height,
+@@ -160,6 +178,7 @@ class PlayerDrawerFrostShotTest {
+             )
+         } finally {
+             AppSettings.blurEffects.value = oldBlur
++            AppSettings.setThemeMode(storedTheme)
+             com.music.bitchord.ui.player.PlayerPlatform.install(restore)
+         }
+     }
+diff --git a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt
+index 0bdd45e..8c45cfa 100644
+--- a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt
++++ b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt
+@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.runtime.CompositionLocalProvider
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.semantics.SemanticsActions
+ import androidx.compose.ui.test.*
+ import androidx.compose.ui.unit.dp
+ import com.music.bitchord.data.model.Song
+@@ -54,7 +55,13 @@ class RelatedMusicPanelTest {
+         onNodeWithText("Track a").assertIsDisplayed()
+         assertEquals(emptyList(), played); assertEquals(emptyList(), added)
+         onNodeWithText("Track a").performClick()
+-        onNodeWithContentDescription("Add Track a to queue").performClick()
++        // Production exposes the add affordance as a semantics custom action on
++        // the row (RelatedMusicPanel.kt:183), not a contentDescription node.
++        val addAction = onNodeWithTag("related-track-a").fetchSemanticsNode()
++            .config.getOrNull(SemanticsActions.CustomActions)
++            ?.firstOrNull { it.label == "Add Track a to queue" }
++            ?: error("add-to-queue custom action must exist when unlocked")
++        assertEquals(true, addAction.action())
+         assertEquals(listOf("a"), played); assertEquals(listOf("a"), added)
+     }
+ 
+@@ -64,7 +71,10 @@ class RelatedMusicPanelTest {
+         mount(locked = true, played = played, added = added)
+         waitForIdle()
+         onNodeWithText("Track a").assertIsDisplayed()
+-        onNodeWithContentDescription("Add Track a to queue").assertIsNotEnabled()
++        // Locked: production removes the custom action entirely.
++        val lockedActions = onNodeWithTag("related-track-a").fetchSemanticsNode()
++            .config.getOrNull(SemanticsActions.CustomActions).orEmpty()
++        assertEquals(true, lockedActions.none { it.label == "Add Track a to queue" })
+         onNodeWithTag("related-track-a").assertIsNotEnabled()
+         assertEquals(emptyList(), played); assertEquals(emptyList(), added)
+     }
+-- 
+2.34.1
+
