@@ -1,0 +1,296 @@
+From 25262b189f8dfcb77fe87559ffe5eff63def6022 Mon Sep 17 00:00:00 2001
+From: Instinct Agent <agent@instinct.com>
+Date: Fri, 20 Nov 2026 11:26:29 +0530
+Subject: [PATCH] Verification: scrolling Appearance harness, lyrics scroll
+ reachability, artwork-backed player shot
+
+- AppearanceMatrixTest: host Column gains verticalScroll to match the production
+  settings sheet (SettingsSheet.kt:502); fillMaxHeight cards then wrap content
+  as shipped. Checker source fixed to 800dp height (fillMaxSize collapses under
+  unbounded constraints). Equal-card weight(1f) intent untouched.
+- LyricsSourcesDialogScrollTest (new): swipes the capped sources list and
+  asserts the last row enters the viewport fully; Reset/Done stay put.
+- PlayerArtworkShotTest (new): real checker artwork through the production
+  Coil path, Blur on vs off; asserts the artwork band is real (not the
+  placeholder) and pixel-identical across the switch (backdrop is
+  unconditional; overlay frost gate is covered by PlayerFrostGateTest).
+- V6ScreenshotTest.PlayerShot: optional artworkUrl param (default null, all
+  existing captures unchanged).
+---
+ .../music/bitchord/AppearanceMatrixTest.kt    |  12 +-
+ .../bitchord/LyricsSourcesDialogScrollTest.kt |  69 ++++++++++
+ .../music/bitchord/PlayerArtworkShotTest.kt   | 128 ++++++++++++++++++
+ .../com/music/bitchord/V6ScreenshotTest.kt    |   5 +-
+ 4 files changed, 211 insertions(+), 3 deletions(-)
+ create mode 100644 app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+ create mode 100644 app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+
+diff --git a/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt b/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
+index 9816638..5249381 100644
+--- a/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
++++ b/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
+@@ -3,6 +3,8 @@ package com.music.bitchord
+ 
+ import androidx.compose.foundation.Canvas
+ import androidx.compose.foundation.background
++import androidx.compose.foundation.rememberScrollState
++import androidx.compose.foundation.verticalScroll
+ import androidx.compose.foundation.layout.*
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.rounded.*
+@@ -51,12 +53,18 @@ class AppearanceMatrixTest {
+      BitChordTheme(darkTheme=dark,palette=palette) {
+       val haze=remember { HazeState() }
+       Box(Modifier.width(390.dp).height(800.dp).testTag("appearance-matrix").drawWithContent { println("APPEARANCE_CANVAS sdk=${android.os.Build.VERSION.SDK_INT} hardware=${drawContext.canvas.nativeCanvas.isHardwareAccelerated}");drawContent() }) {
+-       Column(Modifier.fillMaxSize().hazeSource(haze).background(MaterialTheme.colorScheme.background)) {
++       // Production host shape (SettingsSheet.kt:502): the page content scrolls,
++       // so PaletteCards' fillMaxHeight meets an UNBOUNDED height constraint and
++       // wraps its content. A fixed non-scrolling column made it fill the
++       // viewport instead - a harness artifact, not the shipped layout.
++       Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).hazeSource(haze).background(MaterialTheme.colorScheme.background)) {
+         Text("Appearance",color=MaterialTheme.colorScheme.onBackground,style=MaterialTheme.typography.headlineMedium,modifier=Modifier.padding(16.dp))
+         PaletteCards(selected=palette,onSelect={},modifier=Modifier.padding(horizontal=12.dp))
+         Spacer(Modifier.height(16.dp))
+         Text(if(blur)"Blur effects: on" else "Blur effects: off",color=MaterialTheme.colorScheme.onBackground,modifier=Modifier.padding(16.dp))
+-        if(checker) Canvas(Modifier.fillMaxSize()) {
++        // Fixed height rather than fillMaxSize: under verticalScroll the child
++        // gets unbounded height, where fillMaxSize would collapse to zero.
++        if(checker) Canvas(Modifier.fillMaxWidth().height(800.dp)) {
+          for(y in 0..100) for(x in 0..40) drawRect(if((x+y)%2==0)Color.Black else Color.White,androidx.compose.ui.geometry.Offset(x*12f,y*12f),androidx.compose.ui.geometry.Size(12f,12f))
+         } else repeat(18) { i ->
+          Row(Modifier.fillMaxWidth().height(48.dp).background(if(i%2==0)Color(0xFF6750A4) else Color(0xFF25836C))) {
+diff --git a/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt b/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+new file mode 100644
+index 0000000..ce21313
+--- /dev/null
++++ b/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+@@ -0,0 +1,69 @@
++package com.music.bitchord
++
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.runtime.remember
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.test.*
++import androidx.compose.ui.test.junit4.createComposeRule
++import com.music.bitchord.ui.components.LyricsSourcesDialog
++import com.music.bitchord.ui.theme.BitChordTheme
++import dev.chrisbanes.haze.HazeState
++import kotlin.test.assertTrue
++import org.junit.Rule
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import org.robolectric.annotation.GraphicsMode
++
++/**
++ * The lyrics-sources list is intentionally capped and scrollable
++ * (LyricsSourcesDialog.kt ReorderableSourceList: heightIn(max = SOURCES_MAX_HEIGHT)
++ * + verticalScroll), so a static capture shows the tail row clipped at the
++ * viewport boundary. This proves that boundary is a scroll viewport, not an
++ * unreachable row or an overlap: swiping inside the list must bring the last
++ * source fully into the viewport, while Reset and Done never leave the card.
++ */
++@RunWith(RobolectricTestRunner::class)
++@GraphicsMode(GraphicsMode.Mode.NATIVE)
++@Config(sdk = [34], qualifiers = com.github.takahirom.roborazzi.RobolectricDeviceQualifiers.Pixel7)
++class LyricsSourcesDialogScrollTest {
++    @get:Rule val compose = createComposeRule()
++
++    @Test fun lastSourceRowScrollsFullyIntoView() {
++        V6ScreenshotTest().installUiHost()
++        compose.setContent {
++            BitChordTheme(darkTheme = true) {
++                val haze = remember { HazeState() }
++                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
++                    LyricsSourcesDialog(haze, {})
++                }
++            }
++        }
++        compose.waitForIdle()
++
++        val scroller = compose.onAllNodes(hasScrollAction()).onFirst()
++        scroller.assertExists()
++
++        repeat(8) {
++            scroller.performTouchInput { swipeUp(center, center.copy(y = center.y - 400f)) }
++            compose.waitForIdle()
++        }
++
++        val viewport = scroller.fetchSemanticsNode().boundsInRoot
++        val lastRow = compose.onNodeWithText("PaxSenix: Musixmatch")
++        lastRow.assertIsDisplayed()
++        val row = lastRow.fetchSemanticsNode().boundsInRoot
++        assertTrue(
++            row.top >= viewport.top && row.bottom <= viewport.bottom,
++            "last source row must be fully inside the scrolled viewport (row=$row viewport=$viewport)",
++        )
++
++        // The actions below the capped list stay put the whole time.
++        compose.onNodeWithText("Reset to default").assertIsDisplayed()
++        compose.onNodeWithText("Done").assertIsDisplayed()
++    }
++}
+diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+new file mode 100644
+index 0000000..6b602c3
+--- /dev/null
++++ b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+@@ -0,0 +1,128 @@
++package com.music.bitchord
++
++import android.graphics.Bitmap
++import android.graphics.BitmapFactory
++import android.net.Uri
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.test.junit4.createComposeRule
++import androidx.test.core.app.ApplicationProvider
++import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
++import com.github.takahirom.roborazzi.captureRoboImage
++import com.music.bitchord.data.settings.AppSettings
++import com.music.bitchord.data.settings.ThemeMode
++import com.music.bitchord.ui.theme.BitChordTheme
++import java.io.File
++import java.io.FileOutputStream
++import kotlin.test.assertTrue
++import org.junit.Rule
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import org.robolectric.annotation.GraphicsMode
++
++/**
++ * The player over REAL artwork, Blur effects on vs off. The empty-artwork
++ * captures (player_dark/light) have a uniform backdrop, which can prove
++ * nothing about full-player blur wiring.
++ *
++ * What this pins down, per the production design:
++ * - the artwork backdrop is UNCONDITIONAL (a per-song 128px decode + CPU
++ *   blur, NowPlayingScreen prewarm stage 1) - it must NOT flip with the
++ *   switch, so the artwork band must be pixel-identical between ON and OFF;
++ * - the switch-gated part is the overlay frost over the player (the exact
++ *   PlayerDrawer.kt conditional), which PlayerFrostGateTest already renders
++ *   and asserts over busy art.
++ *
++ * The artwork travels the production path: Song.thumbnailUrl ->
++ * rememberRemoteArtworkUrl -> artworkAt (file URLs pass through untouched) ->
++ * Coil file fetch.
++ */
++@RunWith(RobolectricTestRunner::class)
++@GraphicsMode(GraphicsMode.Mode.NATIVE)
++@Config(sdk = [34], qualifiers = RobolectricDeviceQualifiers.Pixel7)
++class PlayerArtworkShotTest {
++    @get:Rule val compose = createComposeRule()
++
++    private fun writeFixtureArt(): String {
++        val size = 512
++        val cell = 32
++        val colors = intArrayOf(0xFFE53935.toInt(), 0xFF1E88E5.toInt(), 0xFFFDD835.toInt(), 0xFF43A047.toInt())
++        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
++        for (y in 0 until size) for (x in 0 until size) {
++            bmp.setPixel(x, y, colors[((x / cell) + (y / cell)) % 4])
++        }
++        val file = File(ApplicationProvider.getApplicationContext<android.content.Context>().cacheDir, "fixture_art.png")
++        FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
++        return Uri.fromFile(file).toString()
++    }
++
++    private fun renderWithArt(v6: V6ScreenshotTest, art: String, blur: Boolean, name: String): File {
++        val storedTheme = AppSettings.themeMode.value
++        AppSettings.setThemeMode(ThemeMode.DARK)
++        AppSettings.blurEffects.value = blur
++        try {
++            compose.setContent {
++                BitChordTheme(darkTheme = true) {
++                    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
++                        v6.PlayerShot(artworkUrl = art)
++                    }
++                }
++            }
++            // Coil loads the file asynchronously; give it settled frames.
++            repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
++            compose.onAllNodes(androidx.compose.ui.test.isRoot()).onLast()
++                .captureRoboImage("build/outputs/roborazzi/$name.png")
++            return File("build/outputs/roborazzi/$name.png")
++        } finally {
++            AppSettings.setThemeMode(storedTheme)
++        }
++    }
++
++    @Test fun artworkBackdropIsSwitchInvariant() {
++        val art = writeFixtureArt()
++        val v6 = V6ScreenshotTest()
++        v6.installUiHost()
++        val restore = v6.installVideoStubHost()
++        val oldBlur = AppSettings.blurEffects.value
++        try {
++            val onPng = renderWithArt(v6, art, blur = true, name = "player_artwork_blur_on_dark")
++            val offPng = renderWithArt(v6, art, blur = false, name = "player_artwork_blur_off_dark")
++
++            val on = BitmapFactory.decodeFile(onPng.absolutePath)
++            val off = BitmapFactory.decodeFile(offPng.absolutePath)
++            assertTrue(on != null && off != null, "both captures must decode")
++            assertTrue(on.width == off.width && on.height == off.height, "captures must be the same size")
++
++            // A horizontal band through the hero artwork (fractions of the
++            // frame, so the exact layout may move a little without breaking this).
++            val y = (on.height * 0.38).toInt()
++            val x0 = (on.width * 0.25).toInt()
++            val x1 = (on.width * 0.75).toInt()
++
++            // 1. Real artwork, not the placeholder tile: a placeholder band is
++            //    near-uniform (background + at most the note glyph edge); the
++            //    checker fixture yields several saturated colors per band.
++            val onColors = (x0 until x1).map { on.getPixel(it, y) }.toSet()
++            assertTrue(
++                onColors.size >= 3,
++                "artwork band must show the loaded fixture art, not the placeholder (found ${onColors.size} colors)",
++            )
++
++            // 2. Switch invariance: the unconditional backdrop must not change
++            //    with Blur effects. Exact pixel equality across the band.
++            val mismatches = (x0 until x1).count { on.getPixel(it, y) != off.getPixel(it, y) }
++            assertTrue(
++                mismatches == 0,
++                "artwork backdrop must be identical with Blur effects on and off ($mismatches of ${x1 - x0} band pixels differ)",
++            )
++        } finally {
++            AppSettings.blurEffects.value = oldBlur
++            com.music.bitchord.ui.player.PlayerPlatform.install(restore)
++        }
++    }
++}
+diff --git a/app/src/test/java/com/music/bitchord/V6ScreenshotTest.kt b/app/src/test/java/com/music/bitchord/V6ScreenshotTest.kt
+index 94d4c74..9168209 100644
+--- a/app/src/test/java/com/music/bitchord/V6ScreenshotTest.kt
++++ b/app/src/test/java/com/music/bitchord/V6ScreenshotTest.kt
+@@ -739,6 +739,9 @@ class V6ScreenshotTest {
+         jumpRequest: (Int) -> Unit = {}, moveRequest: (Int,Int) -> Unit = {_,_->},
+         playRequest: () -> Unit = {}, seekRequest: (Long) -> Unit = {}, fractionRequest: (Float) -> Unit = {},
+         fixturePosition: com.music.bitchord.playback.PlaybackPosition? = null,
++        // Real artwork through the production Coil path; null keeps every
++        // existing capture byte-identical (placeholder tile).
++        artworkUrl: String? = null,
+     ) {
+         val position = androidx.compose.runtime.remember { com.music.bitchord.playback.PlaybackPosition() }
+         com.music.bitchord.ui.player.NowPlayingScreen(
+@@ -746,7 +749,7 @@ class V6ScreenshotTest {
+                 videoId = "t1",
+                 title = titleText,
+                 artist = "Nova Rae",
+-                thumbnailUrl = null,
++                thumbnailUrl = artworkUrl,
+                 durationText = "3:48",
+                 isVideo = video,
+             ),
+-- 
+2.34.1
+
