@@ -1,0 +1,595 @@
+From 89789723ec15a911274afd94131a449b5a8e9fb9 Mon Sep 17 00:00:00 2001
+From: review <review@local>
+Date: Fri, 20 Nov 2026 08:38:17 +0530
+Subject: [PATCH 1/4] frost tint 60/55 central helper; MY surface remap;
+ palette cards equal height + live dots; light secondary text to 4.8:1
+
+---
+ .../ui/components/FloatingBottomBar.kt        | 11 +---
+ .../bitchord/ui/components/MiniPlayer.kt      |  7 +--
+ .../bitchord/ui/components/SpoolFrost.kt      | 55 +++++++++++++++++++
+ .../bitchord/ui/screens/SettingsSheet.kt      | 26 ++++++++-
+ .../java/com/music/bitchord/ui/theme/Theme.kt | 20 +++++--
+ 5 files changed, 98 insertions(+), 21 deletions(-)
+ create mode 100644 app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt
+
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt b/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt
+index d91855a..aa5ecf5 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/FloatingBottomBar.kt
+@@ -188,8 +188,7 @@ fun FloatingBottomBar(
+     // Blur effects (Appearance): frosts the bar over what scrolls beneath it,
+     // Android 12+ only, tint included so labels keep their contrast. Off, or
+     // below 12: the flat v6 surface. The mini player makes the same choice.
+-    val blurEffects by AppSettings.blurEffects.collectAsStateWithLifecycle()
+-    val frost = blurEffects && isGlassSupported()
++    val frost = rememberFrostEnabled()
+     // Large text gets two rows rather than clipped labels in four narrow cells.
+     if (LocalDensity.current.fontScale >= 1.5f) {
+         Column(modifier.windowInsetsPadding(floatingBarInsets).padding(horizontal = NAV_BAR_GUTTER)
+@@ -198,9 +197,7 @@ fun FloatingBottomBar(
+                 if (frost) {
+                     Modifier.hazeEffect(
+                         state = hazeState,
+-                        style = HazeMaterials.regular(MaterialTheme.colorScheme.surface).copy(
+-                            fallbackTint = HazeTint(MaterialTheme.colorScheme.surface),
+-                        ),
++                        style = SpoolFrost.style(MaterialTheme.colorScheme.surface),
+                     )
+                 } else {
+                     Modifier.background(MaterialTheme.colorScheme.surface)
+@@ -303,9 +300,7 @@ fun FloatingBottomBar(
+                 if (frost) {
+                     Modifier.hazeEffect(
+                         state = hazeState,
+-                        style = HazeMaterials.regular(container).copy(
+-                            fallbackTint = HazeTint(container),
+-                        ),
++                        style = SpoolFrost.style(container),
+                     )
+                 } else {
+                     Modifier.background(container)
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt b/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt
+index 334ff47..ab94d78 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt
+@@ -399,8 +399,7 @@ fun MiniPlayer(
+     // Android 12+ only. Haze's material carries the tint, so the glyphs keep
+     // their contrast on the same layer that blurs. Off, or below 12: the flat
+     // v6 surface.
+-    val blurEffects by AppSettings.blurEffects.collectAsStateWithLifecycle()
+-    val frost = blurEffects && isGlassSupported()
++    val frost = rememberFrostEnabled()
+     // percent rather than a dp figure, so the corner stays exactly half the
+     // height if the row's contents ever change it — which is what keeps a pill
+     // a pill instead of a rounded rectangle. Same idiom as [FloatingBottomBar]
+@@ -435,9 +434,7 @@ fun MiniPlayer(
+                 if (frost) {
+                     Modifier.hazeEffect(
+                         state = hazeState,
+-                        style = HazeMaterials.regular(MaterialTheme.colorScheme.surface).copy(
+-                            fallbackTint = HazeTint(MaterialTheme.colorScheme.surface),
+-                        ),
++                        style = SpoolFrost.style(MaterialTheme.colorScheme.surface),
+                     )
+                 } else {
+                     Modifier.background(MaterialTheme.colorScheme.surface)
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt b/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt
+new file mode 100644
+index 0000000..b289d96
+--- /dev/null
++++ b/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt
+@@ -0,0 +1,55 @@
++package com.music.bitchord.ui.components
++
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.getValue
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.luminance
++import androidx.compose.ui.unit.dp
++import androidx.lifecycle.compose.collectAsStateWithLifecycle
++import com.music.bitchord.data.settings.AppSettings
++import dev.chrisbanes.haze.HazeStyle
++import dev.chrisbanes.haze.HazeTint
++
++/**
++ * Spool's frost material, in one place so every frosted surface draws the same
++ * glass.
++ *
++ * The recipe is Haze's "regular" material - 24dp blur, the container colour
++ * carried in the material so glyphs keep their contrast on the layer that
++ * blurs - with a lighter tint: 60% on dark containers, 55% on light. That
++ * pair is the starting level from the blur study (the lightest step whose
++ * measured weakest-spot contrast still cleared the 4.5:1 text floor in the
++ * comparison render), to be confirmed against this native renderer on a real
++ * phone and tuned here if it misses.
++ *
++ * Solid fallback: the container colour at full opacity, drawn by Haze where
++ * blur cannot run, and by callers for the Blur effects switch off or below
++ * Android 12.
++ */
++object SpoolFrost {
++    const val DarkTintAlpha = 0.60f
++    const val LightTintAlpha = 0.55f
++    val BlurRadius = 24.dp
++
++    fun style(containerColor: Color): HazeStyle = HazeStyle(
++        blurRadius = BlurRadius,
++        backgroundColor = containerColor,
++        tint = HazeTint(
++            containerColor.copy(
++                alpha = if (containerColor.luminance() >= 0.5f) LightTintAlpha else DarkTintAlpha,
++            ),
++        ),
++        fallbackTint = HazeTint(containerColor),
++    )
++}
++
++/**
++ * True when the Blur effects switch (Settings - Appearance) is on and this
++ * phone can run real backdrop blur (Android 12+). Every frosted surface gates
++ * on this, so the switch and the solid fallback behave the same everywhere.
++ */
++@Composable
++fun rememberFrostEnabled(): Boolean {
++    val blurEffects by AppSettings.blurEffects.collectAsStateWithLifecycle()
++    return blurEffects && isGlassSupported()
++}
+diff --git a/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt b/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
+index 042d313..cb27593 100644
+--- a/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
++++ b/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
+@@ -24,7 +24,12 @@ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.PaddingValues
+ import androidx.compose.foundation.layout.Row
+ import androidx.compose.foundation.layout.Spacer
++import androidx.compose.foundation.isSystemInDarkTheme
++import androidx.compose.material3.dynamicDarkColorScheme
++import androidx.compose.material3.dynamicLightColorScheme
++import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.fillMaxHeight
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.heightIn
+@@ -1863,11 +1868,25 @@ private fun PaletteMode.description(): String = stringResource(
+     }
+ )
+ 
+-/** Three dots standing for the palette, matching the cards shown when it was picked. */
++/** Three dots standing for the palette, sampled live where the phone offers them. */
++@Composable
+ private fun PaletteMode.swatches(): List<Color> = when (this) {
+     PaletteMode.ASTRYX -> listOf(Color(0xFF1B1B1B), Color(0xFF6F6F6F), Color(0xFFE4E4E4))
+-    // The fixed Material 3 baseline tones used below Android 12.
+-    PaletteMode.MATERIAL_YOU -> listOf(Color(0xFF6750A4), Color(0xFFD0BCFF), Color(0xFFEADDFF))
++    PaletteMode.MATERIAL_YOU ->
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++            // The phone's own wallpaper-derived tones, so the preview shows the
++            // palette Material You will actually draw, not a fixed stand-in.
++            val context = LocalContext.current
++            val scheme = if (isSystemInDarkTheme()) {
++                dynamicDarkColorScheme(context)
++            } else {
++                dynamicLightColorScheme(context)
++            }
++            listOf(scheme.primary, scheme.secondary, scheme.tertiary)
++        } else {
++            // The fixed Material 3 baseline tones used below Android 12.
++            listOf(Color(0xFF6750A4), Color(0xFFD0BCFF), Color(0xFFEADDFF))
++        }
+ }
+ 
+ /**
+@@ -1889,6 +1908,7 @@ internal fun PaletteCards(
+             Column(
+                 modifier = Modifier
+                     .weight(1f)
++                    .fillMaxHeight()
+                     .clip(RoundedCornerShape(16.dp))
+                     .background(MaterialTheme.colorScheme.surfaceVariant)
+                     .border(
+diff --git a/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt b/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt
+index ce7074a..397dcb7 100644
+--- a/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt
++++ b/app/src/main/java/com/music/bitchord/ui/theme/Theme.kt
+@@ -75,7 +75,7 @@ private val LightColors = lightColorScheme(
+     surface = Color(0xFFFFFFFF),
+     onSurface = Color(0xFF000000),
+     surfaceVariant = Color(0xFFFFFFFF),
+-    onSurfaceVariant = Color(0xFF6F6F6F),
++    onSurfaceVariant = Color(0xFF6A6A6A),
+     outline = Color(0x0F000000),
+     primaryContainer = Color(0xFFE4E4E4),
+     onPrimaryContainer = Color(0xFF1B1B1B),
+@@ -278,11 +278,21 @@ fun BitChordTheme(
+     content: @Composable () -> Unit,
+ ) {
+     val colorScheme = when {
+-        palette == PaletteMode.MATERIAL_YOU && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+-            val context = LocalContext.current
+-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
++        palette == PaletteMode.MATERIAL_YOU -> {
++            val base = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++                val context = LocalContext.current
++                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
++            } else {
++                if (darkTheme) FixedM3Dark else FixedM3Light
++            }
++            // Material You sets `surface` equal to `background`, so every card
++            // and bar drawn with `surface` disappears into the page. Google's
++            // own surface guidance draws contained areas from the raised
++            // container tones instead, so hand `surface` the low container
++            // tone: cards and bars read against the page again, in the
++            // wallpaper's own palette.
++            base.copy(surface = base.surfaceContainerLow)
+         }
+-        palette == PaletteMode.MATERIAL_YOU -> if (darkTheme) FixedM3Dark else FixedM3Light
+         else -> if (darkTheme) DarkColors else LightColors
+     }
+     MaterialTheme(
+-- 
+2.34.1
+
+
+From f82bf574e697ca329bca62c69efe94ab945d31a4 Mon Sep 17 00:00:00 2001
+From: review <review@local>
+Date: Fri, 20 Nov 2026 08:45:44 +0530
+Subject: [PATCH 2/4] frost menus (iosMenuPanel one-point + held-item plate)
+ and alert cards (5 dialogs + AlertScaffold) via frostedCard helper
+
+---
+ .../bitchord/ui/components/AccountAlerts.kt   |  3 +--
+ .../ui/components/AccountChannelDialog.kt     |  3 +--
+ .../ui/components/AppLanguageDialog.kt        |  3 +--
+ .../bitchord/ui/components/HeldContextMenu.kt | 12 ++++++++--
+ .../music/bitchord/ui/components/IosMenu.kt   | 15 +++++++++---
+ .../ui/components/LyricsSourcesDialog.kt      |  3 +--
+ .../bitchord/ui/components/SpoolFrost.kt      | 24 +++++++++++++++++++
+ .../components/TranslationLanguageDialog.kt   |  3 +--
+ 8 files changed, 51 insertions(+), 15 deletions(-)
+
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/AccountAlerts.kt b/app/src/main/java/com/music/bitchord/ui/components/AccountAlerts.kt
+index 7a75855..a02e86b 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/AccountAlerts.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/AccountAlerts.kt
+@@ -978,8 +978,7 @@ internal fun AlertScaffold(
+             modifier = Modifier
+                 .width(ALERT_WIDTH)
+                 .then(if (scrollContent) Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp - 32).coerceAtLeast(160).dp) else Modifier)
+-                .clip(shape)
+-                .background(MaterialTheme.colorScheme.surface)
++                .frostedCard(if (frosted) hazeState else null, MaterialTheme.colorScheme.surface, shape)
+                 .then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                 .clickable(
+                     indication = null,
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/AccountChannelDialog.kt b/app/src/main/java/com/music/bitchord/ui/components/AccountChannelDialog.kt
+index f682080..722e94b 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/AccountChannelDialog.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/AccountChannelDialog.kt
+@@ -85,8 +85,7 @@ fun AccountChannelDialog(
+         Column(
+             modifier = Modifier
+                 .width(ALERT_WIDTH)
+-                .clip(shape)
+-                .background(MaterialTheme.colorScheme.surface)
++                .frostedCard(hazeState, MaterialTheme.colorScheme.surface, shape)
+                 // Swallows the tap before it reaches the scrim behind, so
+                 // touching the card itself never dismisses it.
+                 .clickable(
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/AppLanguageDialog.kt b/app/src/main/java/com/music/bitchord/ui/components/AppLanguageDialog.kt
+index a2e9d9b..bab2271 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/AppLanguageDialog.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/AppLanguageDialog.kt
+@@ -147,8 +147,7 @@ fun AppLanguageDialog(
+         Column(
+             modifier = Modifier
+                 .width(ALERT_WIDTH)
+-                .clip(shape)
+-                .background(MaterialTheme.colorScheme.surface)
++                .frostedCard(hazeState, MaterialTheme.colorScheme.surface, shape)
+                 // Swallows the tap before it reaches the scrim behind, so
+                 // touching the card itself never dismisses it.
+                 .clickable(
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt b/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
+index de94ee4..dbbfc57 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
+@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.ui.player.additiveChrome
+ import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.hazeEffect
+ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+ import dev.chrisbanes.haze.materials.HazeMaterials
+ import kotlin.math.roundToInt
+@@ -133,6 +134,7 @@ fun <T : Any> HeldContextMenu(
+ 
+     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+     val plain by AppSettings.disableBlendEffects.collectAsStateWithLifecycle()
++    val frost = rememberFrostEnabled()
+     // Plain white or black at half strength, so the blur shows through as
+     // frost rather than the surface greys reading as a flat slab over it. With
+     // no blur behind there is nothing for that to frost, so the plate firms up
+@@ -181,7 +183,13 @@ fun <T : Any> HeldContextMenu(
+                 Modifier
+                     .pointerInput(Unit) {}
+                     .clip(cardShape)
+-                    .background(plate)
++                    .then(
++                        if (frost) {
++                            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(plate))
++                        } else {
++                            Modifier.background(plate)
++                        },
++                    )
+                     .border(0.5.dp, hairline, cardShape)
+                     .then(
+                         if (onPreviewClick != null) {
+@@ -207,7 +215,7 @@ fun <T : Any> HeldContextMenu(
+                     .pointerInput(Unit) {}
+                     // The same frosted plate the held item sits on, so the
+                     // item and its menu read as one thing lifted off the page.
+-                    .iosMenuPanel(fillOverride = plate, rimOverride = hairline)
++                    .iosMenuPanel(hazeState = hazeState, fillOverride = plate, rimOverride = hairline)
+                     .padding(vertical = 8.dp),
+             ) {
+                 // Added onto the plate, on a dark one only: see [IosMenuPopover].
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/IosMenu.kt b/app/src/main/java/com/music/bitchord/ui/components/IosMenu.kt
+index 42d2a48..7d915c5 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/IosMenu.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/IosMenu.kt
+@@ -78,6 +78,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.ui.components.backdrop.backdrops.SnapshotBackdrop
+ import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.hazeEffect
+ import kotlinx.coroutines.flow.first
+ import kotlinx.coroutines.withTimeoutOrNull
+ import kotlin.math.roundToInt
+@@ -182,11 +183,19 @@ fun Modifier.iosMenuPanel(
+     /** False where the caller casts [iosMenuShadow] itself, apart from the panel. */
+     castsShadow: Boolean = true,
+ ): Modifier {
+-    // Flat: the panel is its solid slab in every state — no frost, no blur,
+-    // nothing of the page showing through.
+     val fill = fillOverride ?: colors.fill
+     val shadowed = if (castsShadow) iosMenuShadow() else this
+-    val surface = shadowed.clip(IosMenuShape).background(fill)
++    // Blur effects (Appearance): the slab frosts over the page's own haze, the
++    // material's tint keeping the rows legible over busy art. Switch off,
++    // below Android 12, or no haze to sample: the flat slab, unchanged.
++    val frost = rememberFrostEnabled()
++    val surface = shadowed.clip(IosMenuShape).then(
++        if (frost && hazeState != null) {
++            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(fill))
++        } else {
++            Modifier.background(fill)
++        },
++    )
+     return surface
+         .clip(IosMenuShape)
+         .border(0.5.dp, rimOverride ?: colors.rim, IosMenuShape)
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/LyricsSourcesDialog.kt b/app/src/main/java/com/music/bitchord/ui/components/LyricsSourcesDialog.kt
+index 80ef677..1593e9e 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/LyricsSourcesDialog.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/LyricsSourcesDialog.kt
+@@ -111,8 +111,7 @@ fun LyricsSourcesDialog(
+         Column(
+             modifier = Modifier
+                 .width(ALERT_WIDTH)
+-                .clip(shape)
+-                .background(MaterialTheme.colorScheme.surface)
++                .frostedCard(hazeState, MaterialTheme.colorScheme.surface, shape)
+                 // Swallows the tap before it reaches the scrim behind, so
+                 // touching the card itself never dismisses it.
+                 .clickable(
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt b/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt
+index b289d96..9ec9360 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/SpoolFrost.kt
+@@ -2,13 +2,19 @@ package com.music.bitchord.ui.components
+ 
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.clip
++import androidx.compose.foundation.background
++import androidx.compose.ui.graphics.Shape
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.graphics.luminance
+ import androidx.compose.ui.unit.dp
+ import androidx.lifecycle.compose.collectAsStateWithLifecycle
+ import com.music.bitchord.data.settings.AppSettings
++import dev.chrisbanes.haze.HazeState
+ import dev.chrisbanes.haze.HazeStyle
+ import dev.chrisbanes.haze.HazeTint
++import dev.chrisbanes.haze.hazeEffect
+ 
+ /**
+  * Spool's frost material, in one place so every frosted surface draws the same
+@@ -53,3 +59,21 @@ fun rememberFrostEnabled(): Boolean {
+     val blurEffects by AppSettings.blurEffects.collectAsStateWithLifecycle()
+     return blurEffects && isGlassSupported()
+ }
++
++/**
++ * The alert/sheet card material: frosts over the page's own haze when Blur
++ * effects is on and this window can sample it, else the solid container fill.
++ * In a separate window (a real Popup/Dialog the haze cannot reach) Haze draws
++ * the style's opaque fallback tint, which is the same solid fill.
++ */
++@Composable
++fun Modifier.frostedCard(hazeState: HazeState?, container: Color, shape: Shape): Modifier {
++    val frost = rememberFrostEnabled()
++    return clip(shape).then(
++        if (frost && hazeState != null) {
++            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(container))
++        } else {
++            Modifier.background(container)
++        },
++    )
++}
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/TranslationLanguageDialog.kt b/app/src/main/java/com/music/bitchord/ui/components/TranslationLanguageDialog.kt
+index 6737dea..5833d25 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/TranslationLanguageDialog.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/TranslationLanguageDialog.kt
+@@ -117,8 +117,7 @@ fun TranslationLanguageDialog(
+         Column(
+             modifier = Modifier
+                 .width(ALERT_WIDTH)
+-                .clip(shape)
+-                .background(MaterialTheme.colorScheme.surface)
++                .frostedCard(hazeState, MaterialTheme.colorScheme.surface, shape)
+                 .clickable(
+                     indication = null,
+                     interactionSource = remember { MutableInteractionSource() },
+-- 
+2.34.1
+
+
+From ae7c1b815c1675ac924b1ed27db9ef07f15ec374 Mon Sep 17 00:00:00 2001
+From: review <review@local>
+Date: Fri, 20 Nov 2026 08:46:54 +0530
+Subject: [PATCH 3/4] frost top bar on scroll, search field pill, cast/pipeline
+ popup cards
+
+---
+ .../bitchord/ui/components/AudioPopupCard.kt  |  7 +---
+ .../bitchord/ui/components/FrostedTopBar.kt   | 33 +++++++++++++++----
+ 2 files changed, 28 insertions(+), 12 deletions(-)
+
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt b/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt
+index b8f4411..eb5ed7c 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt
+@@ -80,12 +80,7 @@ internal fun AudioPopupCard(
+         Column(
+             modifier = Modifier
+                 .width(POPUP_WIDTH)
+-                .clip(POPUP_CARD_SHAPE)
+-                .then(
+-                    // The ⋯ menu's frost — see [PlayerDrawer], whose drawers
+-                    // these popups open from.
+-                    Modifier.background(MenuFrostDark)
+-                )
++                .frostedCard(hazeState, MenuFrostDark, POPUP_CARD_SHAPE)
+                 // Swallows the tap before it reaches the scrim behind, so
+                 // touching the card itself never dismisses it.
+                 .clickable(
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/FrostedTopBar.kt b/app/src/main/java/com/music/bitchord/ui/components/FrostedTopBar.kt
+index 92dcd53..82ca70c 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/FrostedTopBar.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/FrostedTopBar.kt
+@@ -86,6 +86,7 @@ import com.music.bitchord.data.model.Account
+ import com.music.bitchord.data.settings.AppSettings
+ import com.music.bitchord.ui.theme.stableStatusBarInsets
+ import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.hazeEffect
+ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+ import dev.chrisbanes.haze.materials.HazeMaterials
+ import kotlin.math.roundToInt
+@@ -204,6 +205,7 @@ fun FrostedTopBar(
+     actions: @Composable () -> Unit = {},
+ ) {
+     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
++    val frost = rememberFrostEnabled()
+     val useFloatingChrome = artworkPageChrome ||
+         (LocalLiquidGlassEnabled.current && isGlassSupported())
+     val titleAlpha by animateFloatAsState(
+@@ -239,6 +241,14 @@ fun FrostedTopBar(
+                     )
+                 } else if (reduceDynamicBlur && !transparentBackdrop) {
+                     Modifier.background(MaterialTheme.colorScheme.surface)
++                } else if (frost && backButtonHazeState != null && scrolled()) {
++                    // Blur effects (Appearance): once the page has scrolled
++                    // under the bar, the bar frosts over it. At rest the
++                    // page's own top stays the backdrop, as it is today.
++                    Modifier.hazeEffect(
++                        state = backButtonHazeState,
++                        style = SpoolFrost.style(MaterialTheme.colorScheme.surface),
++                    )
+                 } else Modifier,
+             ),
+     ) {
+@@ -366,7 +376,7 @@ fun FrostedTopBar(
+             ) {
+                 if (accessory != null) {
+                     Box(Modifier.weight(1f)) {
+-                        AccessoryPill(content = accessory)
++                        AccessoryPill(hazeState = backButtonHazeState, content = accessory)
+                     }
+                     Spacer(Modifier.width(ACCESSORY_GAP))
+                 }
+@@ -455,19 +465,30 @@ private fun ActionsRow(modifier: Modifier, content: @Composable () -> Unit) {
+ }
+ 
+ /**
+- * The bar's accessory — the Search tab's field — as a flat rounded block at
+- * the height of the controls beside it, in the field's own solid fill.
+- * Cornered like the app's other inputs, not a pill.
++ * The bar's accessory — the Search tab's field — as a rounded block at the
++ * height of the controls beside it. Blur effects frosts it over the page like
++ * the bars; otherwise the field's own solid fill. Cornered like the app's
++ * other inputs, not a pill.
+  */
+ @Composable
+-private fun AccessoryPill(content: @Composable () -> Unit) {
++private fun AccessoryPill(hazeState: HazeState?, content: @Composable () -> Unit) {
+     val shape = RoundedCornerShape(12.dp)
++    val frost = rememberFrostEnabled()
+     Box(
+         modifier = Modifier
+             .fillMaxWidth()
+             .height(TOP_CONTROL_SIZE)
+             .clip(shape)
+-            .background(MaterialTheme.colorScheme.surfaceVariant),
++            .then(
++                if (frost && hazeState != null) {
++                    Modifier.hazeEffect(
++                        state = hazeState,
++                        style = SpoolFrost.style(MaterialTheme.colorScheme.surfaceVariant),
++                    )
++                } else {
++                    Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
++                },
++            ),
+     ) {
+         CompositionLocalProvider(LocalSearchFieldOnSurface provides true, content = content)
+     }
+-- 
+2.34.1
+
+
+From 3465f6f8349c8bfd1168396a2219178e01636a15 Mon Sep 17 00:00:00 2001
+From: Instinct Agent <agent@instinct.com>
+Date: Fri, 20 Nov 2026 08:50:32 +0530
+Subject: [PATCH 4/4] player popup cards stay solid: no haze source exists for
+ playerHaze, tint is not blur (sheets-solid decision applied to AudioPopupCard
+ family)
+
+---
+ .../com/music/bitchord/ui/components/AudioPopupCard.kt     | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt b/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt
+index eb5ed7c..180a575 100644
+--- a/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt
++++ b/app/src/main/java/com/music/bitchord/ui/components/AudioPopupCard.kt
+@@ -80,7 +80,12 @@ internal fun AudioPopupCard(
+         Column(
+             modifier = Modifier
+                 .width(POPUP_WIDTH)
+-                .frostedCard(hazeState, MenuFrostDark, POPUP_CARD_SHAPE)
++                // Solid, not frosted: these popups are hosted by the player and
++                // receive the player's own haze state, which has no haze source
++                // registered in the flat design - a haze effect here would draw
++                // a bare tint and call it blur. They stay opaque until the
++                // player-world frost system is separately reinstated.
++                .frostedCard(null, MenuFrostDark, POPUP_CARD_SHAPE)
+                 // Swallows the tap before it reaches the scrim behind, so
+                 // touching the card itself never dismisses it.
+                 .clickable(
+-- 
+2.34.1
+
