@@ -19,7 +19,7 @@ jobs:
         curl -fL -o /tmp/source.tar.gz https://github.com/JoyalGeorge2006/spool/releases/download/v2.1.0-theme-preview/spool-v2.1.0-source.tar.gz
         echo '03c03c7530a87b7586a06f9901f4a7d023b21a26b8625fd62bb6c83533866ddc  /tmp/source.tar.gz' | sha256sum -c -
         mkdir -p "$RUNNER_TEMP/asset"
-        tar xzf /tmp/source.tar.gz -C "$RUNNER_TEMP/asset"
+        tar xzf /tmp/source.tar.gz -C "$RUNNER_TEMP/asset" --strip-components=1
         cd "$RUNNER_TEMP/asset"
         git init -q
         git add -A
