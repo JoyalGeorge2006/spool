@@ -745,10 +745,10 @@ index 5f0d2f4..28a1567 100644
          }
 diff --git a/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 new file mode 100644
-index 0000000..e7e8195
+index 0000000..ab47146
 --- /dev/null
 +++ b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,117 @@
 +package com.music.bitchord
 +
 +import androidx.compose.foundation.layout.Box
@@ -763,8 +763,9 @@ index 0000000..e7e8195
 +import androidx.compose.ui.geometry.Offset
 +import androidx.compose.ui.semantics.SemanticsProperties
 +import androidx.compose.ui.test.SemanticsMatcher
-+import androidx.compose.ui.test.assertDoesNotExist
-+import androidx.compose.ui.test.assertExists
++import androidx.compose.ui.test.SemanticsNodeInteraction
++import androidx.compose.ui.test.assertIsDisplayed
++import androidx.compose.ui.test.fetchSemanticsNode
 +import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 +import androidx.compose.runtime.SideEffect
 +import androidx.compose.ui.test.junit4.createComposeRule
@@ -798,6 +799,19 @@ index 0000000..e7e8195
 +
 +    private var backPress: (() -> Unit)? = null
 +
++    // This repo's resolved ui-test artifact predates assertExists /
++    // assertDoesNotExist, so existence is probed through fetchSemanticsNode,
++    // the helper every other test in the tree uses.
++    private fun SemanticsNodeInteraction.exists(): Boolean = try {
++        fetchSemanticsNode()
++        true
++    } catch (e: AssertionError) {
++        false
++    }
++
++    private fun SemanticsNodeInteraction.assertAbsent() =
++        org.junit.Assert.assertFalse("expected no matching semantics node", exists())
++
 +    private fun scene() {
 +        compose.setContent {
 +            BitChordTheme {
@@ -823,11 +837,12 @@ index 0000000..e7e8195
 +    fun coveredPageLeavesSemanticsTree() {
 +        scene()
 +        compose.waitForIdle()
-+        compose.onNodeWithText("page body").assertDoesNotExist()
-+        compose.onNodeWithText("sheet body").assertExists()
++        compose.onNodeWithText("page body").assertAbsent()
++        compose.onNodeWithText("sheet body").assertIsDisplayed()
++        // Throws when the pane-title carrier is missing: existence check.
 +        compose.onNode(
 +            SemanticsMatcher("carries the pane title") { SemanticsProperties.PaneTitle in it.config },
-+        ).assertExists()
++        ).fetchSemanticsNode()
 +    }
 +
 +    @Test
@@ -837,8 +852,8 @@ index 0000000..e7e8195
 +        // The scrim above the sheet, well clear of the sheet's rounded top.
 +        compose.onRoot().performTouchInput { click(Offset(centerX, 30f)) }
 +        compose.waitForIdle()
-+        compose.onNodeWithText("sheet body").assertDoesNotExist()
-+        compose.onNodeWithText("page body").assertExists()
++        compose.onNodeWithText("sheet body").assertAbsent()
++        compose.onNodeWithText("page body").assertIsDisplayed()
 +    }
 +
 +    @Test
@@ -847,8 +862,8 @@ index 0000000..e7e8195
 +        compose.waitForIdle()
 +        compose.runOnUiThread { backPress?.invoke() }
 +        compose.waitForIdle()
-+        compose.onNodeWithText("sheet body").assertDoesNotExist()
-+        compose.onNodeWithText("page body").assertExists()
++        compose.onNodeWithText("sheet body").assertAbsent()
++        compose.onNodeWithText("page body").assertIsDisplayed()
 +    }
 +}
 diff --git a/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt b/app/src/test/java/com/music/bitchord/SpoolFrostScreenshotTest.kt
