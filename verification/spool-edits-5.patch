@@ -745,11 +745,10 @@ index 5f0d2f4..28a1567 100644
          }
 diff --git a/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 new file mode 100644
-index 0000000..a55709e
+index 0000000..b336801
 --- /dev/null
 +++ b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
-@@ -0,0 +1,150 @@
-+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@@ -0,0 +1,146 @@
 +package com.music.bitchord
 +
 +import androidx.compose.foundation.layout.Box
@@ -764,19 +763,16 @@ index 0000000..a55709e
 +import androidx.compose.ui.geometry.Offset
 +import androidx.compose.ui.semantics.SemanticsNode
 +import androidx.compose.ui.semantics.SemanticsProperties
-+import androidx.compose.ui.semantics.getOrElse
 +import androidx.compose.ui.test.SemanticsMatcher
 +import androidx.compose.ui.test.SemanticsNodeInteraction
 +import androidx.compose.ui.test.assertIsDisplayed
-+import androidx.compose.ui.test.fetchSemanticsNode
-+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-+import androidx.compose.runtime.SideEffect
++import androidx.compose.ui.test.click
 +import androidx.compose.ui.test.junit4.createComposeRule
-+import androidx.compose.ui.test.onAllNodes
 +import androidx.compose.ui.test.onNodeWithText
 +import androidx.compose.ui.test.onRoot
 +import androidx.compose.ui.test.performTouchInput
-+import androidx.compose.ui.test.click
++import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
++import androidx.compose.runtime.SideEffect
 +import dev.chrisbanes.haze.HazeState
 +import com.music.bitchord.ui.components.InlineFrostSheet
 +import com.music.bitchord.ui.components.hiddenBehindSheet
@@ -803,11 +799,11 @@ index 0000000..a55709e
 +
 +    private var backPress: (() -> Unit)? = null
 +
-+    // This repo's resolved ui-test artifact predates assertExists /
-+    // assertDoesNotExist, so existence is probed through fetchSemanticsNode,
-+    // the helper every other test in the tree uses. The catch is the
-+    // specific not-found assertion fetchSemanticsNode throws; anything else
-+    // still fails the test.
++    // Existence is probed through fetchSemanticsNode, the helper every
++    // other test in the tree uses (a member of SemanticsNodeInteraction in
++    // ui-test 1.7.6, so no import exists or is needed). The catch is the
++    // specific not-found assertion fetchSemanticsNode throws; anything
++    // else still fails the test.
 +    private fun SemanticsNodeInteraction.exists(): Boolean = try {
 +        fetchSemanticsNode()
 +        true
