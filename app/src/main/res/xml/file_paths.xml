@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only Replay posters are shared through FileProvider. APK installation uses
+     a private verified candidate streamed into PackageInstaller, not a content URI. -->
+<paths>
+    <cache-path name="shared" path="shared/" />
+</paths>

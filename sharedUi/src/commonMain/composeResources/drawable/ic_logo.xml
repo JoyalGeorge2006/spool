@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+  <!-- spool "negplay" mark: wound reel ring + disc with negative-space play triangle -->
+  <path
+      android:fillColor="#00000000"
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="5"
+      android:pathData="M48,48 m-34,0 a34,34 0 1,1 68,0 a34,34 0 1,1 -68,0"/>
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:fillType="evenOdd"
+      android:pathData="M26,48 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0 z M43,39 l14,9 -14,9 z"/>
+</vector>
