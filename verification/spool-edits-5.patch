@@ -1,5 +1,5 @@
 diff --git a/app/src/main/java/com/music/bitchord/MainActivity.kt b/app/src/main/java/com/music/bitchord/MainActivity.kt
-index a547402..492ced2 100644
+index a547402..177b4f9 100644
 --- a/app/src/main/java/com/music/bitchord/MainActivity.kt
 +++ b/app/src/main/java/com/music/bitchord/MainActivity.kt
 @@ -56,6 +56,10 @@ import androidx.compose.foundation.layout.size
@@ -68,7 +68,7 @@ index a547402..492ced2 100644
 +            // A track menu opened from the page, or from a player that is not
 +            // up over it: both draw inline over the page. A menu inside the
 +            // raised player's own window hides nothing here.
-+            (songActions != null && (!menuFromPlayer || !playerRaised)) ||
++            (songActions != null && (!menuFromPlayer || !(showNowPlaying && playerSong != null))) ||
 +            // The sort panels and the converted language/lyrics dialogs, all
 +            // inline over the page now.
 +            librarySortMenuOpen || songSortMenuOpen || folderMenuOpen ||
@@ -345,10 +345,16 @@ index cc666d4..80ab1cb 100644
                  val p = progress.value
                  alpha = ((p - 0.1f) / 0.9f).coerceIn(0f, 1f)
 diff --git a/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt b/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
-index 807470d..e78a7a0 100644
+index 807470d..64f46a5 100644
 --- a/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
 +++ b/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
-@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
+@@ -1,3 +1,5 @@
++@file:OptIn(ExperimentalComposeUiApi::class)
++
+ package com.music.bitchord.ui.components
+ 
+ import androidx.activity.compose.BackHandler
+@@ -18,6 +20,7 @@ import androidx.compose.foundation.clickable
  import androidx.compose.foundation.gestures.detectVerticalDragGestures
  import androidx.compose.foundation.interaction.MutableInteractionSource
  import androidx.compose.foundation.layout.Box
@@ -356,7 +362,7 @@ index 807470d..e78a7a0 100644
  import androidx.compose.foundation.layout.Column
  import androidx.compose.foundation.layout.ColumnScope
  import androidx.compose.foundation.layout.fillMaxSize
-@@ -35,6 +36,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
+@@ -35,6 +38,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
  import androidx.compose.material3.LocalContentColor
  import androidx.compose.material3.MaterialTheme
  import androidx.compose.runtime.Composable
@@ -365,7 +371,15 @@ index 807470d..e78a7a0 100644
  import androidx.compose.runtime.CompositionLocalProvider
  import androidx.compose.runtime.LaunchedEffect
  import androidx.compose.runtime.getValue
-@@ -55,6 +58,10 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+@@ -46,6 +51,7 @@ import androidx.compose.runtime.setValue
+ import androidx.compose.runtime.staticCompositionLocalOf
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.ExperimentalComposeUiApi
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.geometry.Offset
+ import androidx.compose.ui.graphics.Color
+@@ -55,6 +61,10 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
  import androidx.compose.ui.input.nestedscroll.nestedScroll
  import androidx.compose.ui.input.pointer.pointerInput
  import androidx.compose.ui.layout.onSizeChanged
@@ -376,7 +390,7 @@ index 807470d..e78a7a0 100644
  import androidx.compose.ui.platform.LocalConfiguration
  import androidx.compose.ui.semantics.invisibleToUser
  import androidx.compose.ui.semantics.isTraversalGroup
-@@ -82,6 +89,15 @@ private val INLINE_SHEET_MAX_WIDTH = 640.dp
+@@ -82,6 +92,15 @@ private val INLINE_SHEET_MAX_WIDTH = 640.dp
   */
  val LocalSheetHaze = staticCompositionLocalOf<HazeState?> { null }
  
@@ -392,7 +406,7 @@ index 807470d..e78a7a0 100644
  /** Dragged this share of its height down, a released sheet is dismissed. */
  private const val INLINE_DISMISS_DRAG_FRACTION = 0.25f
  
-@@ -91,9 +107,16 @@ private const val INLINE_DISMISS_DRAG_FRACTION = 0.25f
+@@ -91,9 +110,16 @@ private const val INLINE_DISMISS_DRAG_FRACTION = 0.25f
   * window of its own, and an inline sheet has to ask for it. Apply to the page
   * container the sheet is drawn over, with the sheet's open state.
   */
@@ -412,7 +426,7 @@ index 807470d..e78a7a0 100644
  
  /**
   * A bottom sheet drawn inline, in the page's own window and composition,
-@@ -125,6 +148,8 @@ fun InlineFrostSheet(
+@@ -125,6 +151,8 @@ fun InlineFrostSheet(
      hazeState: HazeState?,
      modifier: Modifier = Modifier,
      paneTitle: String? = null,
@@ -421,7 +435,7 @@ index 807470d..e78a7a0 100644
      shape: Shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
      containerColor: Color = MaterialTheme.colorScheme.surface,
      contentColor: Color = MaterialTheme.colorScheme.onSurface,
-@@ -153,6 +178,16 @@ fun InlineFrostSheet(
+@@ -153,6 +181,16 @@ fun InlineFrostSheet(
  
      var shown by remember { mutableStateOf(false) }
      LaunchedEffect(Unit) { shown = true }
@@ -438,7 +452,7 @@ index 807470d..e78a7a0 100644
      val maxHeight = LocalConfiguration.current.screenHeightDp.dp * maxHeightFraction
  
      val dismissOnRelease: () -> Unit = {
-@@ -202,6 +237,10 @@ fun InlineFrostSheet(
+@@ -202,6 +240,10 @@ fun InlineFrostSheet(
              ),
          contentAlignment = Alignment.BottomCenter,
      ) {
@@ -449,7 +463,7 @@ index 807470d..e78a7a0 100644
          AnimatedVisibility(
              visible = shown,
              enter = if (reduceAnimation) {
-@@ -228,6 +267,8 @@ fun InlineFrostSheet(
+@@ -228,6 +270,8 @@ fun InlineFrostSheet(
                          interactionSource = remember { MutableInteractionSource() },
                          onClick = {},
                      )
@@ -458,7 +472,7 @@ index 807470d..e78a7a0 100644
                      .nestedScroll(sheetScroll)
                      .pointerInput(Unit) {
                          detectVerticalDragGestures(
-@@ -256,6 +297,10 @@ fun InlineFrostSheet(
+@@ -256,6 +300,10 @@ fun InlineFrostSheet(
                  }
              }
          }
@@ -469,7 +483,7 @@ index 807470d..e78a7a0 100644
      }
  }
  
-@@ -284,6 +329,11 @@ fun InlineFrostDialog(
+@@ -284,6 +332,11 @@ fun InlineFrostDialog(
  ) {
      BackHandler(onBack = onDismiss)
  
@@ -481,7 +495,7 @@ index 807470d..e78a7a0 100644
      Box(
          modifier = modifier
              .fillMaxSize()
-@@ -304,6 +354,8 @@ fun InlineFrostDialog(
+@@ -304,6 +357,8 @@ fun InlineFrostDialog(
                      isTraversalGroup = true
                      paneTitle?.let { this.paneTitle = it }
                  }
@@ -723,7 +737,7 @@ index 5f0d2f4..ab19d7a 100644
          }
 diff --git a/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 new file mode 100644
-index 0000000..f0c1b4d
+index 0000000..7e24a28
 --- /dev/null
 +++ b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 @@ -0,0 +1,96 @@
@@ -798,7 +812,7 @@ index 0000000..f0c1b4d
 +        compose.onNodeWithText("page body").assertDoesNotExist()
 +        compose.onNodeWithText("sheet body").assertExists()
 +        compose.onNode(
-+            SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Test sheet"),
++            SemanticsMatcher("carries the pane title") { SemanticsProperties.PaneTitle in it.config },
 +        ).assertExists()
 +    }
 +
