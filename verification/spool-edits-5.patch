@@ -1,8 +1,8 @@
 diff --git a/app/src/main/java/com/music/bitchord/MainActivity.kt b/app/src/main/java/com/music/bitchord/MainActivity.kt
-index a547402..c4e44db 100644
+index a547402..f4d6f8e 100644
 --- a/app/src/main/java/com/music/bitchord/MainActivity.kt
 +++ b/app/src/main/java/com/music/bitchord/MainActivity.kt
-@@ -56,6 +56,10 @@ import androidx.compose.foundation.layout.size
+@@ -56,8 +56,11 @@ import androidx.compose.foundation.layout.size
  import androidx.compose.foundation.layout.width
  import androidx.compose.foundation.layout.statusBars
  import androidx.compose.foundation.layout.navigationBarsPadding
@@ -11,9 +11,11 @@ index a547402..c4e44db 100644
 +import androidx.compose.foundation.selection.selectable
 +import androidx.compose.foundation.verticalScroll
  import androidx.compose.foundation.layout.statusBarsPadding
- import androidx.compose.foundation.layout.width
+-import androidx.compose.foundation.layout.width
  import androidx.compose.foundation.layout.widthIn
-@@ -80,8 +84,6 @@ import androidx.compose.material.icons.rounded.Person
+ import androidx.compose.ui.input.nestedscroll.nestedScroll
+ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+@@ -80,8 +83,6 @@ import androidx.compose.material.icons.rounded.Person
  import androidx.compose.material.icons.rounded.Sort
  import androidx.compose.material.icons.rounded.ArrowCircleUp
  import com.music.bitchord.data.listentogether.ServerConnectionState
@@ -22,7 +24,7 @@ index a547402..c4e44db 100644
  import androidx.compose.material3.ExperimentalMaterial3Api
  import androidx.compose.material3.Icon
  import androidx.compose.material3.IconButton
-@@ -120,6 +122,8 @@ import androidx.compose.ui.draw.clip
+@@ -120,6 +121,8 @@ import androidx.compose.ui.draw.clip
  import androidx.compose.ui.draw.rotate
  import androidx.compose.ui.graphics.graphicsLayer
  import androidx.compose.ui.focus.FocusRequester
@@ -31,7 +33,7 @@ index a547402..c4e44db 100644
  import androidx.compose.ui.graphics.luminance
  import androidx.compose.ui.graphics.Color
  import androidx.compose.ui.graphics.RectangleShape
-@@ -276,6 +280,8 @@ import com.music.bitchord.ui.components.FloatingBottomBar
+@@ -276,6 +279,8 @@ import com.music.bitchord.ui.components.FloatingBottomBar
  import com.music.bitchord.ui.components.GlassNavBar
  import com.music.bitchord.ui.components.floatingtabbar.rememberFloatingTabBarScrollConnection
  import com.music.bitchord.ui.components.FrostedTopBar
@@ -40,7 +42,7 @@ index a547402..c4e44db 100644
  import com.music.bitchord.ui.components.HeaderActionButton
  import com.music.bitchord.ui.components.HeaderIcon
  import com.music.bitchord.ui.components.LastfmLoginAlert
-@@ -683,6 +689,13 @@ private fun BitChordApp(
+@@ -683,6 +688,13 @@ private fun BitChordApp(
      var editingPartyServer by remember { mutableStateOf(false) }
      var editingSignatureApi by remember { mutableStateOf(false) }
      var librarySortMenuOpen by remember { mutableStateOf(false) }
@@ -54,7 +56,7 @@ index a547402..c4e44db 100644
      var showLyricsSources by remember { mutableStateOf(false) }
      var showAppLanguage by remember { mutableStateOf(false) }
      var showTranslationLanguage by remember { mutableStateOf(false) }
-@@ -2790,10 +2803,28 @@ private fun BitChordApp(
+@@ -2790,10 +2802,28 @@ private fun BitChordApp(
          // Everything a page's menu floats over, and so what [pageBackdrop]
          // takes its still of; the menus themselves are drawn outside it. On the
          // window's background, which the pages don't paint: see `paintBackdrop`.
@@ -84,7 +86,7 @@ index a547402..c4e44db 100644
          ) {
              Box(Modifier.weight(1f).fillMaxHeight()) {
                  AnimatedContent(
-@@ -3977,31 +4008,20 @@ private fun BitChordApp(
+@@ -3977,31 +4007,20 @@ private fun BitChordApp(
                              // the one thing a playlist or album card carries: a
                              // title.
                              if (route is AppRoute.LibraryShowAll) {
@@ -130,7 +132,7 @@ index a547402..c4e44db 100644
                                  }
                              }
                              // Sort, only on an album or playlist page or a device
-@@ -4032,6 +4052,7 @@ private fun BitChordApp(
+@@ -4032,6 +4051,7 @@ private fun BitChordApp(
                                  // can see the content it blurs.
                                  HeaderActionButton(
                                      onClick = { if (isLocalDetail) folderMenuOpen = true else songSortMenuOpen = true },
@@ -138,7 +140,7 @@ index a547402..c4e44db 100644
                                  ) {
                                      HeaderIcon(
                                          Icons.Rounded.Sort,
-@@ -4722,6 +4743,8 @@ private fun BitChordApp(
+@@ -4722,6 +4742,8 @@ private fun BitChordApp(
                  InlineFrostSheet(
                      onDismiss = { showReplayShare = false },
                      hazeState = hazeState,
@@ -147,7 +149,7 @@ index a547402..c4e44db 100644
                      containerColor = MaterialTheme.colorScheme.background,
                  ) {
                      ReplayShareSheet(
-@@ -4784,6 +4807,7 @@ private fun BitChordApp(
+@@ -4784,6 +4806,7 @@ private fun BitChordApp(
                          // carries the frost. The raised player's own window has
                          // no source, and that call site leaves this null.
                          hazeState = hazeState,
@@ -155,7 +157,7 @@ index a547402..c4e44db 100644
                      ) { songMenuBody(menuSong) }
                  }
              }
-@@ -5156,6 +5180,8 @@ private fun BitChordApp(
+@@ -5156,6 +5179,8 @@ private fun BitChordApp(
                  InlineFrostSheet(
                      onDismiss = { browseActions = null },
                      hazeState = hazeState,
@@ -164,7 +166,7 @@ index a547402..c4e44db 100644
                      containerColor = MaterialTheme.colorScheme.background,
                  ) {
                      browseMenuBody(target)
-@@ -5294,6 +5320,26 @@ private fun BitChordApp(
+@@ -5294,6 +5319,26 @@ private fun BitChordApp(
              }
          }
  
@@ -191,7 +193,7 @@ index a547402..c4e44db 100644
          if (showLyricsSources) {
              BackHandler { showLyricsSources = false }
              LyricsSourcesDialog(
-@@ -5306,6 +5352,7 @@ private fun BitChordApp(
+@@ -5306,6 +5351,7 @@ private fun BitChordApp(
              BackHandler { songSortMenuOpen = false }
              FrostedSortMenu(
                  hazeState = hazeState,
@@ -199,7 +201,7 @@ index a547402..c4e44db 100644
                  selected = songSort,
                  onSelect = { option ->
                      detail?.browseId?.let { AppSettings.setDetailSongSort(it, option) }
-@@ -5336,6 +5383,7 @@ private fun BitChordApp(
+@@ -5336,6 +5382,7 @@ private fun BitChordApp(
              val viewType = folderViewTypeOf(menuFolder)
              FrostedFolderMenu(
                  hazeState = hazeState,
@@ -207,7 +209,7 @@ index a547402..c4e44db 100644
                  sort = folderSortOf(menuFolder),
                  viewType = viewType,
                  onSort = { option ->
-@@ -5804,12 +5852,13 @@ private fun LibrarySort.localizedLabel(): String = when (this) {
+@@ -5804,12 +5851,13 @@ private fun LibrarySort.localizedLabel(): String = when (this) {
  @Composable
  private fun FrostedSortMenu(
      hazeState: HazeState,
@@ -222,7 +224,7 @@ index a547402..c4e44db 100644
          // Date added is one row, Spotify-style: the arrow on it shows
          // the direction — up for newest first, down for oldest — and
          // tapping flips it, the rotation animating the flip. Up is
-@@ -5863,13 +5912,14 @@ private fun FrostedSortMenu(
+@@ -5863,13 +5911,14 @@ private fun FrostedSortMenu(
  @Composable
  private fun FrostedFolderMenu(
      hazeState: HazeState,
@@ -238,7 +240,7 @@ index a547402..c4e44db 100644
          val grid = viewType == LibraryViewType.GRID
          FrostedMenuRow(
              label = stringResource(if (grid) R.string.switch_to_list_view else R.string.switch_to_grid_view),
-@@ -5898,14 +5948,20 @@ private fun FrostedFolderMenu(
+@@ -5898,14 +5947,26 @@ private fun FrostedFolderMenu(
  private fun FrostedMenuPanel(
      hazeState: HazeState,
      onDismiss: () -> Unit,
@@ -246,7 +248,13 @@ index a547402..c4e44db 100644
      content: @Composable ColumnScope.() -> Unit,
  ) {
 +    // Back to the button that opened the menu, as a window popup restores.
-+    DisposableEffect(Unit) { onDispose { restoreFocusTo?.requestFocus() } }
++    DisposableEffect(Unit) {
++        onDispose {
++            // The opener may already be detached after navigation; an
++            // orphaned requester throws instead of no-opping.
++            try { restoreFocusTo?.requestFocus() } catch (_: IllegalStateException) {}
++        }
++    }
      val shape = MaterialTheme.shapes.extraLarge
      Box(
          Modifier
@@ -260,7 +268,7 @@ index a547402..c4e44db 100644
          contentAlignment = Alignment.TopEnd,
      ) {
          Surface(
-@@ -5913,13 +5969,15 @@ private fun FrostedMenuPanel(
+@@ -5913,13 +5974,15 @@ private fun FrostedMenuPanel(
              contentColor = MaterialTheme.colorScheme.onSurface,
              shape = shape,
              modifier = Modifier
@@ -277,7 +285,7 @@ index a547402..c4e44db 100644
          }
      }
  }
-@@ -5936,7 +5994,9 @@ private fun FrostedMenuRow(
+@@ -5936,7 +5999,9 @@ private fun FrostedMenuRow(
          Modifier
              .fillMaxWidth()
              .heightIn(min = 44.dp)
@@ -289,7 +297,7 @@ index a547402..c4e44db 100644
          verticalAlignment = Alignment.CenterVertically,
      ) {
 diff --git a/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt b/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
-index cc666d4..80ab1cb 100644
+index cc666d4..cf2182b 100644
 --- a/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
 +++ b/app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt
 @@ -154,6 +154,8 @@ fun <T : Any> HeldContextMenu(
@@ -336,16 +344,18 @@ index cc666d4..80ab1cb 100644
  
          // Where the lifted item rests. It stays where it was held whenever the
          // menu fits beside it; the menu goes below by preference and above
-@@ -318,6 +335,7 @@ fun <T : Any> HeldContextMenu(
-                     alpha = (p * 3f).coerceIn(0f, 1f)
+@@ -335,6 +352,9 @@ fun <T : Any> HeldContextMenu(
+                     translationY = lerp(fromDy, 0f, p)
                  }
              }
++            // The in-flight dialog/sheet sits above the held menu: placed
++            // last so it draws on top and owns the touches.
 +            overlay.place(0, 0)
-             menu.placeWithLayer(menuX, menuY) {
-                 val p = progress.value
-                 alpha = ((p - 0.1f) / 0.9f).coerceIn(0f, 1f)
+         }
+     }
+ }
 diff --git a/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt b/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
-index 807470d..64f46a5 100644
+index 807470d..d84e553 100644
 --- a/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
 +++ b/app/src/main/java/com/music/bitchord/ui/components/InlineFrostSheet.kt
 @@ -1,3 +1,5 @@
@@ -435,13 +445,19 @@ index 807470d..64f46a5 100644
      shape: Shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
      containerColor: Color = MaterialTheme.colorScheme.surface,
      contentColor: Color = MaterialTheme.colorScheme.onSurface,
-@@ -153,6 +181,16 @@ fun InlineFrostSheet(
+@@ -153,6 +181,22 @@ fun InlineFrostSheet(
  
      var shown by remember { mutableStateOf(false) }
      LaunchedEffect(Unit) { shown = true }
 +    // Focus the opener again when the sheet goes away, as a dismissed window
 +    // sheet does. Null where no opener was passed: the system picks.
-+    DisposableEffect(Unit) { onDispose { restoreFocusTo?.requestFocus() } }
++    DisposableEffect(Unit) {
++        onDispose {
++            // The opener may already be detached after navigation; an
++            // orphaned requester throws instead of no-opping.
++            try { restoreFocusTo?.requestFocus() } catch (_: IllegalStateException) {}
++        }
++    }
 +    // Set by a child that needs a window-wide overlay - see [LocalSheetOverlay].
 +    val overlaySlot = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
 +    // A window sheet takes the window's focus; the inline one moves it into
@@ -452,7 +468,7 @@ index 807470d..64f46a5 100644
      val maxHeight = LocalConfiguration.current.screenHeightDp.dp * maxHeightFraction
  
      val dismissOnRelease: () -> Unit = {
-@@ -202,6 +240,10 @@ fun InlineFrostSheet(
+@@ -202,6 +246,10 @@ fun InlineFrostSheet(
              ),
          contentAlignment = Alignment.BottomCenter,
      ) {
@@ -463,7 +479,7 @@ index 807470d..64f46a5 100644
          AnimatedVisibility(
              visible = shown,
              enter = if (reduceAnimation) {
-@@ -228,6 +270,8 @@ fun InlineFrostSheet(
+@@ -228,6 +276,8 @@ fun InlineFrostSheet(
                          interactionSource = remember { MutableInteractionSource() },
                          onClick = {},
                      )
@@ -472,7 +488,7 @@ index 807470d..64f46a5 100644
                      .nestedScroll(sheetScroll)
                      .pointerInput(Unit) {
                          detectVerticalDragGestures(
-@@ -256,6 +300,10 @@ fun InlineFrostSheet(
+@@ -256,6 +306,10 @@ fun InlineFrostSheet(
                  }
              }
          }
@@ -483,7 +499,7 @@ index 807470d..64f46a5 100644
      }
  }
  
-@@ -284,6 +332,11 @@ fun InlineFrostDialog(
+@@ -284,6 +338,11 @@ fun InlineFrostDialog(
  ) {
      BackHandler(onBack = onDismiss)
  
@@ -495,7 +511,7 @@ index 807470d..64f46a5 100644
      Box(
          modifier = modifier
              .fillMaxSize()
-@@ -304,6 +357,8 @@ fun InlineFrostDialog(
+@@ -304,6 +363,8 @@ fun InlineFrostDialog(
                      isTraversalGroup = true
                      paneTitle?.let { this.paneTitle = it }
                  }
@@ -505,7 +521,7 @@ index 807470d..64f46a5 100644
                      indication = null,
                      interactionSource = remember { MutableInteractionSource() },
 diff --git a/app/src/main/java/com/music/bitchord/ui/components/SongActionsMenu.kt b/app/src/main/java/com/music/bitchord/ui/components/SongActionsMenu.kt
-index ac1b7f1..3ca9dd1 100644
+index ac1b7f1..f4d0972 100644
 --- a/app/src/main/java/com/music/bitchord/ui/components/SongActionsMenu.kt
 +++ b/app/src/main/java/com/music/bitchord/ui/components/SongActionsMenu.kt
 @@ -10,6 +10,7 @@ import android.net.Uri
@@ -516,15 +532,7 @@ index ac1b7f1..3ca9dd1 100644
  import androidx.compose.foundation.layout.ColumnScope
  import androidx.compose.foundation.layout.Row
  import androidx.compose.foundation.layout.Spacer
-@@ -56,6 +57,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
- import androidx.compose.ui.platform.LocalContext
- import androidx.compose.ui.text.style.TextOverflow
- import androidx.compose.foundation.layout.Arrangement
-+import androidx.compose.foundation.layout.Box
- import androidx.compose.runtime.mutableIntStateOf
- import androidx.compose.ui.text.font.FontWeight
- import androidx.compose.ui.text.style.TextAlign
-@@ -186,8 +188,6 @@ fun SongActionsMenu(
+@@ -186,8 +187,6 @@ fun SongActionsMenu(
  ) {
      var showingSongInfo by remember(song.videoId) { mutableStateOf(false) }
      var pickingSleepTimer by remember { mutableStateOf(false) }
@@ -533,7 +541,7 @@ index ac1b7f1..3ca9dd1 100644
      // Neutral rather than the sleeve's colours: the panel floats over the page
      // or the player, and an accent pitched against the artwork's tint is not
      // guaranteed to read against the panel.
-@@ -400,16 +400,38 @@ fun SongActionsMenu(
+@@ -400,16 +399,38 @@ fun SongActionsMenu(
          }
      }
  
@@ -737,10 +745,10 @@ index 5f0d2f4..28a1567 100644
          }
 diff --git a/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 new file mode 100644
-index 0000000..7e24a28
+index 0000000..e7e8195
 --- /dev/null
 +++ b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,102 @@
 +package com.music.bitchord
 +
 +import androidx.compose.foundation.layout.Box
@@ -757,6 +765,8 @@ index 0000000..7e24a28
 +import androidx.compose.ui.test.SemanticsMatcher
 +import androidx.compose.ui.test.assertDoesNotExist
 +import androidx.compose.ui.test.assertExists
++import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
++import androidx.compose.runtime.SideEffect
 +import androidx.compose.ui.test.junit4.createComposeRule
 +import androidx.compose.ui.test.onNodeWithText
 +import androidx.compose.ui.test.onRoot
@@ -786,9 +796,13 @@ index 0000000..7e24a28
 +class InlineFrostSheetA11yTest {
 +    @get:Rule val compose = createComposeRule()
 +
++    private var backPress: (() -> Unit)? = null
++
 +    private fun scene() {
 +        compose.setContent {
 +            BitChordTheme {
++                val backOwner = LocalOnBackPressedDispatcherOwner.current
++                SideEffect { backPress = { backOwner?.onBackPressedDispatcher?.onBackPressed() } }
 +                val haze = remember { HazeState() }
 +                var open by remember { mutableStateOf(true) }
 +                Box(Modifier.fillMaxSize()) {
@@ -831,7 +845,7 @@ index 0000000..7e24a28
 +    fun backDismissesAndPageReturns() {
 +        scene()
 +        compose.waitForIdle()
-+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
++        compose.runOnUiThread { backPress?.invoke() }
 +        compose.waitForIdle()
 +        compose.onNodeWithText("sheet body").assertDoesNotExist()
 +        compose.onNodeWithText("page body").assertExists()
@@ -887,10 +901,10 @@ index 4045e48..538065c 100644
      fun frost_on_dark() = frostShot("frost_on_dark", dark = true, blurOn = true)
 diff --git a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/PlayerFrostGateTest.kt b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/PlayerFrostGateTest.kt
 new file mode 100644
-index 0000000..0ece2d3
+index 0000000..db56919
 --- /dev/null
 +++ b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/PlayerFrostGateTest.kt
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,135 @@
 +package com.music.bitchord.ui.player
 +
 +import androidx.compose.foundation.Canvas
@@ -899,6 +913,7 @@ index 0000000..0ece2d3
 +import androidx.compose.foundation.layout.fillMaxSize
 +import androidx.compose.foundation.layout.fillMaxWidth
 +import androidx.compose.foundation.layout.height
++import androidx.compose.runtime.Composable
 +import androidx.compose.runtime.remember
 +import androidx.compose.ui.Alignment
 +import androidx.compose.ui.Modifier
@@ -942,6 +957,7 @@ index 0000000..0ece2d3
 +        installQueueTestHost()
 +        val base = PlayerPlatform.host
 +        PlayerPlatform.install(object : PlayerHost by base {
++            @Composable
 +            override fun frostEnabled(): Boolean = enabled
 +        })
 +    }
