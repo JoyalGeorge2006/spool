@@ -1,0 +1,41 @@
+From a0dbe7c39c60162d0fbfa72dbf6296e6f423a1f7 Mon Sep 17 00:00:00 2001
+From: agent <agent@local>
+Date: Fri, 20 Nov 2026 12:44:21 +0530
+Subject: [PATCH] patch-11: RelatedMusicPanelTest - contains/operator-get for
+ CustomActions (getOrNull absent on this SemanticsConfiguration)
+
+---
+ .../music/bitchord/ui/player/RelatedMusicPanelTest.kt  | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt
+index 8c45cfa..af55007 100644
+--- a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt
++++ b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelTest.kt
+@@ -57,9 +57,9 @@ class RelatedMusicPanelTest {
+         onNodeWithText("Track a").performClick()
+         // Production exposes the add affordance as a semantics custom action on
+         // the row (RelatedMusicPanel.kt:183), not a contentDescription node.
+-        val addAction = onNodeWithTag("related-track-a").fetchSemanticsNode()
+-            .config.getOrNull(SemanticsActions.CustomActions)
+-            ?.firstOrNull { it.label == "Add Track a to queue" }
++        val addConfig = onNodeWithTag("related-track-a").fetchSemanticsNode().config
++        val addAction = (if (SemanticsActions.CustomActions in addConfig) addConfig[SemanticsActions.CustomActions] else emptyList())
++            .firstOrNull { it.label == "Add Track a to queue" }
+             ?: error("add-to-queue custom action must exist when unlocked")
+         assertEquals(true, addAction.action())
+         assertEquals(listOf("a"), played); assertEquals(listOf("a"), added)
+@@ -72,8 +72,8 @@ class RelatedMusicPanelTest {
+         waitForIdle()
+         onNodeWithText("Track a").assertIsDisplayed()
+         // Locked: production removes the custom action entirely.
+-        val lockedActions = onNodeWithTag("related-track-a").fetchSemanticsNode()
+-            .config.getOrNull(SemanticsActions.CustomActions).orEmpty()
++        val lockedConfig = onNodeWithTag("related-track-a").fetchSemanticsNode().config
++        val lockedActions = if (SemanticsActions.CustomActions in lockedConfig) lockedConfig[SemanticsActions.CustomActions] else emptyList()
+         assertEquals(true, lockedActions.none { it.label == "Add Track a to queue" })
+         onNodeWithTag("related-track-a").assertIsNotEnabled()
+         assertEquals(emptyList(), played); assertEquals(emptyList(), added)
+-- 
+2.34.1
+
