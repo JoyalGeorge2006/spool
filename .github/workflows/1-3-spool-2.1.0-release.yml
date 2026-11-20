@@ -70,10 +70,17 @@ jobs:
       run: |
         set -euo pipefail
         gh run download "${{ inputs.run_id }}" -n "${{ inputs.artifact_name }}" -D "$RUNNER_TEMP/apk" --repo JoyalGeorge2006/spool
-        ls -la "$RUNNER_TEMP/apk"
+        ls -laR "$RUNNER_TEMP/apk" | head -40
+        # The artifact zip nests files under their original absolute paths
+        # (the upload also listed /tmp/apk-sha256.txt, so the common ancestor
+        # is /). Locate the APKs wherever they landed.
+        ARM64_APK=$(find "$RUNNER_TEMP/apk" -name 'spool.apk' -print -quit)
+        UNIV_APK=$(find "$RUNNER_TEMP/apk" -name 'spool-universal.apk' -print -quit)
+        test -n "$ARM64_APK"
+        test -n "$UNIV_APK"
         mkdir -p "$RUNNER_TEMP/out"
-        cp "$RUNNER_TEMP/apk/spool.apk" "$RUNNER_TEMP/out/Spool-2.1.0-arm64-v8a.apk"
-        cp "$RUNNER_TEMP/apk/spool-universal.apk" "$RUNNER_TEMP/out/Spool-2.1.0-universal.apk"
+        cp "$ARM64_APK" "$RUNNER_TEMP/out/Spool-2.1.0-arm64-v8a.apk"
+        cp "$UNIV_APK" "$RUNNER_TEMP/out/Spool-2.1.0-universal.apk"
 
     - name: Verify APK bytes, identity and signing certificate (fail closed)
       run: |
