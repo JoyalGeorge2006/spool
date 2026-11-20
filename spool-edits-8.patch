@@ -1,0 +1,292 @@
+diff --git a/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt b/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+index ce21313..d3caa91 100644
+--- a/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
++++ b/app/src/test/java/com/music/bitchord/LyricsSourcesDialogScrollTest.kt
+@@ -11,7 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
+ import com.music.bitchord.ui.components.LyricsSourcesDialog
+ import com.music.bitchord.ui.theme.BitChordTheme
+ import dev.chrisbanes.haze.HazeState
+-import kotlin.test.assertTrue
++import org.junit.Assert
+ import org.junit.Rule
+ import org.junit.Test
+ import org.junit.runner.RunWith
+@@ -45,19 +45,22 @@ class LyricsSourcesDialogScrollTest {
+         }
+         compose.waitForIdle()
+ 
+-        val scroller = compose.onAllNodes(hasScrollAction()).onFirst()
++        val scrollers = compose.onAllNodes(hasScrollAction())
++        val scroller = scrollers[scrollers.fetchSemanticsNodes().size - 1]
+         scroller.assertExists()
+ 
+         repeat(8) {
+-            scroller.performTouchInput { swipeUp(center, center.copy(y = center.y - 400f)) }
++            scroller.performTouchInput { swipeUp(center.y, center.y - 400f) }
+             compose.waitForIdle()
+         }
+ 
+         val viewport = scroller.fetchSemanticsNode().boundsInRoot
+-        val lastRow = compose.onNodeWithText("PaxSenix: Musixmatch")
++        // Genius is the FINAL row of LyricsSource.offered (declaration order,
++        // hidden entries filtered): lrc.red ... Musixmatch, Genius.
++        val lastRow = compose.onNodeWithText("Genius")
+         lastRow.assertIsDisplayed()
+         val row = lastRow.fetchSemanticsNode().boundsInRoot
+-        assertTrue(
++        Assert.assertTrue(
+             row.top >= viewport.top && row.bottom <= viewport.bottom,
+             "last source row must be fully inside the scrolled viewport (row=$row viewport=$viewport)",
+         )
+diff --git a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+index 6b602c3..a0e2a0b 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerArtworkShotTest.kt
+@@ -17,7 +17,7 @@ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.ui.theme.BitChordTheme
+ import java.io.File
+ import java.io.FileOutputStream
+-import kotlin.test.assertTrue
++import org.junit.Assert
+ import org.junit.Rule
+ import org.junit.Test
+ import org.junit.runner.RunWith
+@@ -75,7 +75,7 @@ class PlayerArtworkShotTest {
+             }
+             // Coil loads the file asynchronously; give it settled frames.
+             repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+-            compose.onAllNodes(androidx.compose.ui.test.isRoot()).onLast()
++            compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
+                 .captureRoboImage("build/outputs/roborazzi/$name.png")
+             return File("build/outputs/roborazzi/$name.png")
+         } finally {
+@@ -93,10 +93,9 @@ class PlayerArtworkShotTest {
+             val onPng = renderWithArt(v6, art, blur = true, name = "player_artwork_blur_on_dark")
+             val offPng = renderWithArt(v6, art, blur = false, name = "player_artwork_blur_off_dark")
+ 
+-            val on = BitmapFactory.decodeFile(onPng.absolutePath)
+-            val off = BitmapFactory.decodeFile(offPng.absolutePath)
+-            assertTrue(on != null && off != null, "both captures must decode")
+-            assertTrue(on.width == off.width && on.height == off.height, "captures must be the same size")
++            val on = BitmapFactory.decodeFile(onPng.absolutePath) ?: error("ON capture must decode")
++            val off = BitmapFactory.decodeFile(offPng.absolutePath) ?: error("OFF capture must decode")
++            Assert.assertTrue(on.width == off.width && on.height == off.height, "captures must be the same size")
+ 
+             // A horizontal band through the hero artwork (fractions of the
+             // frame, so the exact layout may move a little without breaking this).
+@@ -108,7 +107,7 @@ class PlayerArtworkShotTest {
+             //    near-uniform (background + at most the note glyph edge); the
+             //    checker fixture yields several saturated colors per band.
+             val onColors = (x0 until x1).map { on.getPixel(it, y) }.toSet()
+-            assertTrue(
++            Assert.assertTrue(
+                 onColors.size >= 3,
+                 "artwork band must show the loaded fixture art, not the placeholder (found ${onColors.size} colors)",
+             )
+@@ -116,7 +115,7 @@ class PlayerArtworkShotTest {
+             // 2. Switch invariance: the unconditional backdrop must not change
+             //    with Blur effects. Exact pixel equality across the band.
+             val mismatches = (x0 until x1).count { on.getPixel(it, y) != off.getPixel(it, y) }
+-            assertTrue(
++            Assert.assertTrue(
+                 mismatches == 0,
+                 "artwork backdrop must be identical with Blur effects on and off ($mismatches of ${x1 - x0} band pixels differ)",
+             )
+diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+index ed1a1f6..c8014e8 100644
+--- a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
++++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+@@ -9,16 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.test.junit4.createComposeRule
++import androidx.compose.ui.test.performClick
+ import androidx.test.core.app.ApplicationProvider
+ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+ import com.github.takahirom.roborazzi.captureRoboImage
+ import com.music.bitchord.data.settings.AppSettings
+-import com.music.bitchord.data.settings.LastPlayerScreen
+ import com.music.bitchord.data.settings.ThemeMode
+ import com.music.bitchord.ui.theme.BitChordTheme
+ import java.io.File
+ import java.io.FileOutputStream
+-import kotlin.test.assertTrue
++import org.junit.Assert
+ import org.junit.Rule
+ import org.junit.Test
+ import org.junit.runner.RunWith
+@@ -31,10 +31,14 @@ import org.robolectric.annotation.GraphicsMode
+  *
+  * This is the integration proof the bare player shot cannot give: the sheet
+  * under test is the production [com.music.bitchord.ui.player.LyricsProviderSheet],
+- * reached exactly the way a user reaches it - lyrics pane open (the app's own
+- * lastPlayerScreen reopen mechanism), then a click on the "Lyrics by lrc.red"
+- * status caption, whose onStatusClick is wired in production to
+- * showLyricsProviders = true (NowPlayingScreen). The sheet is a PlayerDrawer,
++ * reached exactly the way a user reaches it - a tap on the live lyric strip
++ * (CurrentLyricStrip onClick = openLyrics, the production entry into the
++ * lyrics pane; lastPlayerScreen is write-only persistence and does NOT drive
++ * the UI), then a click on the "Lyrics by lrc.red" status caption, whose
++ * onStatusClick is wired in production to showLyricsProviders = true
++ * (NowPlayingScreen.kt:1918). The caption only renders when the pane is open
++ * and lyricsSource is non-null (PlayerLyrics.kt:3190), so a broken host
++ * wiring fails this test loudly at the click. The sheet is a PlayerDrawer,
+  * frost-gated at PlayerDrawer.kt:114 (PlayerPlatform.host.frostEnabled()),
+  * drawing over the player's own haze source (NowPlayingScreen.kt:1666) with
+  * the loaded fixture artwork behind it. Nothing about the conditional is
+@@ -71,10 +75,8 @@ class PlayerDrawerFrostShotTest {
+ 
+     private fun render(v6: V6ScreenshotTest, art: String, blur: Boolean, openDrawer: Boolean, name: String): File {
+         val storedTheme = AppSettings.themeMode.value
+-        val oldPane = AppSettings.lastPlayerScreen.value
+         AppSettings.setThemeMode(ThemeMode.DARK)
+         AppSettings.blurEffects.value = blur
+-        AppSettings.lastPlayerScreen.value = LastPlayerScreen.LYRICS
+         try {
+             compose.setContent {
+                 BitChordTheme(darkTheme = true) {
+@@ -86,8 +88,11 @@ class PlayerDrawerFrostShotTest {
+             // Coil loads the file asynchronously; give it settled frames.
+             repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
+             if (openDrawer) {
+-                // Production entry point: the lyrics status caption, whose
+-                // onStatusClick the player wires to the provider sheet.
++                // Production entry point: tap the live lyric strip to open the
++                // lyrics pane, then the status caption the player wires to the
++                // provider sheet. Both fail loudly if the wiring breaks.
++                compose.onAllNodesWithText("First line of the song")[0].performClick()
++                compose.waitForIdle()
+                 compose.onNodeWithText("Lyrics by lrc.red").performClick()
+                 compose.waitForIdle()
+                 compose.mainClock.advanceTimeBy(1000)
+@@ -95,12 +100,11 @@ class PlayerDrawerFrostShotTest {
+                 compose.onNodeWithText("Choose lyrics provider").assertExists()
+                 compose.onNodeWithText("BiniLyrics").assertExists()
+             }
+-            compose.onAllNodes(androidx.compose.ui.test.isRoot()).onLast()
++            compose.onAllNodes(androidx.compose.ui.test.isRoot()).let { roots -> roots[roots.fetchSemanticsNodes().size - 1] }
+                 .captureRoboImage("build/outputs/roborazzi/$name.png")
+             return File("build/outputs/roborazzi/$name.png")
+         } finally {
+             AppSettings.setThemeMode(storedTheme)
+-            AppSettings.lastPlayerScreen.value = oldPane
+         }
+     }
+ 
+@@ -115,11 +119,10 @@ class PlayerDrawerFrostShotTest {
+             val onPng = render(v6, art, blur = true, openDrawer = true, name = "player_drawer_frost_on_dark")
+             val offPng = render(v6, art, blur = false, openDrawer = true, name = "player_drawer_frost_off_dark")
+ 
+-            val control = BitmapFactory.decodeFile(controlPng.absolutePath)
+-            val on = BitmapFactory.decodeFile(onPng.absolutePath)
+-            val off = BitmapFactory.decodeFile(offPng.absolutePath)
+-            assertTrue(control != null && on != null && off != null, "all three captures must decode")
+-            assertTrue(
++            val control = BitmapFactory.decodeFile(controlPng.absolutePath) ?: error("control capture must decode")
++            val on = BitmapFactory.decodeFile(onPng.absolutePath) ?: error("ON capture must decode")
++            val off = BitmapFactory.decodeFile(offPng.absolutePath) ?: error("OFF capture must decode")
++            Assert.assertTrue(
+                 control.width == on.width && control.height == on.height && on.width == off.width && on.height == off.height,
+                 "captures must be the same size",
+             )
+@@ -139,7 +142,7 @@ class PlayerDrawerFrostShotTest {
+                 bandTotal++
+                 if (on.getPixel(x, y) != control.getPixel(x, y)) bandDiff++
+             }
+-            assertTrue(
++            Assert.assertTrue(
+                 bandDiff * 2 > bandTotal,
+                 "production drawer must visibly cover the player over real artwork ($bandDiff of $bandTotal sampled band pixels differ)",
+             )
+diff --git a/shared/build.gradle.kts b/shared/build.gradle.kts
+index 662ce5b..67837c7 100644
+--- a/shared/build.gradle.kts
++++ b/shared/build.gradle.kts
+@@ -59,6 +59,10 @@ kotlin {
+         }
+         jvmTest.dependencies {
+             implementation("com.squareup.okhttp3:mockwebserver:5.3.2")
++            // ListenerGenerationTest drives HttpClient through MockEngine; the
++            // artifact was never declared, so every MockEngine/respond/headers
++            // reference in that file compiled unresolved.
++            implementation("io.ktor:ktor-client-mock:3.5.2")
+         }
+     }
+ }
+diff --git a/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelFirstFrameProbe.kt b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelFirstFrameProbe.kt
+new file mode 100644
+index 0000000..0691f43
+--- /dev/null
++++ b/sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/RelatedMusicPanelFirstFrameProbe.kt
+@@ -0,0 +1,71 @@
++package com.music.bitchord.ui.player
++
++import androidx.compose.foundation.layout.height
++import androidx.compose.foundation.layout.width
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.test.*
++import androidx.compose.ui.unit.dp
++import com.music.bitchord.data.model.Song
++import kotlin.test.Test
++
++/**
++ * DIAGNOSTIC probe for the two pre-existing RelatedMusicPanelTest failures
++ * (baseline-proven by run #72 on the untouched base). It changes nothing and
++ * gates nothing: it mounts the panel exactly the way the failing tests do,
++ * then reports whether "Track a" exists in the semantics tree, whether it is
++ * placed, and where its bounds sit - once right after waitForIdle(), then
++ * again after one more explicit frame. That distinguishes:
++ *  - node exists but unplaced/offscreen on the first frame and settles after
++ *    another frame  -> desktop harness first-frame artifact, base tests need
++ *    a one-frame settle, not a rewrite;
++ *  - node missing or never placed                         -> real layout bug.
++ * The exact #74 failure (AssertionError from assertIsDisplayed, not "no node
++ * found") already says the node EXISTS but is not displayed; this probe pins
++ * down which placement state that is.
++ */
++@OptIn(ExperimentalTestApi::class)
++class RelatedMusicPanelFirstFrameProbe {
++    private fun song(id: String) = Song(videoId = id, title = "Track $id", artist = "Artist", thumbnailUrl = null)
++
++    @Test fun firstFramePlacementProbe() = runComposeUiTest {
++        installQueueTestHost()
++        val base = PlayerPlatform.host
++        PlayerPlatform.install(object : PlayerHost by base {
++            override suspend fun relatedSongs(song: Song) = Result.success(listOf(song("a")))
++        })
++        setContent {
++            MaterialTheme { CompositionLocalProvider(LocalPlayerFlat provides true) {
++                RelatedMusicPanel(song("seed"), false, false, {}, {}, {}, false, 14.dp, {}, Modifier.width(320.dp).height(700.dp))
++            } }
++        }
++        waitForIdle()
++        fun dump(tag: String) {
++            val matches = onAllNodesWithText("Track a").fetchSemanticsNodes()
++            if (matches.isEmpty()) {
++                System.err.println("PROBE[$tag]: no semantics node with text 'Track a'")
++                return
++            }
++            val node = matches.first()
++            System.err.println(
++                "PROBE[$tag]: nodes=${matches.size} boundsInRoot=${node.boundsInRoot} " +
++                    "positionInRoot=${node.positionInRoot} size=${node.size} boundsInWindow=${node.boundsInWindow}",
++            )
++            val displayed = try {
++                onAllNodesWithText("Track a").onFirst().assertIsDisplayed()
++                true
++            } catch (e: AssertionError) {
++                false
++            }
++            System.err.println("PROBE[$tag]: displayed=$displayed")
++        }
++        dump("after-waitForIdle")
++        mainClock.advanceTimeByFrame()
++        waitForIdle()
++        dump("after-one-more-frame")
++        mainClock.advanceTimeBy(1000)
++        waitForIdle()
++        dump("after-1000ms")
++    }
++}
