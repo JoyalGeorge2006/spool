@@ -35,15 +35,7 @@ jobs:
         tar xzf /tmp/spool-source.tar.gz -C "$SRC"
         cd "$SRC"
         git init -q
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-7.patch"
-        git apply "$GITHUB_WORKSPACE/spool-edits-8.patch"
-        git apply "$GITHUB_WORKSPACE/spool-edits-9.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-ktor.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -86,15 +78,7 @@ jobs:
         tar xzf /tmp/spool-source.tar.gz -C "$SRC"
         cd "$SRC"
         git init -q
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-7.patch"
-        git apply "$GITHUB_WORKSPACE/spool-edits-8.patch"
-        git apply "$GITHUB_WORKSPACE/spool-edits-9.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-ktor.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
@@ -159,15 +143,7 @@ jobs:
         tar xzf /tmp/spool-source.tar.gz -C "$SRC"
         cd "$SRC"
         git init -q
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-2.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-3.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-4.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-5.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-6.patch"
-        git apply "$GITHUB_WORKSPACE/verification/spool-edits-7.patch"
-        git apply "$GITHUB_WORKSPACE/spool-edits-8.patch"
-        git apply "$GITHUB_WORKSPACE/spool-edits-9.patch"
+        git apply "$GITHUB_WORKSPACE/spool-edits-ktor.patch"
         curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
         mkdir -p native/lame
         tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
