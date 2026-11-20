@@ -1,0 +1,266 @@
+diff --git a/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt b/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
+index cb27593..91b67c6 100644
+--- a/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
++++ b/app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt
+@@ -29,6 +29,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
+ import androidx.compose.material3.dynamicLightColorScheme
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.IntrinsicSize
+ import androidx.compose.foundation.layout.fillMaxHeight
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.height
+@@ -1899,8 +1900,13 @@ internal fun PaletteCards(
+     onSelect: (PaletteMode) -> Unit,
+     modifier: Modifier = Modifier,
+ ) {
++    // IntrinsicSize.Max is what makes the equal cards real: the scrolling
++    // parent hands this Row an unbounded height, where a bare fillMaxHeight
++    // on the children is a no-op and each card wraps its own content. With
++    // the intrinsic cap the Row is exactly as tall as the tallest card's
++    // content, and fillMaxHeight then stretches the shorter cards to match.
+     Row(
+-        modifier = modifier.fillMaxWidth(),
++        modifier = modifier.fillMaxWidth().height(IntrinsicSize.Max),
+         horizontalArrangement = Arrangement.spacedBy(10.dp),
+     ) {
+         PaletteMode.entries.forEach { mode ->
+diff --git a/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt b/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
+index 5249381..adf29b6 100644
+--- a/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
++++ b/app/src/test/java/com/music/bitchord/AppearanceMatrixTest.kt
+@@ -108,4 +108,67 @@ class AppearanceMatrixTest {
+  @Test fun largeDarkAstryxBlur()=probe(true,PaletteMode.ASTRYX,true,2f)
+  @Test fun largeDarkMaterialFlat()=probe(true,PaletteMode.MATERIAL_YOU,false,2f)
+  @Test fun largeDarkMaterialBlur()=probe(true,PaletteMode.MATERIAL_YOU,true,2f)
++
++ /** Measured card heights (px) for both palette cards in the production host shape. */
++ private fun cardHeights(font:Float):Pair<Float,Float> {
++  V6ScreenshotTest().installUiHost()
++  compose.setContent {
++   CompositionLocalProvider(LocalDensity provides Density(1f,font)) {
++    BitChordTheme(darkTheme=false,palette=PaletteMode.ASTRYX) {
++     // Same production shape as SettingsSheet.kt:502: scrolling parent, so the
++     // cards see an unbounded height constraint exactly as in the app.
++     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.background)) {
++      Text("Appearance",color=MaterialTheme.colorScheme.onBackground,style=MaterialTheme.typography.headlineMedium,modifier=Modifier.padding(16.dp))
++      PaletteCards(selected=PaletteMode.MATERIAL_YOU,onSelect={},modifier=Modifier.padding(horizontal=12.dp))
++     }
++    }
++   }
++  }
++  compose.mainClock.advanceTimeBy(1500);compose.waitForIdle()
++  // The only clickables in this host are the two cards themselves.
++  val cards=compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
++  org.junit.Assert.assertEquals("expected exactly the two palette cards to be clickable",2,cards.size)
++  return cards[0].boundsInRoot.height to cards[1].boundsInRoot.height
++ }
++
++ @Test fun paletteCardsEqualHeightFont1x() {
++  val(a,b)=cardHeights(1f)
++  org.junit.Assert.assertTrue("palette cards must measure equal heights at font 1x (got $a vs $b px)",kotlin.math.abs(a-b)<=1f)
++ }
++
++ @Test fun paletteCardsEqualHeightFont2x() {
++  val(a,b)=cardHeights(2f)
++  org.junit.Assert.assertTrue("palette cards must measure equal heights at font 2x with wrapped text (got $a vs $b px)",kotlin.math.abs(a-b)<=1f)
++ }
++
++ /** WCAG contrast of a color pair. */
++ private fun contrast(fg:Color,bg:Color):Double {
++  fun lin(c:Float):Double { val d=c.toDouble(); return if(d<=0.03928) d/12.92 else Math.pow((d+0.055)/1.055,2.4) }
++  fun lum(c:Color)=0.2126*lin(c.red)+0.7152*lin(c.green)+0.0722*lin(c.blue)
++  val l1=lum(fg);val l2=lum(bg)
++  return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05)
++ }
++
++ @Test fun lightSecondaryTextContrastMeasured() {
++  V6ScreenshotTest().installUiHost()
++  var pair:Pair<Color,Color>?=null
++  var myPair:Pair<Color,Color>?=null
++  // One setContent per test: both palettes sampled in the same composition.
++  compose.setContent {
++   BitChordTheme(darkTheme=false,palette=PaletteMode.ASTRYX) {
++    SideEffect { pair=MaterialTheme.colorScheme.onSurfaceVariant to MaterialTheme.colorScheme.surface }
++   }
++   BitChordTheme(darkTheme=false,palette=PaletteMode.MATERIAL_YOU) {
++    SideEffect { myPair=MaterialTheme.colorScheme.onSurfaceVariant to MaterialTheme.colorScheme.surface }
++   }
++  }
++  compose.waitForIdle()
++  val(astryxFg,astryxBg)=pair!!
++  val astryx=contrast(astryxFg,astryxBg)
++  val(myFg,myBg)=myPair!!
++  val my=contrast(myFg,myBg)
++  System.err.println("contrast ASTRYX light onSurfaceVariant($astryxFg) vs surface($astryxBg) = $astryx ; MATERIAL_YOU light = $my ($myFg on $myBg)")
++  org.junit.Assert.assertTrue("light secondary text must reach 4.8:1 against its actual surface (measured $astryx)",astryx>=4.8)
++ }
+ }
++
+diff --git a/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+new file mode 100644
+index 0000000..ed1a1f6
+--- /dev/null
++++ b/app/src/test/java/com/music/bitchord/PlayerDrawerFrostShotTest.kt
+@@ -0,0 +1,161 @@
++package com.music.bitchord
++
++import android.graphics.Bitmap
++import android.graphics.BitmapFactory
++import android.net.Uri
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.test.junit4.createComposeRule
++import androidx.test.core.app.ApplicationProvider
++import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
++import com.github.takahirom.roborazzi.captureRoboImage
++import com.music.bitchord.data.settings.AppSettings
++import com.music.bitchord.data.settings.LastPlayerScreen
++import com.music.bitchord.data.settings.ThemeMode
++import com.music.bitchord.ui.theme.BitChordTheme
++import java.io.File
++import java.io.FileOutputStream
++import kotlin.test.assertTrue
++import org.junit.Rule
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import org.robolectric.annotation.GraphicsMode
++
++/**
++ * The production player drawer over REAL artwork, Blur effects on vs off.
++ *
++ * This is the integration proof the bare player shot cannot give: the sheet
++ * under test is the production [com.music.bitchord.ui.player.LyricsProviderSheet],
++ * reached exactly the way a user reaches it - lyrics pane open (the app's own
++ * lastPlayerScreen reopen mechanism), then a click on the "Lyrics by lrc.red"
++ * status caption, whose onStatusClick is wired in production to
++ * showLyricsProviders = true (NowPlayingScreen). The sheet is a PlayerDrawer,
++ * frost-gated at PlayerDrawer.kt:114 (PlayerPlatform.host.frostEnabled()),
++ * drawing over the player's own haze source (NowPlayingScreen.kt:1666) with
++ * the loaded fixture artwork behind it. Nothing about the conditional is
++ * copied into this test; every step goes through production composables.
++ *
++ * Assertions are limited to what the JVM renderer can honestly prove:
++ * - the sheet opens through the production path in both switch positions
++ *   (title + provider rows present in semantics);
++ * - the drawer region visibly changes versus the bare player control, i.e.
++ *   the sheet really renders over the artwork.
++ * The ON-vs-OFF drawer-region pixel comparison is REPORTED as data, not
++ * asserted: Skiko may render haze identically in both switch positions on the
++ * JVM, and a pixel-identity result is a renderer limitation, not a wiring
++ * failure. The branch itself is pinned by PlayerFrostGateTest.
++ */
++@RunWith(RobolectricTestRunner::class)
++@GraphicsMode(GraphicsMode.Mode.NATIVE)
++@Config(sdk = [34], qualifiers = RobolectricDeviceQualifiers.Pixel7)
++class PlayerDrawerFrostShotTest {
++    @get:Rule val compose = createComposeRule()
++
++    private fun writeFixtureArt(): String {
++        val size = 512
++        val cell = 32
++        val colors = intArrayOf(0xFFE53935.toInt(), 0xFF1E88E5.toInt(), 0xFFFDD835.toInt(), 0xFF43A047.toInt())
++        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
++        for (y in 0 until size) for (x in 0 until size) {
++            bmp.setPixel(x, y, colors[((x / cell) + (y / cell)) % 4])
++        }
++        val file = File(ApplicationProvider.getApplicationContext<android.content.Context>().cacheDir, "fixture_art_drawer.png")
++        FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
++        return Uri.fromFile(file).toString()
++    }
++
++    private fun render(v6: V6ScreenshotTest, art: String, blur: Boolean, openDrawer: Boolean, name: String): File {
++        val storedTheme = AppSettings.themeMode.value
++        val oldPane = AppSettings.lastPlayerScreen.value
++        AppSettings.setThemeMode(ThemeMode.DARK)
++        AppSettings.blurEffects.value = blur
++        AppSettings.lastPlayerScreen.value = LastPlayerScreen.LYRICS
++        try {
++            compose.setContent {
++                BitChordTheme(darkTheme = true) {
++                    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
++                        v6.PlayerShot(artworkUrl = art)
++                    }
++                }
++            }
++            // Coil loads the file asynchronously; give it settled frames.
++            repeat(12) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle() }
++            if (openDrawer) {
++                // Production entry point: the lyrics status caption, whose
++                // onStatusClick the player wires to the provider sheet.
++                compose.onNodeWithText("Lyrics by lrc.red").performClick()
++                compose.waitForIdle()
++                compose.mainClock.advanceTimeBy(1000)
++                compose.waitForIdle()
++                compose.onNodeWithText("Choose lyrics provider").assertExists()
++                compose.onNodeWithText("BiniLyrics").assertExists()
++            }
++            compose.onAllNodes(androidx.compose.ui.test.isRoot()).onLast()
++                .captureRoboImage("build/outputs/roborazzi/$name.png")
++            return File("build/outputs/roborazzi/$name.png")
++        } finally {
++            AppSettings.setThemeMode(storedTheme)
++            AppSettings.lastPlayerScreen.value = oldPane
++        }
++    }
++
++    @Test fun productionDrawerOpensOverRealArtwork() {
++        val art = writeFixtureArt()
++        val v6 = V6ScreenshotTest()
++        v6.installUiHost()
++        val restore = v6.installVideoStubHost()
++        val oldBlur = AppSettings.blurEffects.value
++        try {
++            val controlPng = render(v6, art, blur = true, openDrawer = false, name = "player_drawer_control_on_dark")
++            val onPng = render(v6, art, blur = true, openDrawer = true, name = "player_drawer_frost_on_dark")
++            val offPng = render(v6, art, blur = false, openDrawer = true, name = "player_drawer_frost_off_dark")
++
++            val control = BitmapFactory.decodeFile(controlPng.absolutePath)
++            val on = BitmapFactory.decodeFile(onPng.absolutePath)
++            val off = BitmapFactory.decodeFile(offPng.absolutePath)
++            assertTrue(control != null && on != null && off != null, "all three captures must decode")
++            assertTrue(
++                control.width == on.width && control.height == on.height && on.width == off.width && on.height == off.height,
++                "captures must be the same size",
++            )
++
++            // The bottom-anchored drawer band, sampled through the frame
++            // middle. Fractions, so minor layout shifts do not break this.
++            val y0 = (on.height * 0.72).toInt()
++            val y1 = (on.height * 0.92).toInt()
++            val x0 = (on.width * 0.10).toInt()
++            val x1 = (on.width * 0.90).toInt()
++
++            // 1. The sheet must really render over the artwork: most of the
++            //    drawer band differs from the same band of the bare player.
++            var bandTotal = 0
++            var bandDiff = 0
++            for (y in y0 until y1 step 4) for (x in x0 until x1 step 4) {
++                bandTotal++
++                if (on.getPixel(x, y) != control.getPixel(x, y)) bandDiff++
++            }
++            assertTrue(
++                bandDiff * 2 > bandTotal,
++                "production drawer must visibly cover the player over real artwork ($bandDiff of $bandTotal sampled band pixels differ)",
++            )
++
++            // 2. ON vs OFF over the same band: reported as evidence, never
++            //    asserted - Skiko may draw haze identically either way on JVM.
++            var switchDiff = 0
++            for (y in y0 until y1 step 4) for (x in x0 until x1 step 4) {
++                if (on.getPixel(x, y) != off.getPixel(x, y)) switchDiff++
++            }
++            System.err.println(
++                "PlayerDrawerFrostShotTest: drawer band switch-sensitivity = $switchDiff of $bandTotal sampled pixels differ (0 means Skiko rendered haze identically; visual frost quality is device-only evidence)",
++            )
++        } finally {
++            AppSettings.blurEffects.value = oldBlur
++            com.music.bitchord.ui.player.PlayerPlatform.install(restore)
++        }
++    }
++}
