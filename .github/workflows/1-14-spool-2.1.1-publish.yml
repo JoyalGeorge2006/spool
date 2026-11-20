@@ -1,0 +1,164 @@
+name: Publish accepted Spool 2.1.1 and verify OTA discovery
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: JoyalGeorge2006/spool
+      RUN: '44772488230'
+      ACCEPT: '44785254695'
+      AGGREGATE: '44782429801'
+      TESTS: '44770799997'
+    steps:
+    - name: Require successful pinned build and recover verified artifact
+      run: |
+        set -euo pipefail
+        gh api repos/$REPO/actions/runs/$RUN > /tmp/run.json
+        python3 - <<'PY'
+        import json
+        r=json.load(open('/tmp/run.json'))
+        assert r['status']=='completed'
+        assert r['head_sha']=='7ca3eb95605e9ff4f6206dfbb4cbc06fba23e47f'
+        PY
+        gh api repos/$REPO/actions/runs/$ACCEPT > /tmp/accept.json
+        python3 - <<'ACCEPT'
+        import json
+        a=json.load(open('/tmp/accept.json'))
+        assert a['status']=='completed' and a['conclusion']=='success'
+        assert a['head_sha']=='42f5e10ef5aa8a6c577013213efd160036894d9f'
+        ACCEPT
+        gh api repos/$REPO/actions/runs/$TESTS > /tmp/tests.json
+        gh api repos/$REPO/actions/runs/$AGGREGATE > /tmp/aggregate.json
+        python3 - <<'GATES'
+        import json
+        t=json.load(open('/tmp/tests.json'));assert t['status']=='completed' and t['conclusion']=='success'
+        assert t['head_sha']=='df2b7a2e6bc08f4504b705fc5a09c5e90f07b93f'
+        a=json.load(open('/tmp/aggregate.json'));assert a['status']=='completed' and a['conclusion']=='failure'
+        assert a['head_sha']=='f7144a9d49d6d3ff4927a92d7a6f022c789086fc'
+        GATES
+        mkdir /tmp/aggregate-evidence /tmp/player-evidence
+        gh run download "$AGGREGATE" --repo "$REPO" --name spool-2.1.1-device-evidence --dir /tmp/aggregate-evidence
+        gh run download "$ACCEPT" --repo "$REPO" --name spool-2.1.1-device-evidence --dir /tmp/player-evidence
+        python3 - <<'EVIDENCE'
+        import json
+        from pathlib import Path
+        agg=Path('/tmp/aggregate-evidence');player=Path('/tmp/player-evidence')
+        problems=list(agg.rglob('category-problems.json'));assert len(problems)==1
+        assert json.loads(problems[0].read_text())==['local-player: Missing visible label SpoolSmoke']
+        # Aggregate failed only because WAV is excluded by the app's unchanged default music filter.
+        # Separate successful real-MP3 library/player/IME acceptance completes that coverage.
+        passed=list(player.rglob('PASS'));assert len(passed)==1 and 'Supported MP3 library listing' in passed[0].read_text()
+        for name in ['player-library-mp3','player-00-open-with-audio','player-02-queue','player-02-lyrics','player-02-related','player-03-closed','player-webdav-restored','player-webdav-cancelled']:
+            assert len(list(player.rglob(name+'.png')))==1,name
+        EVIDENCE
+        mkdir /tmp/accepted
+        gh run download "$RUN" --repo "$REPO" --name spool-2.1.1-candidate-diagnostic-only --dir /tmp/accepted
+    - name: Independently verify hashes, app identity and signing certificate
+      run: |
+        set -euo pipefail
+        mkdir /tmp/release
+        python3 - <<'PY'
+        from pathlib import Path
+        import hashlib,shutil
+        root=Path('/tmp/accepted');manifest=next(root.rglob('SHA256SUMS.txt'))
+        for line in manifest.read_text().splitlines():
+            digest,name=line.split(maxsplit=1);name=Path(name.strip()).name
+            files=list(root.rglob(name));assert len(files)==1,(name,files)
+            assert hashlib.sha256(files[0].read_bytes()).hexdigest()==digest,name
+        universal=next(root.rglob('Spool-2.1.1-universal.apk'))
+        assert hashlib.sha256(universal.read_bytes()).hexdigest()=='a2049d0546bd17791014a59f84a40f258a214445d8b4aa6a32349335f1bb0ba1'
+        mapping={'Spool-2.1.1-universal.apk':'spool.apk','Spool-2.1.1-arm64-v8a.apk':'Spool-2.1.1-arm64-v8a.apk','spool-v2.1.1-source.tar.gz':'spool-v2.1.1-source.tar.gz'}
+        for src,dst in mapping.items():
+            files=list(root.rglob(src));assert len(files)==1;shutil.copy2(files[0],Path('/tmp/release')/dst)
+        out=Path('/tmp/release')
+        (out/'SHA256SUMS.txt').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(out.iterdir())))
+        PY
+        aapt=$(find "$ANDROID_HOME/build-tools" -name aapt | sort -V | tail -1)
+        signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+        for apk in /tmp/release/*.apk; do
+          "$aapt" dump badging "$apk" > /tmp/badging.txt
+          grep -q "package: name='app.spool.music'" /tmp/badging.txt
+          grep -q "versionCode='58'" /tmp/badging.txt
+          grep -q "versionName='2.1.1'" /tmp/badging.txt
+          "$signer" verify --verbose --print-certs "$apk" > /tmp/cert.txt
+          grep -qi a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee /tmp/cert.txt
+        done
+    - name: Tag exact accepted source tree
+      run: |
+        set -euo pipefail
+        if gh api repos/$REPO/git/ref/tags/v2.1.1 > /tmp/tag-state.json 2>/tmp/tag-error; then
+          echo 'Ref already exists; stop for explicit state reconciliation'
+          exit 1
+        else
+          cat /tmp/tag-state.json /tmp/tag-error
+          grep -q '404' /tmp/tag-error
+        fi
+        mkdir /tmp/tag-source
+        tar xzf /tmp/release/spool-v2.1.1-source.tar.gz -C /tmp/tag-source --strip-components=1
+        cd /tmp/tag-source
+        git init -q
+        git config user.name 'github-actions[bot]'
+        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+        git add -A
+        test "$(git write-tree)" = 94d5843ce09cf680d488d5d6654b97f65c7d99ef
+        git commit -qm 'Spool 2.1.1 verified release source'
+        gh auth setup-git
+        git push https://github.com/JoyalGeorge2006/spool.git HEAD:refs/tags/v2.1.1
+    - name: Publish complete stable release with updater-compatible universal asset
+      run: |
+        set -euo pipefail
+        cat > /tmp/notes.md <<'NOTES'
+        ## Spool 2.1.1
+
+        - Removed decorative row dividers while keeping grouped cards and spacing.
+        - Added the combined floating History/profile control and scrolling page titles. Settings and the full-screen player keep their existing controls.
+        - Fixed a stale saved update that could briefly announce an equal or older version on startup.
+        - Fixed Material You colors on App updates, About the developer, Credits and licenses, and bundled license details.
+
+        Install over the existing app. Do not uninstall or clear app data.
+
+        Downloads:
+        - `spool.apk`: universal phone APK, also used by the in-app updater.
+        - `Spool-2.1.1-arm64-v8a.apk`: smaller APK for arm64 phones.
+        - `spool-v2.1.1-source.tar.gz`: exact corresponding source.
+        - `SHA256SUMS.txt`: download checksums.
+
+        Package: `app.spool.music`. Version: `2.1.1` (58). Signed with the existing Spool certificate.
+
+        Automated source/render tests and emulator upgrade, startup, navigation, keyboard and offline local-playback checks passed before publication. The emulator had network access disabled. Live release metadata and APK integrity were checked separately; an end-to-end in-app network download was not tested on that emulator. This does not install the update on your phone or verify third-party account sign-in.
+        NOTES
+        gh release create v2.1.1 --repo "$REPO" --draft --title 'Spool 2.1.1' --notes-file /tmp/notes.md /tmp/release/*
+        gh release edit v2.1.1 --repo "$REPO" --draft=false --prerelease=false --latest
+    - name: Verify published latest release and exact OTA phone asset
+      run: |
+        set -euo pipefail
+        gh api repos/$REPO/releases/latest > /tmp/latest.json
+        python3 - <<'PY'
+        import json,hashlib,urllib.request
+        from pathlib import Path
+        r=json.load(open('/tmp/latest.json'))
+        assert r['tag_name']=='v2.1.1' and not r['draft'] and not r['prerelease']
+        a=[a for a in r['assets'] if a['name']=='spool.apk' and a['state']=='uploaded'];assert len(a)==1
+        a=a[0];b=Path('/tmp/release/spool.apk').read_bytes();digest=hashlib.sha256(b).hexdigest()
+        assert a['size']==len(b) and a['digest']=='sha256:'+digest
+        assert a['browser_download_url'].startswith('https://github.com/JoyalGeorge2006/spool/releases/download/')
+        downloaded=urllib.request.urlopen(a['browser_download_url']).read()
+        assert hashlib.sha256(downloaded).hexdigest()==digest
+        print('Release:',r['html_url']);print('OTA universal APK:',a['browser_download_url']);print('SHA256:',digest)
+        Path('/tmp/ota-verification.json').write_text(json.dumps({'release':r['html_url'],'apk':a['browser_download_url'],'size':len(b),'sha256':digest,'version':'2.1.1','versionCode':58,'olderInstalledVersion':'2.1.0','numericUpgrade':True},indent=2))
+        PY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: spool-2.1.1-publication-diagnostics
+        path: |
+          /tmp/latest.json
+          /tmp/ota-verification.json
+          /tmp/badging.txt
+          /tmp/cert.txt
