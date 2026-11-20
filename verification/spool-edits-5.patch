@@ -745,10 +745,10 @@ index 5f0d2f4..28a1567 100644
          }
 diff --git a/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
 new file mode 100644
-index 0000000..ab47146
+index 0000000..9c16956
 --- /dev/null
 +++ b/app/src/test/java/com/music/bitchord/InlineFrostSheetA11yTest.kt
-@@ -0,0 +1,117 @@
+@@ -0,0 +1,149 @@
 +package com.music.bitchord
 +
 +import androidx.compose.foundation.layout.Box
@@ -761,7 +761,9 @@ index 0000000..ab47146
 +import androidx.compose.runtime.setValue
 +import androidx.compose.ui.Modifier
 +import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.semantics.SemanticsNode
 +import androidx.compose.ui.semantics.SemanticsProperties
++import androidx.compose.ui.semantics.getOrElse
 +import androidx.compose.ui.test.SemanticsMatcher
 +import androidx.compose.ui.test.SemanticsNodeInteraction
 +import androidx.compose.ui.test.assertIsDisplayed
@@ -769,6 +771,7 @@ index 0000000..ab47146
 +import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 +import androidx.compose.runtime.SideEffect
 +import androidx.compose.ui.test.junit4.createComposeRule
++import androidx.compose.ui.test.onAllNodes
 +import androidx.compose.ui.test.onNodeWithText
 +import androidx.compose.ui.test.onRoot
 +import androidx.compose.ui.test.performTouchInput
@@ -801,7 +804,9 @@ index 0000000..ab47146
 +
 +    // This repo's resolved ui-test artifact predates assertExists /
 +    // assertDoesNotExist, so existence is probed through fetchSemanticsNode,
-+    // the helper every other test in the tree uses.
++    // the helper every other test in the tree uses. The catch is the
++    // specific not-found assertion fetchSemanticsNode throws; anything else
++    // still fails the test.
 +    private fun SemanticsNodeInteraction.exists(): Boolean = try {
 +        fetchSemanticsNode()
 +        true
@@ -809,8 +814,15 @@ index 0000000..ab47146
 +        false
 +    }
 +
-+    private fun SemanticsNodeInteraction.assertAbsent() =
++    // True composition removal only: for a composable that left the tree
++    // entirely (the sheet after dismiss), never for hidden-but-present
++    // nodes, which hiddenBehindSheet produces on purpose.
++    private fun SemanticsNodeInteraction.assertRemoved() =
 +        org.junit.Assert.assertFalse("expected no matching semantics node", exists())
++
++    private fun SemanticsNode.containsText(text: String): Boolean =
++        config.getOrElse(SemanticsProperties.Text) { emptyList() }.any { it.text == text } ||
++            children.any { it.containsText(text) }
 +
 +    private fun scene() {
 +        compose.setContent {
@@ -834,10 +846,21 @@ index 0000000..ab47146
 +    }
 +
 +    @Test
-+    fun coveredPageLeavesSemanticsTree() {
++    fun coveredPageMarkedInvisibleToAccessibility() {
 +        scene()
 +        compose.waitForIdle()
-+        compose.onNodeWithText("page body").assertAbsent()
++        // hiddenBehindSheet marks the covered page invisibleToUser: the
++        // nodes stay in the semantics tree but are excluded from what
++        // accessibility services expose. Assert the marker and that it
++        // wraps the page body; tree nonexistence would be the wrong claim.
++        val hidden = SemanticsMatcher("marked invisible to user") {
++            SemanticsProperties.InvisibleToUser in it.config
++        }
++        val hiddenNodes = compose.onAllNodes(hidden, useUnmergedTree = true).fetchSemanticsNodes()
++        org.junit.Assert.assertTrue(
++            "the covered page must carry the invisible-to-user marker",
++            hiddenNodes.any { it.containsText("page body") },
++        )
 +        compose.onNodeWithText("sheet body").assertIsDisplayed()
 +        // Throws when the pane-title carrier is missing: existence check.
 +        compose.onNode(
@@ -852,8 +875,17 @@ index 0000000..ab47146
 +        // The scrim above the sheet, well clear of the sheet's rounded top.
 +        compose.onRoot().performTouchInput { click(Offset(centerX, 30f)) }
 +        compose.waitForIdle()
-+        compose.onNodeWithText("sheet body").assertAbsent()
++        compose.onNodeWithText("sheet body").assertRemoved()
 +        compose.onNodeWithText("page body").assertIsDisplayed()
++        org.junit.Assert.assertTrue(
++            "no invisible-to-user marker may remain after dismiss",
++            compose.onAllNodes(
++                SemanticsMatcher("marked invisible to user") {
++                    SemanticsProperties.InvisibleToUser in it.config
++                },
++                useUnmergedTree = true,
++            ).fetchSemanticsNodes().isEmpty(),
++        )
 +    }
 +
 +    @Test
@@ -862,7 +894,7 @@ index 0000000..ab47146
 +        compose.waitForIdle()
 +        compose.runOnUiThread { backPress?.invoke() }
 +        compose.waitForIdle()
-+        compose.onNodeWithText("sheet body").assertAbsent()
++        compose.onNodeWithText("sheet body").assertRemoved()
 +        compose.onNodeWithText("page body").assertIsDisplayed()
 +    }
 +}
