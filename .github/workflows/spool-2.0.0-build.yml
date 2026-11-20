@@ -30,6 +30,22 @@ name: spool 2.0.0 verification APK (artifact only, no release)
 # The lame native dependency is fetched AFTER the tree assertion so the hash
 # covers exactly the reviewed source and nothing else.
 #
+# Smoke-step repair in v4 (diagnostic delta only; every source/signing gate is
+# byte-identical to v3): reactivecircus/android-emulator-runner@v2 (the SHA
+# pinned at runtime, a421e438, lib/main.js lines 170 + 212-215) parses the
+# script input into lines and runs EACH LINE as its own `sh -c` process. The
+# v3 smoke script therefore failed structurally: `app_pid=$(...)` and
+# `test -n "$app_pid"` executed in different shells (the run-44717326262 log
+# shows every script line as a separate [command]/usr/bin/sh -c invocation),
+# so the assert saw an empty variable no matter what the app did. Run 1 never
+# measured app health. v4 writes the smoke logic to /tmp/spool-smoke.sh in a
+# normal run step (a real multi-line script, bash -n validated) and invokes it
+# as ONE emulator-runner script line so variables, the EXIT trap and
+# set -euo pipefail all work. Diagnostics (full logcat, crash buffer, ps, pid,
+# screenshot) are captured by the EXIT trap on every outcome, BEFORE any
+# assertion result is known; the package-scoped crash-buffer check fails the
+# run on a fatal/ANR record even if the process restarted.
+#
 # Updater behavior preserved exactly as shipped: SEPARATELY_PROVIDED_UPDATES
 # stays false, so the in-app latest-release checker remains active, matching
 # the shipped v1.9.17 binary (verified from its DEX, not from source comments).
@@ -250,31 +266,75 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
+    - name: Write upgrade smoke script (single-shell; emulator-runner executes each script line in its own sh -c)
+      run: |
+        set -euo pipefail
+        cat > /tmp/spool-smoke.sh <<'SMOKE'
+        #!/usr/bin/env bash
+        set -euo pipefail
+        LOG=/tmp/smoke-logcat.txt
+        CRASH=/tmp/smoke-crash.txt
+        PNG=/tmp/smoke-launch.png
+        PS=/tmp/smoke-ps.txt
+        PIDF=/tmp/smoke-pid.txt
+        app_pid=""
+        capture() {
+          adb logcat -b all -v threadtime -d > "$LOG" 2>/dev/null || true
+          adb logcat -b crash -v threadtime -d > "$CRASH" 2>/dev/null || true
+          adb exec-out screencap -p > "$PNG" 2>/dev/null || true
+          { adb shell ps -A 2>/dev/null | grep -i 'spool' || true; } > "$PS"
+          printf '%s\n' "$app_pid" > "$PIDF"
+        }
+        # Evidence capture on EVERY exit (success, assert failure, install
+        # failure), before any assertion outcome is known.
+        trap capture EXIT
+        # Upgrade path: install the actual shipped universal, then install -r
+        # the 2.0.0 universal over it (same package, same cert, 56 > 55).
+        adb install "$RUNNER_TEMP/spool-v1.9.17.apk"
+        adb install -r "$RUNNER_TEMP/apk-out/spool-universal.apk"
+        # Clear the log buffer BEFORE launch so the crash record belongs to
+        # this launch only.
+        adb logcat -b all -c
+        adb shell monkey -p app.spool.music -c android.intent.category.LAUNCHER 1
+        # Startup poll: up to 60s for the process to appear (first-launch
+        # dexopt after an upgrade can be slow on an emulator).
+        for i in $(seq 1 30); do
+          app_pid=$(adb shell pidof app.spool.music | tr -d '\r' || true)
+          [ -n "$app_pid" ] && break
+          sleep 2
+        done
+        test -n "$app_pid"
+        echo "app process appeared: pid $app_pid"
+        # Stabilization: the process must REMAIN alive ~15s after appearing;
+        # appearing-then-dying is a failure, not a pass.
+        sleep 15
+        app_pid=$(adb shell pidof app.spool.music | tr -d '\r' || true)
+        test -n "$app_pid"
+        echo "app process stable: pid $app_pid"
+        # Refresh evidence before the crash assertions.
+        capture
+        # Crash record fails the run even when a pid exists (process
+        # auto-restart can mask a fatal; the crash buffer survives death).
+        crash_evt=$(grep -cE 'FATAL EXCEPTION|Fatal signal [0-9]+|ANR in app\.spool\.music' "$CRASH" || true)
+        crash_pkg=$(grep -c 'app\.spool\.music' "$CRASH" || true)
+        if [ "$crash_evt" -gt 0 ] && [ "$crash_pkg" -gt 0 ]; then
+          echo '::error::crash record for app.spool.music in crash buffer after upgrade launch'
+          exit 1
+        fi
+        if grep -qE 'FATAL EXCEPTION.*app\.spool\.music|ANR in app\.spool\.music' "$LOG"; then
+          echo '::error::fatal/ANR for app.spool.music in log after upgrade launch'
+          exit 1
+        fi
+        SMOKE
+        bash -n /tmp/spool-smoke.sh
+
     - name: Upgrade install and launch smoke on emulator
       id: smoke
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 34
         arch: x86_64
-        script: |
-          set -euo pipefail
-          # Upgrade path: install the actual shipped universal, then install -r
-          # the 2.0.0 universal over it (same package, same cert, 56 > 55).
-          adb install "$RUNNER_TEMP/spool-v1.9.17.apk"
-          adb install -r "$RUNNER_TEMP/apk-out/spool-universal.apk"
-          # Clear the log buffer BEFORE launch, then capture only the app's
-          # process so unrelated system noise cannot mask or fake a crash.
-          adb logcat -b all -c
-          adb shell monkey -p app.spool.music -c android.intent.category.LAUNCHER 1
-          sleep 20
-          app_pid=$(adb shell pidof app.spool.music | tr -d '\r')
-          test -n "$app_pid"
-          adb logcat -b all -v threadtime --pid="$app_pid" -d > /tmp/smoke-logcat.txt
-          adb exec-out screencap -p > /tmp/smoke-launch.png
-          if grep -iE 'FATAL EXCEPTION|ANR in app.spool.music' /tmp/smoke-logcat.txt; then
-            echo '::error::crash detected in app process log after upgrade launch'
-            exit 1
-          fi
+        script: bash /tmp/spool-smoke.sh
 
     - name: Upload 2.0.0 APK artifact (only on verify+smoke success)
       if: steps.verify.outcome == 'success' && steps.smoke.outcome == 'success'
@@ -297,4 +357,7 @@ jobs:
         path: |
           /tmp/smoke-launch.png
           /tmp/smoke-logcat.txt
+          /tmp/smoke-crash.txt
+          /tmp/smoke-ps.txt
+          /tmp/smoke-pid.txt
         if-no-files-found: warn
