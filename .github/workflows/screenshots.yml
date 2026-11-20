@@ -1,0 +1,196 @@
+name: spool verification (no release publication)
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_suite:
+        description: 'Run the independent complete app and shared unit test suites'
+        type: boolean
+        default: false
+      skip_captures:
+        description: 'Reuse unchanged UI captures when only non-UI source changed'
+        type: boolean
+        default: false
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Fetch pinned v1.9.17 source and apply blur edits
+      run: |
+        set -euo pipefail
+        curl -fsSL -o /tmp/spool-source.tar.gz "https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.17/spool-v1.9.17-source.tar.gz"
+        echo '8af044da1ce03348a42531b28fd7216056bb914640dd669233f66c95d7011bb7  /tmp/spool-source.tar.gz' | sha256sum -c -
+        SRC="$RUNNER_TEMP/asset"
+        mkdir -p "$SRC"
+        tar xzf /tmp/spool-source.tar.gz -C "$SRC"
+        inner=$(find "$SRC" -mindepth 1 -maxdepth 1 -type d | head -1)
+        cd "$inner"
+        git init -q
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+        echo "SRC_DIR=$inner" >> "$GITHUB_ENV"
+
+    - name: Prove the task graph builds no APK
+      run: |
+        cd "$SRC_DIR"
+        chmod +x gradlew
+        ./gradlew :app:compileDevDebugKotlin :app:compileDevDebugUnitTestKotlin --dry-run | tee /tmp/tasks.txt
+        if grep -qiE 'assemble|Apk|androidTest' /tmp/tasks.txt; then
+          echo "::error::APK-producing task in graph, refusing to run"; exit 1
+        fi
+
+    - name: Compile Home sources and screenshot-test sources
+      run: |
+        cd "$SRC_DIR"
+        ./gradlew :app:compileDevDebugKotlin :app:compileDevDebugUnitTestKotlin
+
+  fullsuite:
+    if: inputs.full_suite
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Fetch pinned v1.9.17 source and apply blur edits
+      run: |
+        set -euo pipefail
+        curl -fsSL -o /tmp/spool-source.tar.gz "https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.17/spool-v1.9.17-source.tar.gz"
+        echo '8af044da1ce03348a42531b28fd7216056bb914640dd669233f66c95d7011bb7  /tmp/spool-source.tar.gz' | sha256sum -c -
+        SRC="$RUNNER_TEMP/asset"
+        mkdir -p "$SRC"
+        tar xzf /tmp/spool-source.tar.gz -C "$SRC"
+        inner=$(find "$SRC" -mindepth 1 -maxdepth 1 -type d | head -1)
+        cd "$inner"
+        git init -q
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+        echo "SRC_DIR=$inner" >> "$GITHUB_ENV"
+
+    - name: Full unit test suite (candidate gate)
+      timeout-minutes: 60
+      run: |
+        cd "$SRC_DIR"
+        ./gradlew :app:testDevDebugUnitTest :shared:jvmTest -Pbitchord.bundleWear=false
+
+    - name: Upload full suite results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: full-suite-results
+        path: |
+          ${{ env.SRC_DIR }}/app/build/test-results/**/*.xml
+          ${{ env.SRC_DIR }}/shared/build/test-results/**/*.xml
+        if-no-files-found: ignore
+
+  shots:
+    if: ${{ !inputs.skip_captures }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Fetch pinned v1.9.17 source and apply blur edits
+      run: |
+        set -euo pipefail
+        curl -fsSL -o /tmp/spool-source.tar.gz "https://github.com/JoyalGeorge2006/spool/releases/download/v1.9.17/spool-v1.9.17-source.tar.gz"
+        echo '8af044da1ce03348a42531b28fd7216056bb914640dd669233f66c95d7011bb7  /tmp/spool-source.tar.gz' | sha256sum -c -
+        SRC="$RUNNER_TEMP/asset"
+        mkdir -p "$SRC"
+        tar xzf /tmp/spool-source.tar.gz -C "$SRC"
+        inner=$(find "$SRC" -mindepth 1 -maxdepth 1 -type d | head -1)
+        cd "$inner"
+        git init -q
+        git apply "$GITHUB_WORKSPACE/verification/spool-edits.patch"
+        curl -fsSL -o /tmp/lame.tar.gz "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        mkdir -p native/lame
+        tar xzf /tmp/lame.tar.gz -C native/lame --strip-components=1
+        echo "SRC_DIR=$inner" >> "$GITHUB_ENV"
+
+    - name: Prove the screenshot task graph builds no APK
+      run: |
+        cd "$SRC_DIR"
+        chmod +x gradlew
+        ./gradlew :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --dry-run | tee /tmp/tasks.txt
+        if grep -qiE 'assemble|Apk|androidTest' /tmp/tasks.txt; then
+          echo "::error::APK-producing task in graph, refusing to run"; exit 1
+        fi
+
+    - name: Queue Undo and motion regression tests
+      run: |
+        cd "$SRC_DIR"
+        ./gradlew :app:testDevDebugUnitTest -Pbitchord.bundleWear=false --tests '*QueueUndoPositionTest*' --tests '*SpoolMotionPolicyTest*' --tests '*QueueUndoRestoreTest*'
+
+    # Targeted visual verification: only the V6ScreenshotTest capture class.
+    # A targeted green is a capture pass, never a full-suite pass; the full
+    # suite runs when this workflow is dispatched with full_suite=true.
+    - name: Record v6 screenshots (targeted captures)
+      if: ${{ !cancelled() }}
+      timeout-minutes: 60
+      run: |
+        cd "$SRC_DIR"
+        cat > /tmp/capture-diagnostics.gradle <<'GRADLE'
+        allprojects {
+          tasks.withType(Test).configureEach {
+            testLogging { events 'started', 'passed', 'skipped', 'failed'; exceptionFormat 'full' }
+          }
+        }
+        GRADLE
+        ./gradlew --init-script /tmp/capture-diagnostics.gradle :app:recordRoborazziDevDebug -Pbitchord.bundleWear=false --tests 'com.music.bitchord.V6ScreenshotTest.player_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_player_overflow_*' --tests 'com.music.bitchord.V6ScreenshotTest.settings_language_dialog_*' &
+        gradle_pid=$!
+        (
+          sleep 360
+          if kill -0 "$gradle_pid" 2>/dev/null; then
+            echo 'CAPTURE WATCHDOG: worker thread stacks after 360 seconds'
+            jps -lv
+            for worker in $(jps -l | awk '/GradleWorkerMain/ {print $1}'); do
+              jcmd "$worker" Thread.print || true
+            done
+          fi
+        ) &
+        watchdog_pid=$!
+        set +e
+        wait "$gradle_pid"
+        result=$?
+        kill "$watchdog_pid" 2>/dev/null || true
+        wait "$watchdog_pid" 2>/dev/null || true
+        exit "$result"
+
+    - name: Fail-safe roborazzi PNG artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: v6-shots-png
+        path: |
+          ${{ env.SRC_DIR }}/app/build/outputs/roborazzi/*.png
+          ${{ env.SRC_DIR }}/app/build/test-results/testDevDebugUnitTest/*.xml
+        if-no-files-found: ignore
+
+  # The reference workflow's source-push job and APK build/emulator jobs are
+  # intentionally absent: no branch writes, no signing secrets, no APK.
+  # Release publication remains intentionally absent. Verification artifacts only.
