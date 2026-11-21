@@ -143,7 +143,7 @@ class PlayerTransitionRegressionTest {
                     elapsed = frame
                     compose.waitForIdle()
                     compose.runOnIdle { println("MOTION_FRAME dark=$dark pane=$pane cycle=$cycle elapsed=$frame holding=${motion.holding} position=${motion.position()} contentOffset=${motion.contentOffsetPx()} shown=$shown") }
-                    compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/${if (journey) "journey" else "transition"}_${pane}_${dark}_${cycle}_open_$frame.png")
+                    compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/${if (journey) "journey" else "transition"}_${pane}_${dark}_${cycle}_open_$frame.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 }
                 while (motion.holding && elapsed < 2400L) {
                     compose.mainClock.advanceTimeBy(32L)
@@ -173,15 +173,15 @@ class PlayerTransitionRegressionTest {
                             compose.mainClock.advanceTimeBy(at - sectionElapsed)
                             sectionElapsed = at
                             compose.waitForIdle()
-                            compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_section_open_$at.png")
+                            compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_section_open_$at.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                         }
                         settleFrames()
-                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_lyrics.png")
+                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_lyrics.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                         visibleText("First line of the song").assertIsDisplayed()
                         compose.runOnIdle { assertEquals(LastPlayerScreen.LYRICS, AppSettings.lastPlayerScreen.value) }
                         visibleText("Queue").performClick()
                         settleFrames()
-                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_queue.png")
+                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_queue.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                         compose.runOnIdle { assertEquals(LastPlayerScreen.QUEUE, AppSettings.lastPlayerScreen.value) }
                         diagnostic("before manual touch", motion)
                         repeat(1) {
@@ -189,18 +189,24 @@ class PlayerTransitionRegressionTest {
                                 swipe(Offset(width * .5f, height * .3f), Offset(width * .5f, height * 2.6f), 650)
                             }
                             settleFrames()
-                            diagnostic("after manual touch $it", motion)
+                            compose.runOnIdle { assertFalse("approved section-header drag collapses to mini-player", shown) }
+                            compose.onNodeWithTag("full-player").assertDoesNotExist()
+                            compose.onNodeWithTag("mini-player", useUnmergedTree = true).assertIsDisplayed()
+                            compose.onNodeWithTag("mini-player", useUnmergedTree = true).performClick()
+                            settleFrames()
+                            compose.runOnIdle { assertTrue("mini-player reopens full player", shown) }
+                            diagnostic("after collapse and reopen $it", motion)
                         }
-                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_manual_return_main.png")
+                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_manual_return_main.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                         visibleText("Midnight Rain").assertIsDisplayed()
                         compose.runOnIdle { assertEquals(LastPlayerScreen.MAIN, AppSettings.lastPlayerScreen.value) }
                         compose.onNodeWithTag("full-player").performTouchInput {
-                            swipe(Offset(width * .9f, height * .25f), Offset(width * .9f, height * .85f), 650)
+                            swipe(Offset(width * .9f, height * .25f), Offset(width * .9f, height * .25f + 8f), 800)
                         }
                         settleFrames()
-                        compose.runOnIdle { assertTrue("content drag at artwork top must not dismiss player", shown) }
+                        compose.runOnIdle { assertTrue("subthreshold artwork drag must settle without dismissal", shown) }
                         diagnostic("content top remains open", motion)
-                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_content_top_stays_open.png")
+                        compose.onNodeWithTag("full-player").captureRoboImage("build/outputs/roborazzi/journey_${dark}_content_top_stays_open.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                         compose.onNode(hasContentDescription(closeLabel) and hasAnyAncestor(hasTestTag("full-player"))).performClick()
                     } else if (cycle == 1) {
                         visibleText("Midnight Rain").assertIsDisplayed()
@@ -221,7 +227,7 @@ class PlayerTransitionRegressionTest {
                     elapsed = frame
                     compose.waitForIdle()
                     compose.runOnIdle { println("MOTION_FRAME dark=$dark pane=$pane cycle=$cycle elapsed=$frame holding=${motion.holding} position=${motion.position()} contentOffset=${motion.contentOffsetPx()} shown=$shown") }
-                    compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/${if (journey) "journey" else "transition"}_${pane}_${dark}_${cycle}_close_$frame.png")
+                    compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/${if (journey) "journey" else "transition"}_${pane}_${dark}_${cycle}_close_$frame.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 }
                 while (shown && elapsed < 2400L) {
                     compose.mainClock.advanceTimeBy(32L)
@@ -236,7 +242,7 @@ class PlayerTransitionRegressionTest {
             println("PLAYER_JOURNEY_FAILURE dark=$dark pane=$pane journey=$journey shown=$shown")
             dumpTrees()
             runCatching { compose.onAllNodes(isRoot(), useUnmergedTree = true).fetchSemanticsNodes().indices.forEach { index ->
-                compose.onAllNodes(isRoot(), useUnmergedTree = true)[index].captureRoboImage("build/outputs/roborazzi/failure_${dark}_${pane}_${journey}_root$index.png")
+                compose.onAllNodes(isRoot(), useUnmergedTree = true)[index].captureRoboImage("build/outputs/roborazzi/failure_${dark}_${pane}_${journey}_root$index.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             }
             }
             throw failure
