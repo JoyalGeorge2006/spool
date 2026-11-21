@@ -55,8 +55,17 @@ jobs:
           status=$?
           # Pull pixels BEFORE the runner tears the emulator down; the
           # post-step adb pull found no device on the failed run.
+          # Scoped storage hides /sdcard/Android/data/<pkg> from the shell
+          # (stat returns ENOENT), so read the files through the app's own
+          # identity with run-as; the dev build is debuggable.
           mkdir -p emulator-screens
           adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
+          adb shell run-as app.spool.music.dev ls /sdcard/Android/data/app.spool.music.dev/files/ 2>/dev/null | tr -d '\r' > /tmp/shots.txt || true
+          while IFS= read -r f; do
+            case "$f" in
+              *.png) adb exec-out run-as app.spool.music.dev cat "/sdcard/Android/data/app.spool.music.dev/files/$f" > "emulator-screens/$f" || true ;;
+            esac
+          done < /tmp/shots.txt
           ls -la emulator-screens/ || true
           exit $status
     - name: Pull emulator screenshots
