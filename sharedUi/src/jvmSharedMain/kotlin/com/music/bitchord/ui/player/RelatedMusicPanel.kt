@@ -1,5 +1,8 @@
 package com.music.bitchord.ui.player
 
+import com.music.bitchord.sharedui.resources.*
+import org.jetbrains.compose.resources.stringResource
+
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
@@ -104,9 +107,9 @@ internal fun RelatedMusicPanel(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.MusicNote, null, tint = chromeWhite(0.6f), modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(7.dp))
-                    Text("Related music", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = chromeWhite(0.6f))
+                    Text(stringResource(Res.string.spool_related_heading), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = chromeWhite(0.6f))
                 }
-                song?.let { Text("Based on ${it.title}", fontSize = 11.5.sp, color = chromeWhite(0.6f), modifier = Modifier.padding(top = 3.dp)) }
+                song?.let { Text(stringResource(Res.string.spool_related_based_on, it.title), fontSize = 11.5.sp, color = chromeWhite(0.6f), modifier = Modifier.padding(top = 3.dp)) }
             }
         }
         when (val content = state) {
@@ -114,25 +117,25 @@ internal fun RelatedMusicPanel(
                 Row(Modifier.padding(vertical = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(20.dp), color = chromeWhite(1f), strokeWidth = 2.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text("Finding related music...", color = chromeWhite(0.7f))
+                    Text(stringResource(Res.string.spool_related_loading), color = chromeWhite(0.7f))
                 }
             }
             RelatedMusicState.Failed -> item("error") {
                 Column(Modifier.padding(vertical = 16.dp).testTag("related-error")) {
-                    Text("Couldn't load related music", color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
-                    Text("Your queue is unchanged.", color = chromeWhite(0.65f), fontSize = 13.sp)
+                    Text(stringResource(Res.string.spool_related_load_failed), color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.spool_related_queue_unchanged), color = chromeWhite(0.65f), fontSize = 13.sp)
                     OutlinedButton(onClick = { retry++ }, modifier = Modifier.padding(top = 12.dp)) {
-                        Text("Try again", color = chromeWhite(1f))
+                        Text(stringResource(Res.string.spool_related_retry), color = chromeWhite(1f))
                     }
                 }
             }
             is RelatedMusicState.Ready -> {
                 if (content.songs.isEmpty()) item("empty") {
                     Column(Modifier.padding(vertical = 16.dp).testTag("related-empty")) {
-                        Text("No related tracks found", color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
-                        Text("Try again or choose another song.", color = chromeWhite(0.65f), fontSize = 13.sp)
+                        Text(stringResource(Res.string.spool_related_empty), color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(Res.string.spool_related_empty_hint), color = chromeWhite(0.65f), fontSize = 13.sp)
                         OutlinedButton(onClick = { retry++ }, modifier = Modifier.padding(top = 12.dp)) {
-                            Text("Try again", color = chromeWhite(1f))
+                            Text(stringResource(Res.string.spool_related_retry), color = chromeWhite(1f))
                         }
                     }
                 }
@@ -146,13 +149,13 @@ internal fun RelatedMusicPanel(
             HorizontalDivider(Modifier.padding(top = 24.dp, bottom = 16.dp), color = androidx.compose.ui.graphics.Color.Transparent)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                    Text("Autoplay", color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
-                    Text("Keep similar music playing after your queue.", color = chromeWhite(0.65f), fontSize = 12.sp)
+                    Text(stringResource(Res.string.spool_related_autoplay), color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.spool_related_autoplay_description), color = chromeWhite(0.65f), fontSize = 12.sp)
                 }
                 Switch(checked = autoplayEnabled, onCheckedChange = { onToggleAutoplay() }, enabled = !controlsLocked,
                     colors = SwitchDefaults.colors(checkedTrackColor = chromeWhite(1f), checkedThumbColor = MaterialTheme.colorScheme.background))
             }
-            if (controlsLocked) Text("Only the host can change playback or the queue.", color = chromeWhite(0.65f), fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+            if (controlsLocked) Text(stringResource(Res.string.spool_related_host_only), color = chromeWhite(0.65f), fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
         }
     }
 }
@@ -165,6 +168,9 @@ internal fun RelatedSongRow(
     song: Song, locked: Boolean, first: Boolean, last: Boolean,
     onPlay: () -> Unit, onAdd: () -> Unit,
 ) {
+    val playSongLabel = stringResource(Res.string.spool_related_play_song, song.title)
+    val songActionsLabel = stringResource(Res.string.spool_related_song_actions)
+    val addSongLabel = stringResource(Res.string.spool_related_add_song, song.title)
     var menuOpen by remember(song.videoId) { mutableStateOf(false) }
     val currentLocked by rememberUpdatedState(locked)
     LaunchedEffect(locked) { if (locked) menuOpen = false }
@@ -177,10 +183,10 @@ internal fun RelatedSongRow(
     Box(Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface)
         .drawBehind { if (!first) drawLine(androidx.compose.ui.graphics.Color.Transparent, Offset(62.dp.toPx(), 0f), Offset(size.width - 8.dp.toPx(), 0f), 1.dp.toPx()) }) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .combinedClickable(enabled = !locked, onClickLabel = "Play ${song.title}",
-                onLongClickLabel = "Song actions", onClick = { if (!currentLocked) onPlay() },
+            .combinedClickable(enabled = !locked, onClickLabel = playSongLabel,
+                onLongClickLabel = songActionsLabel, onClick = { if (!currentLocked) onPlay() },
                 onLongClick = { if (!currentLocked) menuOpen = true })
-            .semantics { if (!locked) customActions = listOf(CustomAccessibilityAction("Add ${song.title} to queue") { if (!currentLocked) { onAdd(); true } else false }) }
+            .semantics { if (!locked) customActions = listOf(CustomAccessibilityAction(addSongLabel) { if (!currentLocked) { onAdd(); true } else false }) }
             .testTag("related-track-${song.videoId}").padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)).background(chromeWhite(0.08f)), contentAlignment = Alignment.Center) {
@@ -201,8 +207,8 @@ internal fun RelatedSongRow(
             }
         }
         DropdownMenu(expanded = menuOpen && !locked, onDismissRequest = { menuOpen = false }) {
-            DropdownMenuItem(text = { Text("Play now") }, onClick = { menuOpen = false; if (!currentLocked) onPlay() }, enabled = !locked)
-            DropdownMenuItem(text = { Text("Add to queue") }, onClick = { menuOpen = false; if (!currentLocked) onAdd() }, enabled = !locked)
+            DropdownMenuItem(text = { Text(stringResource(Res.string.spool_related_play_now)) }, onClick = { menuOpen = false; if (!currentLocked) onPlay() }, enabled = !locked)
+            DropdownMenuItem(text = { Text(stringResource(Res.string.spool_related_add_to_queue)) }, onClick = { menuOpen = false; if (!currentLocked) onAdd() }, enabled = !locked)
         }
     }
 }
