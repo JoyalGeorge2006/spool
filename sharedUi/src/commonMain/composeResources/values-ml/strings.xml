@@ -300,4 +300,21 @@
         <item>വരികൾ ഒത്തുചേർന്നുവരുന്നു</item>
         <item>വാക്കുകൾ ഏകദേശം കണ്ടെത്തി</item>
     </string-array>
+
+    <string name="spool_related_heading">സമാനമായ സംഗീതം</string>
+    <string name="spool_related_based_on">%1$s എന്ന ഗാനത്തെ അടിസ്ഥാനമാക്കി</string>
+    <string name="spool_related_loading">സമാനമായ സംഗീതം തിരയുന്നു...</string>
+    <string name="spool_related_load_failed">സമാനമായ സംഗീതം ലോഡ് ചെയ്യാനായില്ല</string>
+    <string name="spool_related_queue_unchanged">നിങ്ങളുടെ ക്യൂവിൽ മാറ്റമൊന്നുമില്ല.</string>
+    <string name="spool_related_retry">വീണ്ടും ശ്രമിക്കുക</string>
+    <string name="spool_related_empty">സമാനമായ ഗാനങ്ങളൊന്നും കണ്ടെത്തിയില്ല</string>
+    <string name="spool_related_empty_hint">വീണ്ടും ശ്രമിക്കുകയോ മറ്റൊരു ഗാനം തിരഞ്ഞെടുക്കുകയോ ചെയ്യുക.</string>
+    <string name="spool_related_autoplay">സ്വയമേവ പ്ലേ ചെയ്യുക</string>
+    <string name="spool_related_autoplay_description">നിങ്ങളുടെ ക്യൂ അവസാനിച്ചാലും സമാനമായ സംഗീതം പ്ലേ ചെയ്യുന്നത് തുടരുക.</string>
+    <string name="spool_related_host_only">ഹോസ്റ്റിന് മാത്രമേ പ്ലേബാക്കോ ക്യൂവോ മാറ്റാനാകൂ.</string>
+    <string name="spool_related_play_song">%1$s പ്ലേ ചെയ്യുക</string>
+    <string name="spool_related_song_actions">ഗാനത്തിനുള്ള പ്രവർത്തനങ്ങൾ</string>
+    <string name="spool_related_add_song">%1$s ക്യൂവിലേക്ക് ചേർക്കുക</string>
+    <string name="spool_related_play_now">ഇപ്പോൾ പ്ലേ ചെയ്യുക</string>
+    <string name="spool_related_add_to_queue">ക്യൂവിലേക്ക് ചേർക്കുക</string>
 </resources>
