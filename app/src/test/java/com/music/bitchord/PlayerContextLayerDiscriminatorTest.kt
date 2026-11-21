@@ -21,6 +21,7 @@ import com.music.bitchord.ui.player.PlayerHost
 import com.music.bitchord.ui.player.PlayerPlatform
 import com.music.bitchord.ui.theme.BitChordTheme
 import org.junit.*
+import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -44,7 +45,12 @@ class PlayerContextLayerDiscriminatorTest {
                 val original = coil3.SingletonImageLoader.get(context)
                 val observing = original.newBuilder().eventListener(object : coil3.EventListener() {
                     override fun onSuccess(request: coil3.request.ImageRequest, result: coil3.request.SuccessResult) {
-                        if(request.data.toString().contains("player-layer-")) loaded.set(true)
+                        if(request.data.toString().contains("player-layer-")) {
+                            println("PLAYER-COVER-REQUEST data=${request.data} decoded=${result.image.width}x${result.image.height}")
+                            // The palette also requests this file at 128px. Only
+                            // the production 1200px cover closes this condition.
+                            if(result.image.width == 1200 && result.image.height == 1200) loaded.set(true)
+                        }
                     }
                 }).build()
                 loaded.set(false)
@@ -63,10 +69,14 @@ class PlayerContextLayerDiscriminatorTest {
         fixture.installUiHost()
         val restore = fixture.installVideoStubHost()
         val installed = PlayerPlatform.host
+        val relatedRequests = java.util.concurrent.atomic.AtomicInteger(0)
         PlayerPlatform.install(object : PlayerHost by installed {
-            override suspend fun relatedSongs(song: Song): Result<List<Song>> = Result.success(List(8) {
-                Song("layer-fixture-$it", "Related track ${it+1}", "Fixture artist", null)
-            })
+            override suspend fun relatedSongs(song: Song): Result<List<Song>> {
+                relatedRequests.incrementAndGet()
+                return Result.success(List(8) {
+                    Song("layer-fixture-$it", "Related track ${it+1}", "Fixture artist", null)
+                })
+            }
         })
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val image = java.io.File(context.cacheDir, "player-layer-${offscreen}.png")
@@ -93,17 +103,42 @@ class PlayerContextLayerDiscriminatorTest {
                     }
                 }
             }
-            compose.waitUntil(10_000) { loaded.get() }
-            repeat(4) {
+            // Preserve evidence even if the specific cover request times out.
+            val coverFailure = runCatching { compose.waitUntil(10_000) { loaded.get() } }.exceptionOrNull()
+            val mode = if(offscreen) "offscreen" else "auto"
+            val artworkPath = "build/outputs/roborazzi/player_context_layer_${mode}_artwork.png"
+            fun record(): Unit {
+                compose.onNodeWithTag("player-context-layer-control").captureRoboImage(
+                    artworkPath, roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
+            }
+            fun goldPixels(): Int {
+                val frame = android.graphics.BitmapFactory.decodeFile(artworkPath)
+                    ?: throw AssertionError("Recorded artwork PNG is not decodable: $artworkPath")
+                return try {
+                    var count=0
+                    for(y in 0 until frame.height) for(x in 0 until frame.width) {
+                        val pixel=frame.getPixel(x,y)
+                        if(android.graphics.Color.red(pixel) in 228..248 &&
+                            android.graphics.Color.green(pixel) in 181..201 &&
+                            android.graphics.Color.blue(pixel) in 95..115) count++
+                    }
+                    count
+                } finally { frame.recycle() }
+            }
+            var gold=0
+            // The condition is painted pixels, not the loader's success event.
+            // Pump both clocks for the production crossfade. Keep the last
+            // pre-navigation PNG whether readiness succeeds or fails.
+            for(frame in 0 until 20) {
                 org.robolectric.shadows.ShadowLooper.idleMainLooper(300L,java.util.concurrent.TimeUnit.MILLISECONDS)
                 compose.mainClock.advanceTimeBy(300L)
                 compose.waitForIdle()
+                record()
+                gold=goldPixels()
+                if(loaded.get() && gold > 1000) break
             }
-            // Inspect the pre-navigation frame to confirm the production player
-            // painted the fixture. Success callback alone does not prove pixels.
-            compose.onNodeWithTag("player-context-layer-control").captureRoboImage(
-                "build/outputs/roborazzi/player_context_layer_${if(offscreen)"offscreen"else"auto"}_artwork.png",
-                roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
+            println("PLAYER-COVER-RASTER mode=$mode cover1200=${loaded.get()} gold=$gold coverFailure=$coverFailure")
+            println("PLAYER-RELATED-BEFORE mode=$mode\n"+compose.onRoot(useUnmergedTree=true).printToString())
             val visibleRelated = hasText("Related") and SemanticsMatcher("visible Related tab") {
                 val b=it.boundsInRoot
                 b.left>=0f && b.right<=390f && b.top>=0f && b.bottom<=780f
@@ -111,11 +146,15 @@ class PlayerContextLayerDiscriminatorTest {
             compose.onAllNodes(visibleRelated).onFirst().performClick()
             compose.mainClock.advanceTimeBy(1800)
             compose.waitForIdle()
-            compose.onNodeWithText("Related track 1").assertIsDisplayed()
-            println("PLAYER-CONTEXT-LAYER mode=$offscreen\n"+compose.onRoot(useUnmergedTree=true).printToString())
+            println("PLAYER-RELATED-AFTER mode=$mode requests=${relatedRequests.get()}\n"+compose.onRoot(useUnmergedTree=true).printToString())
+            // Capture the actual post-navigation frame BEFORE any assertion.
             compose.onNodeWithTag("player-context-layer-control").captureRoboImage(
-                "build/outputs/roborazzi/player_context_layer_${if(offscreen)"offscreen"else"auto"}.png",
+                "build/outputs/roborazzi/player_context_layer_${mode}.png",
                 roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
+            assertTrue("Production 1200px cover must succeed; $coverFailure",loaded.get() && coverFailure == null)
+            assertTrue("Fixture gold must be visible in actual recorded pre-navigation pixels ($gold)",gold > 1000)
+            assertTrue("Read-only Related provider must be requested",relatedRequests.get() > 0)
+            compose.onNodeWithText("Related track 1").assertIsDisplayed()
         } finally {
             image.delete()
             AppSettings.playerTheme.value=old
