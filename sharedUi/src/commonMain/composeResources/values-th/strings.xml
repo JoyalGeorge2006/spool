@@ -204,4 +204,13 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">ไม่สามารถเล่นเพลงนี้ได้</string>
     <string name="tap_to_retry">แตะเพื่อลองอีกครั้ง</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">ลองอีกครั้ง</string>
+    <string name="find_your_mood">ค้นหาอารมณ์ของคุณ</string>
+    <string name="home_history">ประวัติ</string>
+    <string name="remove">นำออก</string>
+    <string name="sign_in_with_google">ลงชื่อเข้าใช้ด้วย Google</string>
+    <string name="spool_related_add_to_queue">เพิ่มลงคิว</string>
+    <string name="spool_related_retry">ลองอีกครั้ง</string>
 </resources>
