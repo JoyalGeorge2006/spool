@@ -174,7 +174,8 @@ jobs:
           printf '%s  %s\n' "$chash" 'spool-ota-v1.json' >> sums.new
           old=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="SHA256SUMS.txt") | .id' || true)
           [ -z "$old" ] || gh api -X DELETE "repos/$REPO/releases/assets/$old"
-          gh release upload "$TAG" sums.new#SHA256SUMS.txt --repo "$REPO"
+          cp sums.new SHA256SUMS.txt
+          gh release upload "$TAG" SHA256SUMS.txt --repo "$REPO"
           cat sums.new
 
       - name: Final public verification from download URLs
