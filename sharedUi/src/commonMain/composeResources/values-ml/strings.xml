@@ -309,7 +309,6 @@
     <string name="spool_related_retry">വീണ്ടും ശ്രമിക്കുക</string>
     <string name="spool_related_empty">സമാനമായ ഗാനങ്ങളൊന്നും കണ്ടെത്തിയില്ല</string>
     <string name="spool_related_empty_hint">വീണ്ടും ശ്രമിക്കുകയോ മറ്റൊരു ഗാനം തിരഞ്ഞെടുക്കുകയോ ചെയ്യുക.</string>
-    <string name="spool_related_autoplay">സ്വയമേവ പ്ലേ ചെയ്യുക</string>
     <string name="spool_related_autoplay_description">നിങ്ങളുടെ ക്യൂ അവസാനിച്ചാലും സമാനമായ സംഗീതം പ്ലേ ചെയ്യുന്നത് തുടരുക.</string>
     <string name="spool_related_host_only">ഹോസ്റ്റിന് മാത്രമേ പ്ലേബാക്കോ ക്യൂവോ മാറ്റാനാകൂ.</string>
     <string name="spool_related_play_song">%1$s പ്ലേ ചെയ്യുക</string>
