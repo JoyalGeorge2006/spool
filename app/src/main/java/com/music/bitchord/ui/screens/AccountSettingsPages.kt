@@ -101,7 +101,7 @@ internal fun ProfileSettingsPage(
                 RowDivider()
                 SettingsRow(title = stringResource(R.string.add_account), onClick = onAddAccount)
                 RowDivider()
-                SettingsRow(title = stringResource(R.string.manage_accounts), enabled = signedIn, onClick = onManageAccounts)
+                SettingsRow(title = stringResource(R.string.manage_account), enabled = signedIn, onClick = onManageAccounts)
             }
             Spacer(Modifier.height(24.dp))
         }
