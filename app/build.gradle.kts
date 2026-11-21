@@ -14,6 +14,17 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.all {
 // even though the app itself targets 17.
 tasks.withType<Test>().configureEach {
     javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) })
+    // One fork carried all ~700 app tests; Robolectric sandboxes and Roborazzi
+    // bitmaps accumulate until the VM dies (CI exit 134 / OOM spew). Restarting
+    // the fork every 100 classes bounds process lifetime; every test still runs.
+    forkEvery = 100L
+    // Measured facts for sizing, printed before any test executes.
+    doFirst {
+        println(
+            "TEST-VM-DIAG maxMemoryBytes=" + Runtime.getRuntime().maxMemory() +
+                " availableProcessors=" + Runtime.getRuntime().availableProcessors(),
+        )
+    }
 }
 
 plugins {
