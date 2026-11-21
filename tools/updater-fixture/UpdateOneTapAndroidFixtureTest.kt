@@ -140,7 +140,7 @@ class UpdateOneTapAndroidFixtureTest {
    stableSpool(a);shot("updater-real-cancel-no-loop")
   } finally { scenario.close() }
  }
- @Test fun deltaCompletionPermissionGrantThenRealInstall()=runBlocking {
+ @Test fun deltaCompletionPermissionGrantThenRealInstall()=runBlocking<Unit> {
   seedCompleted(delta=true);File(context.filesDir,"one-tap-fixture-sentinel").writeText("preserved-local-fixture")
   ActivityScenario.launch(MainActivity::class.java)
   awaitPermission();grantAndReturn();println("FIXTURE-INSTALL-REQUESTED target=59");confirmationAction(positive=true)
