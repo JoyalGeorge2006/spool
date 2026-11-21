@@ -14,21 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: bde164bf6c399cf8d6733b1180cff52267be39da
+          ref: 01f067464da36be8001418d457f47bc3cfd7f6ce
           persist-credentials: false
           path: proposal
       - name: Bind immutable source commit, raw JSON and exact six files
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C proposal rev-parse HEAD)" = bde164bf6c399cf8d6733b1180cff52267be39da
-          test "$(git -C proposal rev-parse HEAD^{tree})" = 188a1126bb1127d9a1f67b6b4a3ad66875399cce
+          test "$(git -C proposal rev-parse HEAD)" = 01f067464da36be8001418d457f47bc3cfd7f6ce
+          test "$(git -C proposal rev-parse HEAD^{tree})" = c35027bb5aabffef0854289f068397d2be7d42cd
           python3 - <<'PYBIND'
           import json,pathlib,hashlib,os
           root=pathlib.Path('proposal')
           p=root/'release-prep/spool-2.1.2/inspection-source.json'
           raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='2d5ffc3d02f45d50335ad7bf629bc33ea84e91851e54463c7b6794e57e1fafd8'
+          assert hashlib.sha256(raw).hexdigest()=='7ef785e12ed05aba729c0a73114e7c47d98740cc541987242bff2618cf3369ed'
           def unique(pairs):
               result={}
               for k,v in pairs:
@@ -37,7 +37,7 @@ jobs:
               return result
           j=json.loads(raw,object_pairs_hook=unique)
           assert set(j)=={'schema','purpose','files','sha256'} and j['schema']==1
-          expected={'inspect-stable.py': 'a7e775f815ef186a016dc324c52fcc945800a1e21c7d73bcc1d57292e647e76c', 'inspect-inputs.py': 'bace616c2e0f051acd57489798baf2ac40507323e28e281e5d9395cd67ae8016', 'inspect-evidence.py': 'f163e06d40e96ddac64ac722b92550b5805cd166d1d8a871fa137da35a386100', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '0d27f66fae6fbf245b62b676755df575d3e6d812509d7f685686808323bfed5f', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
+          expected={'inspect-stable.py': 'a7e775f815ef186a016dc324c52fcc945800a1e21c7d73bcc1d57292e647e76c', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': 'f163e06d40e96ddac64ac722b92550b5805cd166d1d8a871fa137da35a386100', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '0d27f66fae6fbf245b62b676755df575d3e6d812509d7f685686808323bfed5f', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
           assert set(j['files'])==set(expected) and j['sha256']==expected
           # Validate every file before writing any. Only known plain basenames.
           for name,digest in expected.items():
@@ -49,7 +49,7 @@ jobs:
               with path.open('xb') as f:f.write(j['files'][name].encode('utf-8'))
               assert hashlib.sha256(path.read_bytes()).hexdigest()==expected[name]
           out=pathlib.Path('source-binding');out.mkdir(exist_ok=True)
-          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='bde164bf6c399cf8d6733b1180cff52267be39da',source_tree='188a1126bb1127d9a1f67b6b4a3ad66875399cce',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='01f067464da36be8001418d457f47bc3cfd7f6ce',source_tree='c35027bb5aabffef0854289f068397d2be7d42cd',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
           PYBIND
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
@@ -62,6 +62,8 @@ jobs:
       - name: Install manifest/signature tools only, no Gradle/native compile
         run: sdkmanager 'build-tools;35.0.0'
       - name: Fetch+cryptographically verify hosted stable58 and immutable EN resources
+        env:
+          INSPECTION_METADATA_TOKEN: ${{ github.token }}
         run: python3 proposal/inspect-inputs.py
       - name: Enable KVM
         run: |
