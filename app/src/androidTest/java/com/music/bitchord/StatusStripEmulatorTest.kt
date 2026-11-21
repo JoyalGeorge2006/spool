@@ -434,25 +434,64 @@ class StatusStripEmulatorTest {
 
     private fun clickRow(label: String) {
         val text = hasText(label)
-        val lazy = compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)
-            .fetchSemanticsNodes().filter {
-                it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null
-            }.maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
-        if (lazy != null) {
-            compose.onNode(SemanticsMatcher("page lazy container") { it.id == lazy.id }, useUnmergedTree = true)
-                .performScrollToNode(text)
-        } else {
-            compose.onAllNodes(text, useUnmergedTree = true)[0].performScrollTo()
-        }
-        val matcher = hasClickAction() and (text or hasAnyDescendant(text))
         val viewport = compose.onRoot().fetchSemanticsNode().boundsInRoot
-        val row = compose.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes()
-            .filter { it.boundsInRoot.width > 0 && it.boundsInRoot.height > 0 && viewport.contains(it.boundsInRoot.center) }
+        // The real Settings page is a ScrollState Column, not a LazyColumn.
+        // Bind to the label's own ancestor rather than another tab's lazy list.
+        val initial = compose.onAllNodes(text, useUnmergedTree = true).fetchSemanticsNodes()
+        val target = initial.filter { it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f }
             .minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
-            ?: error("No visible clickable row for $label")
-        compose.onNode(SemanticsMatcher("smallest clickable row") { it.id == row.id }, useUnmergedTree = true).performClick()
+            ?: error("No positive-size target label for $label")
+        val ancestors = generateSequence(target.parent) { it.parent }.toList()
+        val scroll = ancestors.firstOrNull {
+            it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null &&
+                it.config.getOrNull(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) != null
+        }
+        val scrollNode = scroll?.let { ancestor -> compose.onNode(
+            SemanticsMatcher("target label vertical ancestor") { it.id == ancestor.id }, useUnmergedTree = true) }
+        val matcher = hasClickAction() and (text or hasAnyDescendant(text))
+        // Nav items are overlaid above Settings' scroll content. Their actual
+        // clickable bounds, not the full window, set the unobscured bottom.
+        val navTop = listOf("Listen", "Explore", "Library", "Search").mapNotNull { tab ->
+            val description = hasContentDescription(tab)
+            compose.onAllNodes(hasClickAction() and (description or hasAnyDescendant(description)), useUnmergedTree = true)
+                .fetchSemanticsNodes().filter {
+                    val b = it.boundsInRoot
+                    b.width > 0f && b.height > 0f && b.top > viewport.center.y
+                }.minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }?.boundsInRoot?.top
+        }.minOrNull()
+        val clearBottom = (navTop ?: (viewport.top + viewport.height * .90f)) - 24f
+        println("TARGET-SAFE-BAND $label navTop=$navTop clearBottom=$clearBottom")
+        fun safeRow() = compose.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes()
+            .filter {
+                val b = it.boundsInRoot
+                b.width > 0f && b.height > 0f && b.left >= viewport.left && b.right <= viewport.right &&
+                    b.top >= viewport.top + viewport.height * .18f && b.bottom <= clearBottom
+            }.minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
+        var attempts = 0
+        while (safeRow() == null && attempts < 30) {
+            val current = compose.onAllNodes(text, useUnmergedTree = true).fetchSemanticsNodes()
+                .firstOrNull { it.id == target.id } ?: error("Target label changed before click: $label")
+            val direction = if (current.boundsInRoot.center.y > viewport.center.y) 1f else -1f
+            val container = requireNotNull(scrollNode) { "No target-owned scroll container for offscreen row $label" }
+            val before = container.fetchSemanticsNode().config[
+                androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+            container.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {
+                it(0f, direction * viewport.height * .30f)
+            }
+            compose.waitForIdle()
+            val after = container.fetchSemanticsNode().config[
+                androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+            println("TARGET-SCROLL $label ancestor=${scroll!!.id} before=$before after=$after")
+            check(after != before) { "Target-owned scroll made no progress for $label" }
+            attempts++
+        }
+        val row = safeRow() ?: error("No unobscured clickable row for $label after $attempts scrolls")
+        fullScreenshot("before-tap-${label.replace(' ', '-').lowercase()}")
+        println("TARGET-CLICK $label bounds=${row.boundsInRoot} ancestor=${scroll?.id}")
+        compose.onNode(SemanticsMatcher("unobscured target-owned clickable row") { it.id == row.id }, useUnmergedTree = true).performClick()
         Thread.sleep(1000)
         compose.waitForIdle()
+        fullScreenshot("after-tap-${label.replace(' ', '-').lowercase()}")
     }
 
     private fun requireDestination(title: String, uniqueChild: String) {
