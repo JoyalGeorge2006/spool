@@ -55,7 +55,7 @@ class PlayerGestureRegressionTest {
         try {
             compose.setContent { BitChordTheme(darkTheme = dark) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    fixture.PlayerShot(nextRequest = { next++ }, previousRequest = { previous++ },
+                    fixture.PlayerShot(playing = false, nextRequest = { next++ }, previousRequest = { previous++ },
                         removeRequest = { removed += it }, collapseRequest = { collapsed++ })
                 }
             } }
