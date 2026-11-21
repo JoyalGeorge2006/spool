@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">Não foi possível reproduzir esta faixa</string>
     <string name="tap_to_retry">Toque para tentar novamente</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">Tentar novamente</string>
+    <string name="find_your_mood">Encontre seu humor</string>
+    <string name="home_history">Histórico</string>
+    <string name="mood_focus">Foco</string>
+    <string name="mood_party">Festa</string>
+    <string name="mood_relax">Relaxar</string>
+    <string name="mood_sleep">Dormir</string>
+    <string name="remove">Remover</string>
+    <string name="sign_in_with_google">Entrar com o Google</string>
+    <string name="spool_related_add_to_queue">Adicionar à fila</string>
+    <string name="spool_related_retry">Tentar novamente</string>
 </resources>
