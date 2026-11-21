@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">Не удалось воспроизвести этот трек</string>
     <string name="tap_to_retry">Нажмите, чтобы повторить</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">Попробовать снова</string>
+    <string name="find_your_mood">Найдите своё настроение</string>
+    <string name="home_history">История</string>
+    <string name="mood_focus">Концентрация</string>
+    <string name="mood_party">Вечеринка</string>
+    <string name="mood_relax">Релакс</string>
+    <string name="mood_sleep">Сон</string>
+    <string name="remove">Удалить</string>
+    <string name="sign_in_with_google">Войти через Google</string>
+    <string name="spool_related_add_to_queue">Добавить в очередь</string>
+    <string name="spool_related_retry">Попробовать снова</string>
 </resources>
