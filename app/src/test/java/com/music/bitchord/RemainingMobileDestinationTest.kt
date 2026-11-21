@@ -67,7 +67,7 @@ class RemainingMobileDestinationTest {
                                 "ALBUM", "ARTIST", "PLAYLIST", "LOCAL_FOLDER" -> {
                                     val type = when(page) { "ALBUM" -> com.music.bitchord.data.model.BrowseType.ALBUM; "ARTIST" -> com.music.bitchord.data.model.BrowseType.ARTIST; else -> com.music.bitchord.data.model.BrowseType.PLAYLIST }
                                     val songs = List(8) { Song("fixture:$it", "Track ${it+1}", "Fixture artist", null, durationText = "3:24") }
-                                    val detail = com.music.bitchord.data.model.DetailPage(browseId = if(page == "LOCAL_FOLDER") "local:all" else "fixture:$page", title = "Fixture ${page.lowercase()}", subtitle = "Layout audit", thumbnailUrl = null, songs = com.music.bitchord.data.model.UiState.Success(songs), type = type)
+                                    val detail = com.music.bitchord.data.model.DetailPage(browseId = if(page == "LOCAL_FOLDER") "local:all" else "fixture:$page", title = if (page == "LOCAL_FOLDER") "Audit7" else "Fixture ${page.lowercase()}", subtitle = "Layout audit", thumbnailUrl = null, songs = com.music.bitchord.data.model.UiState.Success(songs), type = type)
                                     com.music.bitchord.ui.screens.DetailScreen(page = detail, currentSong = null, isPlaying = false, onSongClick = { _, _ -> }, onSongLongPress = {}, onSongSwipe = {}, onShuffle = {}, onSectionItemClick = {}, onArtistClick = { _, _ -> }, onAddSuggested = {}, contentPadding = PaddingValues(), folder = if(page == "LOCAL_FOLDER") com.music.bitchord.ui.screens.LocalFolder(state = remember { com.music.bitchord.ui.screens.LocalFolderState() }, sort = com.music.bitchord.data.settings.LocalMusicSort.TITLE_ASC, viewType = com.music.bitchord.data.settings.LibraryViewType.LIST, onOpenGroup = {}, onGroupLongPress = {}, tabs = com.music.bitchord.ui.screens.LocalFolderTab.DEVICE) else null)
                                 }
                             }
@@ -92,7 +92,13 @@ class RemainingMobileDestinationTest {
                 compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_identity_diagnostic.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 println("LOCAL-FOLDER-IDENTITY\n" + compose.onRoot(useUnmergedTree = true).printToString())
             }
-            compose.onAllNodesWithText(identity).onFirst().assertIsDisplayed()
+            if (page == "LOCAL_FOLDER") {
+                // Short distinctive fixture name fits in full at 320dp/2x.
+                // The production folder header shows upper-case overline,
+                // then subtitle credit. Both must be visibly correct.
+                compose.onNodeWithText("AUDIT7").assertIsDisplayed()
+                compose.onNodeWithText("Layout audit").assertIsDisplayed()
+            } else compose.onAllNodesWithText(identity).onFirst().assertIsDisplayed()
             compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_top.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             val lists = compose.onAllNodes(hasScrollAction())
             if (lists.fetchSemanticsNodes().isNotEmpty()) {
