@@ -2,6 +2,11 @@
 package com.music.bitchord
 
 import android.graphics.Bitmap
+import com.music.bitchord.playback.toSong
+import kotlinx.serialization.json.*
+import io.ktor.serialization.kotlinx.json.json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -403,22 +408,26 @@ class StatusStripEmulatorTest {
             scrollPageAndAssertMoved("ml-home-light", "ഇന്ന് രാത്രിക്കായി")
             fullScreenshot("11-ml-home-light-scrolled", expectDark = false)
 
+            // A theme change can recreate Compose semantics IDs. Return with
+            // the retained live owner first, then independently prove dark scroll.
+            scrollAnchorToTopAndAssert("ഇന്ന് രാത്രിക്കായി")
             theme(dark = true)
+            fullScreenshot("15-ml-home-dark-top", expectDark = true)
+            scrollPageAndAssertMoved("ml-home-dark", "ഇന്ന് രാത്രിക്കായി")
             fullScreenshot("12-ml-home-dark", expectDark = true)
             scrollAnchorToTopAndAssert("ഇന്ന് രാത്രിക്കായി")
-            compose.waitForIdle()
-            fullScreenshot("15-ml-home-dark-top", expectDark = true)
             theme(dark = false)
 
             openSettingsAndAssert("ക്രമീകരണങ്ങൾ", "ക്രമീകരണങ്ങൾ")
             fullScreenshot("13-ml-settings-light", expectDark = false)
             scrollPageAndAssertMoved("ml-settings-light", "ഓഡിയോ നിലവാരം")
             fullScreenshot("14-ml-settings-light-scrolled", expectDark = false)
+            scrollAnchorToTopAndAssert("ഓഡിയോ നിലവാരം")
             theme(dark = true)
+            fullScreenshot("17-ml-settings-dark-top", expectDark = true)
+            scrollPageAndAssertMoved("ml-settings-dark", "ഓഡിയോ നിലവാരം")
             fullScreenshot("16-ml-settings-dark-scrolled", expectDark = true)
             scrollAnchorToTopAndAssert("ഓഡിയോ നിലവാരം")
-            compose.waitForIdle()
-            fullScreenshot("17-ml-settings-dark-top", expectDark = true)
         } finally {
             compose.runOnUiThread {
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
@@ -510,11 +519,15 @@ class StatusStripEmulatorTest {
                 }.minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }?.boundsInRoot?.top
         }.minOrNull()
         val clearBottom = (navTop ?: (viewport.top + viewport.height * .90f)) - 24f
-        val headerBottom = compose.onAllNodesWithTag("header-profile-surface", useUnmergedTree = true)
-            .fetchSemanticsNodes().filter { it.boundsInRoot.height > 0f }
-            .maxOfOrNull { it.boundsInRoot.bottom } ?: 0f
+        val headerObstacles = listOf("header-profile-surface", "floating-history-profile")
+            .flatMap { tag -> compose.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes() }
+            .map { it.boundsInRoot }.filter { it.height > 0f && it.width > 0f }
         val clearTop = maxOf((stripBounds()?.bottom ?: viewport.top) + 8f,
-            scroll?.boundsInRoot?.top ?: viewport.top, headerBottom + 8f)
+            scroll?.boundsInRoot?.top ?: viewport.top)
+        fun isUnobscured(b: androidx.compose.ui.geometry.Rect): Boolean = headerObstacles.none { obstacle ->
+            b.left < obstacle.right && b.right > obstacle.left &&
+                b.top < obstacle.bottom && b.bottom > obstacle.top
+        }
         // Begin the target-owned search at its actual origin, including when
         // the desired label has completely clipped bounds at the current offset.
         scrollNode?.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f, -100000f) }
@@ -524,7 +537,15 @@ class StatusStripEmulatorTest {
             .filter {
                 val b = it.boundsInRoot
                 b.width > 0f && b.height > 0f && b.left >= viewport.left && b.right <= viewport.right &&
-                    b.top >= clearTop && b.bottom <= clearBottom
+                    b.top >= clearTop && b.bottom <= clearBottom &&
+                    // Test the text's actual tap target, not an unrelated
+                    // right-hand header's y band. The containing row still
+                    // must be wholly inside the safe vertical viewport.
+                    headerObstacles.none { it.contains(b.center) } &&
+                    isUnobscured(compose.onAllNodes(text, useUnmergedTree = true)
+                        .fetchSemanticsNodes().first { labelNode ->
+                            labelNode.id == target.id
+                        }.boundsInRoot)
             }.minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
         var attempts = 0
         while (safeRow() == null && attempts < 30) {
@@ -883,6 +904,174 @@ class StatusStripEmulatorTest {
             compose.onNodeWithText("Your Station").performClick()
             assertEquals(picks.first().watch, tapped.last().watch)
             assertEquals(picks.first().preparedSongs, tapped.last().preparedSongs)
+        }
+    }
+
+    /** Installed production grid + callback + provider parser + real controller.
+     * HTTP replies and downloaded WAVs are isolated fixtures. This does NOT prove
+     * live catalogue availability, stream resolution, or audible speaker output. */
+    @Test fun allMoodTilesReachRealControllerAndLocalPlayback() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val transportField = com.music.bitchord.data.innertube.Innertube::class.java
+            .getDeclaredField("activeTransportForTests").apply { isAccessible = true }
+        val tasteField = com.music.bitchord.data.TopPicks::class.java
+            .getDeclaredField("taste").apply { isAccessible = true }
+        val cacheField = com.music.bitchord.data.YtMusicRepository::class.java
+            .getDeclaredField("moodGenreShelfCache").apply { isAccessible = true }
+        val savedField = com.music.bitchord.download.Downloads::class.java
+            .getDeclaredField("_saved").apply { isAccessible = true }
+        val oldTransport = transportField.get(com.music.bitchord.data.innertube.Innertube)
+        val oldTaste = tasteField.get(com.music.bitchord.data.TopPicks) as com.music.bitchord.data.Taste.Snapshot?
+        @Suppress("UNCHECKED_CAST")
+        val cache = cacheField.get(com.music.bitchord.data.YtMusicRepository) as MutableMap<String, List<com.music.bitchord.data.model.HomeShelf>>
+        val oldCache = cache.toMap()
+        @Suppress("UNCHECKED_CAST")
+        val saved = savedField.get(com.music.bitchord.download.Downloads) as kotlinx.coroutines.flow.MutableStateFlow<Map<String, String>>
+        val oldSaved = saved.value
+        val fail = java.util.concurrent.atomic.AtomicBoolean(false)
+        val finishedFailureReplies = java.util.concurrent.atomic.AtomicInteger(0)
+        val providerParams = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val codec = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        fun text(value: String) = kotlinx.serialization.json.buildJsonObject {
+            putJsonArray("runs") { add(kotlinx.serialization.json.buildJsonObject { put("text", value) }) }
+        }
+        val category = kotlinx.serialization.json.buildJsonObject {
+            putJsonObject("musicCarouselShelfRenderer") {
+                putJsonObject("header") { putJsonObject("musicCarouselShelfBasicHeaderRenderer") { put("title", text("Malayalam")) } }
+                putJsonArray("contents") { repeat(3) { i -> add(kotlinx.serialization.json.buildJsonObject {
+                    putJsonObject("musicTwoRowItemRenderer") {
+                        put("title", text("Fixture playlist $i"))
+                        putJsonObject("navigationEndpoint") { putJsonObject("browseEndpoint") { put("browseId", "VLfixture-$i") } }
+                    }
+                }) } }
+            }
+        }.toString()
+        val queue = kotlinx.serialization.json.buildJsonObject {
+            putJsonArray("contents") { repeat(24) { i -> add(kotlinx.serialization.json.buildJsonObject {
+                putJsonObject("playlistPanelVideoRenderer") {
+                    put("videoId", "mood-fixture-${i+1}")
+                    put("title", text("Local fixture ${i+1}"))
+                    put("longBylineText", text(if (i < 8) "Familiar Artist" else "Fresh Artist $i"))
+                    put("lengthText", text("0:30"))
+                }
+            }) } }
+        }.toString()
+        val http = okhttp3.OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val buffer = okio.Buffer()
+            request.body?.writeTo(buffer)
+            val body = runCatching { codec.parseToJsonElement(buffer.readUtf8()).jsonObject }.getOrNull()
+            val path = request.url.encodedPath.substringAfterLast('/')
+            val payload = when {
+                fail.get() && (path == "next" || (path == "browse" && body?.get("browseId")?.jsonPrimitive?.content?.startsWith("VLfixture-") == true)) -> {
+                    finishedFailureReplies.incrementAndGet()
+                    "{}"
+                }
+                path == "browse" && body?.get("browseId")?.jsonPrimitive?.content == com.music.bitchord.data.model.TopPickMood.CATEGORY_BROWSE_ID -> {
+                    providerParams.add(body["params"]!!.jsonPrimitive.content)
+                    category
+                }
+                path == "next" -> queue
+                else -> "{}"
+            }
+            okhttp3.Response.Builder().request(request).protocol(okhttp3.Protocol.HTTP_1_1)
+                .code(200).message("fixture").body(payload.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+        val transport = io.ktor.client.HttpClient(io.ktor.client.engine.okhttp.OkHttp) {
+            engine { preconfigured = http }
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) { json(codec) }
+        }
+        val wave = File(context.cacheDir, "mood-controller-fixture.wav")
+        val rate = 44100
+        val samples = rate * 30
+        val bytes = java.nio.ByteBuffer.allocate(44 + samples * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        bytes.put("RIFF".toByteArray()).putInt(36 + samples * 2).put("WAVEfmt ".toByteArray())
+            .putInt(16).putShort(1.toShort()).putShort(1.toShort()).putInt(rate).putInt(rate * 2)
+            .putShort(2.toShort()).putShort(16.toShort()).put("data".toByteArray()).putInt(samples * 2)
+        repeat(samples) { i -> bytes.putShort((kotlin.math.sin(2 * Math.PI * 440 * i / rate) * 1200).toInt().toShort()) }
+        wave.writeBytes(bytes.array())
+        val profile = com.music.bitchord.data.Taste.Snapshot(
+            artists = listOf("familiar artist"), languages = listOf("malayalam"),
+            dislikedIds = listOf("mood-fixture-24"), skippedIds = mapOf("mood-fixture-23" to 3),
+            topSongs = listOf(com.music.bitchord.data.Taste.TasteSong("mood-fixture-own", "Own local favorite", "Familiar Artist")),
+        )
+        var controller: androidx.media3.session.MediaController? = null
+        try {
+            transportField.set(com.music.bitchord.data.innertube.Innertube, transport)
+            saved.value = oldSaved + ((1..24).map { "mood-fixture-$it" } + "mood-fixture-own").associateWith { android.net.Uri.fromFile(wave).toString() }
+            englishFixture()
+            lateinit var future: com.google.common.util.concurrent.ListenableFuture<androidx.media3.session.MediaController>
+            compose.runOnUiThread {
+                future = androidx.media3.session.MediaController.Builder(context,
+                    androidx.media3.session.SessionToken(context, android.content.ComponentName(context, com.music.bitchord.playback.PlaybackService::class.java)))
+                    .setApplicationLooper(android.os.Looper.getMainLooper()).buildAsync()
+            }
+            val c = future.get(15, java.util.concurrent.TimeUnit.SECONDS)
+            controller = c
+            compose.runOnUiThread { c.shuffleModeEnabled = false }
+            compose.onNode(hasText("Show all") and hasAnyAncestor(hasTestTag("home-mood-chip-row")))
+                .performScrollTo().performClick()
+            compose.onNodeWithText("Find Your Mood").assertExists()
+            val labels = listOf("Energy", "Relax", "Feeling Blue", "Feel Good", "Focus", "Heartbreak", "Love", "After Hours", "Alone Time", "Chill", "Commuting", "Eating & Cooking", "Evening", "Fitness", "Gaming", "Home", "Morning", "Motivation", "Outdoors", "Party", "Sleep", "Social", "Sports", "Summertime Sounds", "Holiday", "Weekend", "Wellbeing", "Work")
+            val moods = com.music.bitchord.data.model.TopPickMood.entries
+            assertEquals(28, moods.size)
+            for ((i, mood) in moods.withIndex()) {
+                cache.clear()
+                com.music.bitchord.data.TopPicks.updateTaste(profile)
+                compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(labels[i]))
+                compose.onNodeWithText(labels[i]).performClick()
+                compose.waitUntil(20_000) {
+                    var loaded = false
+                    compose.runOnUiThread {
+                        loaded = c.currentMediaItem?.mediaMetadata?.extras?.getString("bitchord.playbackSourceId") == mood.name &&
+                            c.playbackState == androidx.media3.common.Player.STATE_READY && c.isPlaying && c.playerError == null
+                    }
+                    loaded
+                }
+                var startedAt = 0L
+                var timeline = emptyList<com.music.bitchord.data.model.Song>()
+                compose.runOnUiThread {
+                    startedAt = c.currentPosition
+                    timeline = (0 until c.mediaItemCount).map { c.getMediaItemAt(it).toSong() }
+                }
+                compose.waitUntil(5_000) {
+                    var progressed = false
+                    compose.runOnUiThread { progressed = c.currentPosition >= startedAt + 250 && c.isPlaying && c.playerError == null }
+                    progressed
+                }
+                assertEquals(mood.params, providerParams.last())
+                assertEquals(24, timeline.size)
+                assertEquals(24, timeline.map { it.videoId }.distinct().size)
+                assertTrue(timeline.none { it.videoId == "mood-fixture-24" })
+                assertTrue(timeline.any { it.videoId == "mood-fixture-own" })
+                assertEquals("mood-fixture-23", timeline.last().videoId)
+                assertEquals("Familiar Artist", timeline.first().artist)
+                assertTrue(timeline.all { it.playbackSourceId == mood.name && it.playbackSource == labels[i] })
+                fullScreenshot("mood-controller-${i.toString().padStart(2,'0')}", false)
+                println("MOOD-CONTROLLER ${mood.name}: production tap + parsed personalized queue + READY + playing + position progress; LOCAL WAV fixture")
+            }
+            var before = emptyList<Pair<String, String?>>()
+            compose.runOnUiThread { before = (0 until c.mediaItemCount).map { c.getMediaItemAt(it).toSong().let { song -> song.videoId to song.queueEntryId } } }
+            cache.clear()
+            fail.set(true)
+            compose.onNodeWithText(labels.last()).performClick()
+            compose.waitUntil(15_000) { finishedFailureReplies.get() >= 6 }
+            compose.waitForIdle()
+            Thread.sleep(300)
+            compose.runOnUiThread {
+                assertEquals(before, (0 until c.mediaItemCount).map { c.getMediaItemAt(it).toSong().let { song -> song.videoId to song.queueEntryId } })
+                assertTrue(c.isPlaying)
+                assertTrue(c.playerError == null)
+            }
+            println("MOOD-FAILURE both provider paths empty: previous queue entry identities and active playback preserved")
+        } finally {
+            controller?.let { c -> compose.runOnUiThread { c.stop(); c.clearMediaItems(); c.release() } }
+            transportField.set(com.music.bitchord.data.innertube.Innertube, oldTransport)
+            com.music.bitchord.data.TopPicks.updateTaste(oldTaste)
+            cache.clear(); cache.putAll(oldCache)
+            saved.value = oldSaved
+            transport.close(); http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()
+            wave.delete()
         }
     }
 
