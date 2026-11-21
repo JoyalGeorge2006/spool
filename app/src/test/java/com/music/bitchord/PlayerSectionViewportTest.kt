@@ -56,8 +56,16 @@ class PlayerSectionViewportTest {
             compose.onNodeWithText("First line of the song").assertIsDisplayed()
             compose.onNodeWithText("Related").performClick()
             repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
-            compose.onNodeWithText("Track 5").assertIsDisplayed()
-            compose.onNodeWithText("Track 1").assertDoesNotExist()
+            val viewport = compose.onNodeWithTag("viewport").fetchSemanticsNode().boundsInRoot
+            val activePane = SemanticsMatcher("inside active section viewport") {
+                val b = it.boundsInRoot
+                b.width > 0f && b.height > 0f && viewport.contains(b.center)
+            }
+            compose.onNode(hasText("Track 5") and activePane).assertIsDisplayed()
+            // Pager prewarms adjacent queue composition. It must not be visible in Related.
+            compose.onAllNodesWithText("Track 1").fetchSemanticsNodes().forEachIndexed { index, _ ->
+                compose.onAllNodesWithText("Track 1")[index].assertIsNotDisplayed()
+            }
             compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_related_${dark}_${font}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setThemeMode(oldTheme)
