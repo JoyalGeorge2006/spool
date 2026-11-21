@@ -230,10 +230,32 @@ class StatusStripEmulatorTest {
      * the list entirely - the scrolled captures came back byte-identical
      * and the strip-pinned claim passed vacuously.
      */
+    /** Select only the vertical container that owns this page's anchor. */
+    private fun verticalScrollForAnchor(anchorText: String): androidx.compose.ui.semantics.SemanticsNode {
+        val anchors = compose.onAllNodesWithText(anchorText, useUnmergedTree = true).fetchSemanticsNodes()
+        return anchors.asSequence().flatMap { anchor ->
+            generateSequence(anchor.parent) { it.parent }.filter { ancestor ->
+                ancestor.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null &&
+                    ancestor.config.getOrNull(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) != null
+            }.take(1)
+        }.firstOrNull() ?: error("No target-owned vertical container for $anchorText")
+    }
+
+    private fun scrollAnchorToTopAndAssert(anchorText: String) {
+        val target = verticalScrollForAnchor(anchorText)
+        val container = compose.onNode(SemanticsMatcher("page anchor vertical ancestor") { it.id == target.id },
+            useUnmergedTree = true)
+        container.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f, -100000f) }
+        compose.waitForIdle()
+        val axis = container.fetchSemanticsNode().config[
+            androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange]
+        assertTrue("Actual page must be at scroll origin, got ${axis.value()}", axis.value() <= 1f)
+        compose.onAllNodesWithText(anchorText)[0].assertIsDisplayed()
+        println("PAGE-TOP anchor=$anchorText ancestor=${target.id} axis=${axis.value()}")
+    }
+
     private fun scrollPageAndAssertMoved(label: String, anchorText: String) {
-        val scrollables = compose.onAllNodes(hasScrollAction(), useUnmergedTree = true).fetchSemanticsNodes()
-        assertTrue("$label: expected a scrollable container on screen", scrollables.isNotEmpty())
-        val target = scrollables.maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }!!
+        val target = verticalScrollForAnchor(anchorText)
         val anchorBefore = compose.onAllNodesWithText(anchorText).fetchSemanticsNodes().firstOrNull()
         assertTrue("$label: anchor '$anchorText' must exist before scrolling", anchorBefore != null)
         val beforeTop = anchorBefore!!.boundsInRoot.top
@@ -357,7 +379,7 @@ class StatusStripEmulatorTest {
 
             theme(dark = true)
             fullScreenshot("12-ml-home-dark", expectDark = true)
-            compose.onAllNodes(hasScrollToIndexAction())[0].performScrollToIndex(0)
+            scrollAnchorToTopAndAssert("ഇന്ന് രാത്രിക്കായി")
             compose.waitForIdle()
             fullScreenshot("15-ml-home-dark-top", expectDark = true)
             theme(dark = false)
@@ -368,7 +390,7 @@ class StatusStripEmulatorTest {
             fullScreenshot("14-ml-settings-light-scrolled", expectDark = false)
             theme(dark = true)
             fullScreenshot("16-ml-settings-dark-scrolled", expectDark = true)
-            compose.onAllNodes(hasScrollToIndexAction())[0].performScrollToIndex(0)
+            scrollAnchorToTopAndAssert("ഓഡിയോ നിലവാരം")
             compose.waitForIdle()
             fullScreenshot("17-ml-settings-dark-top", expectDark = true)
         } finally {
@@ -490,6 +512,31 @@ class StatusStripEmulatorTest {
         println("TARGET-CLICK $label bounds=${row.boundsInRoot} ancestor=${scroll?.id}")
         compose.onNode(SemanticsMatcher("unobscured target-owned clickable row") { it.id == row.id }, useUnmergedTree = true).performClick()
         Thread.sleep(1000)
+        // Only the known audio permission is handled, and only in this
+        // disposable emulator fixture. Never dismiss arbitrary OS dialogs.
+        if (label == compose.activity.getString(R.string.downloads) ||
+            label == compose.activity.getString(R.string.local_music)) {
+            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+            val window = automation.rootInActiveWindow
+            if (window?.packageName?.toString() == "com.android.permissioncontroller") {
+                val message = window.findAccessibilityNodeInfosByViewId(
+                    "com.android.permissioncontroller:id/permission_message")
+                check(message.size == 1 && message.single().text?.toString()?.contains("music and audio") == true) {
+                    "Unexpected permission dialog while opening $label"
+                }
+                fullScreenshot("audio-permission-before-allow")
+                val allow = window.findAccessibilityNodeInfosByViewId(
+                    "com.android.permissioncontroller:id/permission_allow_button").single()
+                check(allow.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+                val deadline = android.os.SystemClock.uptimeMillis() + 5000
+                while (automation.rootInActiveWindow?.packageName?.toString() == "com.android.permissioncontroller" &&
+                    android.os.SystemClock.uptimeMillis() < deadline) Thread.sleep(100)
+                check(automation.rootInActiveWindow?.packageName?.toString() == compose.activity.packageName) {
+                    "Audio permission dialog did not return to the app"
+                }
+                println("EMULATOR-AUDIO-PERMISSION allowed known music/audio request; destination assertions still required")
+            }
+        }
         compose.waitForIdle()
         fullScreenshot("after-tap-${label.replace(' ', '-').lowercase()}")
     }
