@@ -39,7 +39,7 @@ jobs:
           curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag }}/tools/ota/make_delta.py" -o make_delta.py
           curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag }}/app/src/main/java/com/music/bitchord/data/SpoolDelta.java" -o SpoolDelta.java
           python3 -c "import ast; ast.parse(open('make_delta.py').read())"
-          grep -q 'SPDELTA' SpoolDelta.java
+          grep -q 'MAGIC' SpoolDelta.java
 
       - name: Build the shipped Java decoder verifier
         run: |
