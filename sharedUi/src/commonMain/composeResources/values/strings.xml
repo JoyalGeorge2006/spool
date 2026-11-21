@@ -304,7 +304,7 @@
     <string name="spool_related_heading">Related music</string>
     <string name="spool_related_based_on">Based on %1$s</string>
     <string name="spool_related_loading">Finding related music...</string>
-    <string name="spool_related_load_failed">Couldn\'t load related music</string>
+    <string name="spool_related_load_failed">Couldn't load related music</string>
     <string name="spool_related_queue_unchanged">Your queue is unchanged.</string>
     <string name="spool_related_retry">Try again</string>
     <string name="spool_related_empty">No related tracks found</string>
