@@ -542,9 +542,7 @@ private fun ColumnScope.Minutes(summary: ReplaySummary, headline: List<HeadlineR
             ))
             // Replace period+comma with just a comma
             if (summary.peakHour != null) {
-                append(", mostly around ")
-                append(formatHour(context, summary.peakHour!!))
-                append(".")
+                append(context.getString(R.string.replay_minutes_mostly_around, formatHour(context, summary.peakHour!!)))
             } else {
                 append(".")
             }
