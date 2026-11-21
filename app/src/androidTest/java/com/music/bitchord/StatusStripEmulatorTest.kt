@@ -450,11 +450,16 @@ class StatusStripEmulatorTest {
     }
 
     private fun requireDestination(title: String, uniqueChild: String) {
-        compose.waitUntil(10_000) {
+        try { compose.waitUntil(10_000) {
             compose.onAllNodesWithText(uniqueChild).fetchSemanticsNodes().any {
                 val b = it.boundsInRoot
                 b.width > 0 && b.height > 0 && compose.onRoot().fetchSemanticsNode().boundsInRoot.contains(b.center)
             }
+        }
+        } catch (failure: Throwable) {
+            fullScreenshot("failure-destination-${title.replace(' ', '-').lowercase()}")
+            println("FAILURE-DESTINATION $title\n" + compose.onRoot(useUnmergedTree = true).printToString())
+            throw failure
         }
         compose.onAllNodesWithText(title)[0].assertIsDisplayed()
         compose.onAllNodesWithText(uniqueChild)[0].assertIsDisplayed()
@@ -514,7 +519,13 @@ class StatusStripEmulatorTest {
             clickRow(title)
             // The root also contains category labels; require that root-only
             // connected-services row has disappeared before counting a child.
-            compose.waitUntil(10_000) { compose.onAllNodesWithText("Connected services").fetchSemanticsNodes().isEmpty() }
+            try {
+                compose.waitUntil(10_000) { compose.onAllNodesWithText("Connected services").fetchSemanticsNodes().isEmpty() }
+            } catch (failure: Throwable) {
+                fullScreenshot("failure-category-${category.name.lowercase()}")
+                println("FAILURE-CATEGORY $category\n" + compose.onRoot(useUnmergedTree = true).printToString())
+                throw failure
+            }
             compose.onAllNodesWithText(title)[0].assertIsDisplayed()
             inspectPage("category-${category.name.lowercase()}", title)
             val choices = when (category) {
