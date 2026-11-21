@@ -1,0 +1,90 @@
+name: Focused Spool test diagnostics (no APK, no release)
+# Manually dispatched focused diagnosis only. No assemble, signing or release.
+# This run cannot stand in for comprehensive branch/base testing.
+# Platform prep mirrors the 2.1.1 build workflow: platforms;android-37.0 plus
+# an init script remapping compileSdk, since AGP has no stable android-37 id.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact source ref under test
+        required: true
+        default: taste-aware-moods
+      testFilter:
+        description: Comma-separated Gradle test class patterns. Focused only, not a full-suite result.
+        required: true
+        default: com.music.bitchord.StationArtworkScreenshotTest*,com.music.bitchord.MalayalamPlayerPixelsTest
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+    - name: Android platform, NDK and compileSdk remap (same as the 2.1.1 build)
+      shell: bash
+      run: |
+        set -euo pipefail
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Record exact checkout
+      run: |
+        echo "Focused diagnostic run, not comprehensive coverage"
+        echo "CHECKED_OUT_SHA=$(git rev-parse HEAD)"
+    - name: Runner diagnostics (sizes any memory decision with facts)
+      run: |
+        nproc
+        free -h
+        java -version 2>&1
+        java -XX:+PrintFlagsFinal -version 2>&1 | grep -E 'MaxHeapSize|MaxRAM' || true
+    - name: Focused tests with resource and crash diagnostics
+      env:
+        TEST_FILTER: ${{ inputs.testFilter }}
+        JAVA_TOOL_OPTIONS: -XX:ErrorFile=/tmp/hs_err_pid%p.log -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/spool-heap.hprof
+      shell: bash
+      run: |
+        set -euo pipefail
+        filters=()
+        IFS=',' read -ra patterns <<< "$TEST_FILTER"
+        for pattern in "${patterns[@]}"; do
+          [[ "$pattern" =~ ^[A-Za-z0-9_.*]+$ ]] || { echo 'Invalid test class pattern'; exit 2; }
+          filters+=(--tests "$pattern")
+        done
+        [ ${#filters[@]} -gt 0 ] || exit 2
+        set +e
+        /usr/bin/time -v timeout 1200 ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest "${filters[@]}" --no-daemon --stacktrace 2>&1 | tee focused-test.log
+        result=${PIPESTATUS[0]}
+        free -h
+        df -h . /tmp
+        find /tmp "$PWD" -name 'hs_err_pid*.log' -o -name 'replay_pid*.log' 2>/dev/null | head -30
+        exit "$result"
+    - name: Upload test reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: focused-test-diagnostics
+        path: |
+          **/build/test-results/
+          **/build/reports/tests/
+          **/build/outputs/roborazzi/
+          **/hs_err_pid*.log
+          **/replay_pid*.log
+          /tmp/hs_err_pid*.log
+          focused-test.log
+        if-no-files-found: warn
