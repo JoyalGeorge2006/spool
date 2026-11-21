@@ -162,3 +162,13 @@ jobs:
           /tmp/ota-verification.json
           /tmp/badging.txt
           /tmp/cert.txt
+
+  # Final gate: generate and verify OTA delta patches for this release through
+  # the app's real decoder, then publish the patch assets and catalog. The
+  # release is not complete until this job passes. Keep this job in every
+  # future release publisher (see .github/spool-release-publisher-template.yml).
+  publish-deltas:
+    needs: publish
+    uses: ./.github/workflows/ota-delta-publish.yml
+    with:
+      release_tag: v2.1.1
