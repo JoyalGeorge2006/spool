@@ -54,7 +54,11 @@ abstract class RelatedPageScreenshotTestBase {
    } }
    compose.onAllNodes(hasText("Related") and SemanticsMatcher("on screen") { it.boundsInRoot.left >= 0f && it.boundsInRoot.left < 400f && it.boundsInRoot.top >= 0f && it.boundsInRoot.top < 780f }).onFirst().performClick()
    compose.mainClock.advanceTimeBy(1800);compose.waitForIdle()
-   if(failed)compose.onNodeWithText("Couldn't load related music").assertIsDisplayed()
+   if(failed) {
+    compose.onNodeWithTag("related-page-capture").captureRoboImage("build/outputs/roborazzi/related_error_before_assert.png")
+    println("RELATED-ERROR-SEMANTICS\n"+compose.onRoot(useUnmergedTree=true).printToString())
+    compose.onNodeWithText("Couldn't load related music").assertIsDisplayed()
+   }
    else compose.onNodeWithText("Related track 1").assertIsDisplayed()
    assertTrue("Read-only recommendations requested",requests>0)
    compose.onNodeWithTag("related-page-capture").captureRoboImage("build/outputs/roborazzi/related_page_${dark}_${large}_${failed}_${material}_top.png")
