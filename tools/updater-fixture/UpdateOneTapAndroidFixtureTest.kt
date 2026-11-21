@@ -68,11 +68,39 @@ class UpdateOneTapAndroidFixtureTest {
   assertTrue("Unexpected installer package",pkg in setOf("com.google.android.packageinstaller","com.android.packageinstaller"))
   return pkg
  }
+ private fun installerButtons(): Pair<AccessibilityNodeInfo,AccessibilityNodeInfo>? {
+  val root=ui.rootInActiveWindow ?: return null
+  val pkg="com.android.packageinstaller"
+  if(root.packageName?.toString()!=pkg)return null
+  val tree=nodes(root)
+  fun exactText(n: AccessibilityNodeInfo, text: String)=n.packageName?.toString()==pkg && n.isVisibleToUser && n.text?.toString()==text
+  if(tree.count { exactText(it,fixtureLabel) }!=1 || tree.count { exactText(it,"Do you want to update this app?") }!=1)return null
+  fun button(id: String, text: String): AccessibilityNodeInfo? = tree.filter {
+   it.packageName?.toString()==pkg && it.viewIdResourceName=="$pkg:id/$id" && it.text?.toString()?.equals(text,true)==true &&
+    it.className?.toString()=="android.widget.Button" && it.isVisibleToUser && it.isEnabled && it.isClickable && !bounds(it).isEmpty
+  }.singleOrNull()
+  val positive=button("button1","Update") ?: return null
+  val negative=button("button2","Cancel") ?: return null
+  if(positive==negative)return null
+  return positive to negative
+ }
  private fun confirmationAction(positive: Boolean) {
-  assertEquals("confirmation",UpdateDownloads.snapshot()!!.phase)
-  val pkg=installerPackage();assertWindow(pkg,fixtureLabel)
-  val id=if(positive)"android:id/button1" else "android:id/button2"
-  exactClick(pkg,{ it.viewIdResourceName==id && if(positive)it.text?.toString()?.lowercase() in setOf("install","update") else it.text?.toString()?.equals("Cancel",true)==true })
+  try {
+   assertEquals("confirmation",UpdateDownloads.snapshot()!!.phase)
+   assertEquals("com.android.packageinstaller",installerPackage());assertWindow("com.android.packageinstaller",fixtureLabel)
+   val pair=requireNotNull(installerButtons()) { "Missing or ambiguous exact Android14 update confirmation controls" }
+   val node=if(positive)pair.first else pair.second
+   val before=bounds(node)
+   recordPermissionWindowEvidence(if(positive)"updater-install-before-action" else "updater-cancel-before-action")
+   assertTrue("Retained installer control changed before click",node.refresh());assertEquals(before,bounds(node))
+   val current=requireNotNull(installerButtons()) { "Installer confirmation changed before click" }
+   assertEquals(pair,current);assertTrue(node.isVisibleToUser && node.isEnabled && node.isClickable)
+   assertEquals("confirmation",UpdateDownloads.snapshot()!!.phase)
+   assertTrue("System rejected exact retained installer action",node.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+  } catch(error: Throwable) {
+   recordPermissionWindowEvidence(if(positive)"updater-install-action-failure" else "updater-cancel-action-failure")
+   throw error
+  }
  }
  private suspend fun stableSpool(a: UpdateAttempt, millis: Long=5000) {
   until("Spool returns to foreground") { ui.rootInActiveWindow?.packageName?.toString()==context.packageName }
@@ -165,10 +193,15 @@ class UpdateOneTapAndroidFixtureTest {
   assertTrue(toggle.packageName?.toString()=="com.android.settings" && toggle.isVisibleToUser && toggle.isEnabled && toggle.isClickable && toggle.isCheckable)
   assertEquals("Exact labeled Settings toggle changed before click",toggle,settingsPermissionToggle());assertFalse(toggle.isChecked)
   assertTrue("System rejected exact retained Settings toggle action",toggle.performAction(AccessibilityNodeInfo.ACTION_CLICK))
-  until("real package-install permission granted") { context.packageManager.canRequestPackageInstalls() }
+  until("real package-install permission granted") { context.packageManager.canRequestPackageInstalls() && settingsPermissionToggle()?.isChecked==true }
   shot("updater-real-settings-granted");shell("input keyevent KEYCODE_BACK")
   until("real PackageInstaller pending user action") { UpdateDownloads.snapshot()?.phase=="confirmation" }
-  until("Android installer active") { ui.rootInActiveWindow?.packageName?.toString() in setOf("com.google.android.packageinstaller","com.android.packageinstaller") }
+  try {
+   until("exact Android14 update confirmation controls ready") { installerButtons()!=null }
+  } catch(error: Throwable) {
+   recordPermissionWindowEvidence("updater-installer-readiness-failure")
+   throw error
+  }
   assertWindow(installerPackage(),fixtureLabel);shot("updater-real-confirmation")
  }
  @Test fun fullCompletionPermissionDenialNeverReopens()=runBlocking {
