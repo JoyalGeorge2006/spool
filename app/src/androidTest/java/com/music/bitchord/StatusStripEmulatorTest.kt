@@ -103,6 +103,28 @@ class StatusStripEmulatorTest {
      * colour, so its luminance is the rendered-mode truth, not a setting.
      */
     private fun fullScreenshot(name: String, expectDark: Boolean? = null) {
+        // Semantic identity can precede the rendered navigation frame. Finish
+        // finite transitions, then require a real hardware frame commit before
+        // reading the OS screenshot. Never substitute a generated app image.
+        compose.mainClock.advanceTimeBy(1200)
+        compose.waitForIdle()
+        val committed = java.util.concurrent.CountDownLatch(1)
+        val onCommit = Runnable { committed.countDown() }
+        compose.runOnUiThread {
+            val view = compose.activity.window.decorView
+            check(view.isHardwareAccelerated) { "OS capture requires hardware frame commit" }
+            view.viewTreeObserver.registerFrameCommitCallback(onCommit)
+            view.postInvalidateOnAnimation()
+        }
+        try {
+            check(committed.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                "No committed Android frame before capture $name"
+            }
+        } finally {
+            compose.runOnUiThread {
+                compose.activity.window.decorView.viewTreeObserver.unregisterFrameCommitCallback(onCommit)
+            }
+        }
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         val shot = automation.takeScreenshot()
         if (shot != null) {
@@ -825,7 +847,8 @@ class StatusStripEmulatorTest {
             clickRow(title)
             // Library entry and destination page intentionally use different
             // names for Downloads. Keep the route identity exact.
-            val pageTitle = if (key == R.string.downloads) compose.activity.getString(R.string.downloaded_songs) else title
+            val pageTitle = if (key == R.string.downloads) compose.activity.getString(R.string.downloaded_songs)
+                else "Audio files on device"
             inspectPage("library-folder-$key", pageTitle)
             backToParent()
         }
@@ -943,7 +966,7 @@ class StatusStripEmulatorTest {
         fun text(value: String) = kotlinx.serialization.json.buildJsonObject {
             putJsonArray("runs") { add(kotlinx.serialization.json.buildJsonObject { put("text", value) }) }
         }
-        val category = kotlinx.serialization.json.buildJsonObject {
+        val categoryShelf = kotlinx.serialization.json.buildJsonObject {
             putJsonObject("musicCarouselShelfRenderer") {
                 putJsonObject("header") { putJsonObject("musicCarouselShelfBasicHeaderRenderer") { put("title", text("Malayalam")) } }
                 putJsonArray("contents") { repeat(3) { i -> add(kotlinx.serialization.json.buildJsonObject {
@@ -954,6 +977,22 @@ class StatusStripEmulatorTest {
                 }) } }
             }
         }.toString()
+        // Match the real browse envelope consumed by parseHome, not a bare
+        // carousel renderer that parses successfully to an empty shelf list.
+        val category = kotlinx.serialization.json.buildJsonObject {
+            putJsonObject("contents") {
+                putJsonObject("singleColumnBrowseResultsRenderer") {
+                    putJsonArray("tabs") { add(kotlinx.serialization.json.buildJsonObject {
+                        putJsonObject("tabRenderer") { putJsonObject("content") {
+                            putJsonObject("sectionListRenderer") { putJsonArray("contents") {
+                                add(codec.parseToJsonElement(categoryShelf))
+                            } }
+                        } }
+                    }) }
+                }
+            }
+        }.toString()
+        val fixtureRequests = java.util.Collections.synchronizedList(mutableListOf<String>())
         val queue = kotlinx.serialization.json.buildJsonObject {
             putJsonArray("contents") { repeat(24) { i -> add(kotlinx.serialization.json.buildJsonObject {
                 putJsonObject("playlistPanelVideoRenderer") {
@@ -970,6 +1009,7 @@ class StatusStripEmulatorTest {
             request.body?.writeTo(buffer)
             val body = runCatching { codec.parseToJsonElement(buffer.readUtf8()).jsonObject }.getOrNull()
             val path = request.url.encodedPath.substringAfterLast('/')
+            fixtureRequests.add("$path browseId=${body?.get("browseId")} params=${body?.get("params")} fail=${fail.get()}")
             val payload = when {
                 fail.get() && (path == "next" || (path == "browse" && body?.get("browseId")?.jsonPrimitive?.content?.startsWith("VLfixture-") == true)) -> {
                     finishedFailureReplies.incrementAndGet()
@@ -1029,6 +1069,7 @@ class StatusStripEmulatorTest {
                 com.music.bitchord.data.TopPicks.updateTaste(profile)
                 compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(labels[i]))
                 compose.onNodeWithText(labels[i]).performClick()
+                try {
                 compose.waitUntil(20_000) {
                     var loaded = false
                     compose.runOnUiThread {
@@ -1036,6 +1077,16 @@ class StatusStripEmulatorTest {
                             c.playbackState == androidx.media3.common.Player.STATE_READY && c.isPlaying && c.playerError == null
                     }
                     loaded
+                }
+                } catch (failure: Throwable) {
+                    compose.runOnUiThread {
+                        println("MOOD-CONTROLLER-FAIL ${mood.name} state=${c.playbackState} playing=${c.isPlaying} error=${c.playerError} count=${c.mediaItemCount} current=${c.currentMediaItem?.mediaId} source=${c.currentMediaItem?.mediaMetadata?.extras?.getString("bitchord.playbackSourceId")}")
+                    }
+                    println("MOOD-FIXTURE-REQUESTS " + synchronized(fixtureRequests) { fixtureRequests.toList() })
+                    println("MOOD-FAILURE-SEMANTICS\n" + compose.onRoot(useUnmergedTree = true).printToString())
+                    runCatching { fullScreenshot("failure-mood-controller-${i.toString().padStart(2, '0')}") }
+                        .onFailure { failure.addSuppressed(it) }
+                    throw failure
                 }
                 var startedAt = 0L
                 var timeline = emptyList<com.music.bitchord.data.model.Song>()
