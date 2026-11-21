@@ -65,6 +65,24 @@ class PlayerContextLayerDiscriminatorTest {
         }
     }
     @get:Rule(order=2) val compose = createComposeRule()
+    private fun positiveVisibleTabBounds(b: androidx.compose.ui.geometry.Rect): Boolean =
+        b.width > 0f && b.height > 0f && b.left >= 0f && b.right <= 390f &&
+            b.top >= 0f && b.bottom <= 780f
+
+    @Test fun zeroAreaDuplicateCannotBeAVisibleTab() {
+        val hidden = androidx.compose.ui.geometry.Rect(0f, 0f, 0f, 0f)
+        val real = androidx.compose.ui.geometry.Rect(250f, 732f, 360f, 780f)
+        // Original predicate admitted both, so first-match selection was ambiguous.
+        val oldMatches = listOf(hidden, real).filter {
+            it.left >= 0f && it.right <= 390f && it.top >= 0f && it.bottom <= 780f
+        }
+        org.junit.Assert.assertEquals(2, oldMatches.size)
+        val corrected = oldMatches.filter(::positiveVisibleTabBounds)
+        org.junit.Assert.assertEquals(listOf(real), corrected)
+        org.junit.Assert.assertFalse(positiveVisibleTabBounds(androidx.compose.ui.geometry.Rect(-1f, 10f, 10f, 20f)))
+        org.junit.Assert.assertFalse(positiveVisibleTabBounds(androidx.compose.ui.geometry.Rect(250f, 732f, 360f, 781f)))
+    }
+
     private fun capture(offscreen: Boolean, directSemantics: Boolean = false, exactVisibleTouch: Boolean = false) {
         val fixture = V6ScreenshotTest()
         fixture.installUiHost()
@@ -184,13 +202,20 @@ class PlayerContextLayerDiscriminatorTest {
                         check(click()) { "Exact Related semantics action declined" }
                     }
             } else {
-                check(matches.isNotEmpty()) { "No visible Related match" }
-                val id = matches.first().id
-                println("PLAYER-RELATED-ORIGINAL-TOUCH mode=$mode id=$id bounds=${matches.first().boundsInRoot}")
-                // This log is pre-click selection evidence, not atomic clicked-ID
-                // proof: onFirst is deliberately re-resolved by original code.
-                // Preserve original merged-tree selector and touch mechanics.
-                compose.onAllNodes(visibleRelated).onFirst().performClick()
+                val correctedTab = hasText("Related") and
+                    SemanticsMatcher("positive-area viewport Related tab") {
+                        positiveVisibleTabBounds(it.boundsInRoot)
+                    } and hasClickAction() and isEnabled() and
+                    SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role,
+                        androidx.compose.ui.semantics.Role.Tab)
+                val candidates = compose.onAllNodes(correctedTab).fetchSemanticsNodes()
+                check(candidates.size == 1) { "Expected one positive-area enabled Related Tab, got ${candidates.size}" }
+                val id = candidates.single().id
+                println("PLAYER-RELATED-CORRECTED-TOUCH mode=$mode id=$id bounds=${candidates.single().boundsInRoot}")
+                // Same touch mechanics and product assertions. Re-resolve only
+                // the exact visible identity, never the hidden zero-area copy.
+                compose.onNode(correctedTab and SemanticsMatcher("exact visible Related Tab identity") { it.id == id })
+                    .assertIsDisplayed().performClick()
             }
             compose.mainClock.advanceTimeBy(1800)
             compose.waitForIdle()
