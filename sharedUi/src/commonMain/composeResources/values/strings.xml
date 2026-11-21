@@ -309,7 +309,6 @@
     <string name="spool_related_retry">Try again</string>
     <string name="spool_related_empty">No related tracks found</string>
     <string name="spool_related_empty_hint">Try again or choose another song.</string>
-    <string name="spool_related_autoplay">Autoplay</string>
     <string name="spool_related_autoplay_description">Keep similar music playing after your queue.</string>
     <string name="spool_related_host_only">Only the host can change playback or the queue.</string>
     <string name="spool_related_play_song">Play %1$s</string>
