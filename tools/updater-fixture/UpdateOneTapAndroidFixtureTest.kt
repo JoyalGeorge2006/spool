@@ -100,7 +100,7 @@ class UpdateOneTapAndroidFixtureTest {
   val transfer=a.transfer(context);require(transfer.parentFile!!.mkdirs() || transfer.parentFile!!.isDirectory)
   (if(delta)patch else apk).copyTo(transfer,overwrite=false)
   val manager=context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-  val id=try { manager.addCompletedDownload("Spool local fixture","Disposable local completion fixture",false,"application/octet-stream",transfer.path,transfer.length(),false) } catch(e: Exception) { throw AssertionError("Completed local transfer is unsupported on this Android build; stop fixture, do not bypass verifier",e) }
+  val id=try { manager.addCompletedDownload("Spool local fixture","Disposable local completion fixture",false,"application/octet-stream",transfer.path,transfer.length(),true) } catch(e: Exception) { throw AssertionError("Completed local transfer is unsupported on this Android build; stop fixture, do not bypass verifier",e) }
   assertTrue(id>=0)
   a=a.copy(id=id);UpdateStore.write(context,a);UpdateDownloads.resetMemoryForTest(context);UpdateDownloads.restore(context)
   UpdateDownloads.refresh(context,true)
