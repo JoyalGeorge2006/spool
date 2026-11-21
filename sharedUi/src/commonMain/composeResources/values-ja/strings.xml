@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">この曲を再生できませんでした</string>
     <string name="tap_to_retry">タップして再試行</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">もう一度試す</string>
+    <string name="find_your_mood">気分で探す</string>
+    <string name="home_history">履歴</string>
+    <string name="mood_focus">集中</string>
+    <string name="mood_party">パーティー</string>
+    <string name="mood_relax">リラックス</string>
+    <string name="mood_sleep">睡眠</string>
+    <string name="remove">削除</string>
+    <string name="sign_in_with_google">Googleでログイン</string>
+    <string name="spool_related_add_to_queue">再生キューに追加</string>
+    <string name="spool_related_retry">もう一度試す</string>
 </resources>
