@@ -215,6 +215,42 @@ class StatusStripEmulatorTest {
         compose.waitForIdle()
     }
 
+    /**
+     * Scroll the page's real scrollable container and prove content moved by
+     * position, never by pixel difference: a stable text anchor's top must
+     * change (or the anchor must scroll out of composition) after a swipe
+     * aimed inside the scrollable's own bounds. The old root swipe missed
+     * the list entirely - the scrolled captures came back byte-identical
+     * and the strip-pinned claim passed vacuously.
+     */
+    private fun scrollPageAndAssertMoved(label: String, anchorText: String) {
+        val scrollables = compose.onAllNodes(hasScrollAction(), useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue("$label: expected a scrollable container on screen", scrollables.isNotEmpty())
+        val target = scrollables.maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }!!
+        val anchorBefore = compose.onAllNodesWithText(anchorText).fetchSemanticsNodes().firstOrNull()
+        assertTrue("$label: anchor '$anchorText' must exist before scrolling", anchorBefore != null)
+        val beforeTop = anchorBefore!!.boundsInRoot.top
+        val b = target.boundsInRoot
+        compose.onRoot().performTouchInput {
+            swipe(
+                start = androidx.compose.ui.geometry.Offset(b.center.x, b.center.y + b.height * 0.3f),
+                end = androidx.compose.ui.geometry.Offset(b.center.x, b.center.y - b.height * 0.3f),
+                durationMillis = 400,
+            )
+        }
+        compose.waitForIdle()
+        Thread.sleep(1500)
+        compose.waitForIdle()
+        val anchorAfter = compose.onAllNodesWithText(anchorText).fetchSemanticsNodes().firstOrNull()
+        val moved = anchorAfter == null ||
+            kotlin.math.abs(anchorAfter.boundsInRoot.top - beforeTop) > 48f
+        assertTrue(
+            "$label: targeted swipe did not move content ('$anchorText' top was $beforeTop, " +
+                "now ${anchorAfter?.boundsInRoot?.top})",
+            moved,
+        )
+    }
+
     @Test
     fun realAppPagesUnderRealStatusBar() {
         compose.waitForIdle()
@@ -243,9 +279,7 @@ class StatusStripEmulatorTest {
         fullScreenshot("01-home-light", expectDark = false)
 
         // Scroll the real page; the strip must stay pinned at the top.
-        compose.onRoot().performTouchInput { swipeUp() }
-        compose.waitForIdle()
-        Thread.sleep(1500)
+        scrollPageAndAssertMoved("home-light", "Made for tonight")
         val afterScroll = stripBounds()
         assertTrue(afterScroll != null)
         assertEquals(0f, afterScroll!!.top, 1f)
@@ -258,13 +292,49 @@ class StatusStripEmulatorTest {
         // Settings, reached the way a person reaches it; identity asserted.
         openSettingsAndAssert("Settings", "Settings")
         fullScreenshot("04-settings-light", expectDark = false)
-        compose.onRoot().performTouchInput { swipeUp() }
-        compose.waitForIdle()
-        Thread.sleep(1200)
+        scrollPageAndAssertMoved("settings-light", "Audio quality")
         fullScreenshot("05-settings-light-scrolled", expectDark = false)
         val stripInSettings = stripBounds()
         assertTrue("strip must exist on the Settings page too", stripInSettings != null)
         assertEquals(0f, stripInSettings!!.top, 1f)
+
+        // Replay, reached the way the user reached it (back to Home, then the
+        // Library tab): captured after the approved heading spacing fix
+        // (48dp -> 12dp) so the tightened top can be reviewed on real pixels.
+        // Identity is asserted - a wrong page cannot wear the Replay name.
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        Thread.sleep(1200)
+        compose.waitForIdle()
+        val libraryTab = hasClickAction() and (
+            hasContentDescription("Library") or hasAnyDescendant(hasContentDescription("Library"))
+            )
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(libraryTab, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onAllNodes(libraryTab, useUnmergedTree = true)[0].performClick()
+        compose.waitForIdle()
+        Thread.sleep(1500)
+        compose.waitForIdle()
+        val replayEntry = hasClickAction() and (hasText("Replay") or hasAnyDescendant(hasText("Replay")))
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(replayEntry, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onAllNodes(replayEntry, useUnmergedTree = true)[0].performClick()
+        compose.waitForIdle()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText("Weekly").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue(
+            "Replay identity: the period picker must show after opening Replay",
+            compose.onAllNodesWithText("Weekly").fetchSemanticsNodes().isNotEmpty(),
+        )
+        Thread.sleep(1500)
+        compose.waitForIdle()
+        fullScreenshot("06-replay-light", expectDark = false)
+        val stripOnReplay = stripBounds()
+        assertTrue("strip must exist on Replay too", stripOnReplay != null)
+        assertEquals(0f, stripOnReplay!!.top, 1f)
     }
 
     /**
@@ -289,9 +359,7 @@ class StatusStripEmulatorTest {
             assertHomeVisible("കേൾക്കുക", "കേട്ട ചരിത്രം")
             fullScreenshot("10-ml-home-light", expectDark = false)
 
-            compose.onRoot().performTouchInput { swipeUp() }
-            compose.waitForIdle()
-            Thread.sleep(1500)
+            scrollPageAndAssertMoved("ml-home-light", "ഇന്ന് രാത്രിക്കായി")
             fullScreenshot("11-ml-home-light-scrolled", expectDark = false)
 
             theme(dark = true)
@@ -300,9 +368,7 @@ class StatusStripEmulatorTest {
 
             openSettingsAndAssert("ക്രമീകരണങ്ങൾ", "ക്രമീകരണങ്ങൾ")
             fullScreenshot("13-ml-settings-light", expectDark = false)
-            compose.onRoot().performTouchInput { swipeUp() }
-            compose.waitForIdle()
-            Thread.sleep(1200)
+            scrollPageAndAssertMoved("ml-settings-light", "ഓഡിയോ നിലവാരം")
             fullScreenshot("14-ml-settings-light-scrolled", expectDark = false)
         } finally {
             compose.runOnUiThread {
