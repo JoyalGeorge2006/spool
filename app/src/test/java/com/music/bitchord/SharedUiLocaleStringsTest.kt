@@ -12,7 +12,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * The shared UI layer reads its strings from Compose Multiplatform resources at
- * sharedUi/src/commonMain/composeResources/values*/, a SECOND bundle independent of
+ * sharedUi/src/commonMain/composeResources (the values directories), a SECOND bundle independent of
  * app/src/main/res (audited by LocaleStringsTest). A missing catalogue or key there
  * silently falls back to English mid-screen - this is why Malayalam showed English
  * Home/Settings chrome even while app/src/main/res/values-ml was complete: sharedUi
