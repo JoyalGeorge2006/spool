@@ -1,0 +1,47 @@
+# TEMPLATE for a Spool stable-release publisher workflow.
+# Copy this into .github/workflows/<N>-spool-<version>-publish.yml, fill every
+# <VERSION>/<TAG>/<RUN-ID> placeholder, and update the pinned gates. Do not put
+# this file itself in .github/workflows/ (it would be an active workflow).
+#
+# HARD REQUIREMENT (user requirement, 2026-11-18): every release ships with
+# ~10MB OTA delta patches, not only the full APK. The publish-deltas job at the
+# bottom is what guarantees that. Never drop it: the release is not complete
+# until patches are generated, verified against the app's real decoder, and
+# published. Removing it repeats the 2.1.1 regression, where a release went
+# out with no patch assets.
+
+name: Publish accepted Spool <VERSION> and verify OTA discovery
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: JoyalGeorge2006/spool
+    steps:
+    # Pin and re-verify the accepted build/acceptance/test runs, recover the
+    # verified artifact, independently verify hashes, app identity and the
+    # signing certificate, tag the exact accepted source tree, publish the
+    # release, and verify the published assets from their public URLs.
+    # (See 1-14-spool-2.1.1-publish.yml for the full proven pattern.)
+    - name: Placeholder - replace with the full verified publish steps
+      run: |
+        echo 'Replace this template step with the verified publish steps.'
+        exit 1
+
+  # Final gate: OTA delta patches for this release. Generates each patch from
+  # discovered predecessor bases, verifies reconstruction of the exact signed
+  # target APK with the app's real Java decoder, and publishes the patch
+  # assets plus the spool-ota-v1.json catalog. This job failing fails the
+  # whole publisher run, so a release cannot complete silently without
+  # patches. Do not remove.
+  publish-deltas:
+    needs: publish
+    uses: ./.github/workflows/ota-delta-publish.yml
+    with:
+      release_tag: <TAG>
