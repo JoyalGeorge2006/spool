@@ -53,7 +53,7 @@ class UpdateAutoInstallCoordinatorTest {
     }
     private suspend fun seed(phase: String="ready",pending: Boolean=true): UpdateAttempt {
         val a=UpdateAttempt(UUID.randomUUID().toString(),info,phase,autoInstallPending=pending)
-        UpdateStore.write(context,a);UpdateDownloads.resetMemoryForTest(context);UpdateDownloads.restore(context);return a
+        UpdateStore.write(context,a);UpdateDownloads.resetMemoryForTest(context);UpdateDownloads.restore(context);return requireNotNull(UpdateDownloads.snapshot())
     }
     private suspend fun settled()=withTimeout(5000) { UpdateAutoInstall.awaitRequestsForTest() }
     @Test fun readyResumedHandsOffOnceAcrossDuplicateRequests()=runBlocking {
