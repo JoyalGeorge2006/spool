@@ -1,6 +1,8 @@
 @file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 package com.music.bitchord
 
+import coil3.SingletonImageLoader
+import coil3.request.crossfade
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -54,7 +56,19 @@ abstract class StationArtworkScreenshotTestBase {
         assertEquals(1200,bounds.outWidth);assertEquals(1200,bounds.outHeight)
         return file.toURI().toString()
     }
+    @OptIn(coil3.annotation.DelicateCoilApi::class)
     protected fun shot(dark: Boolean,width: Int,large: Boolean=false,state: String="loaded") {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val original = SingletonImageLoader.get(context)
+        // Still-pixel fixture: preserve the production decoder/fetcher components,
+        // disable only its transition. Callback success does not prove a
+        // CrossfadePainter has advanced under Robolectric's separate clocks.
+        val stillLoader = original.newBuilder().crossfade(false).build()
+        SingletonImageLoader.setUnsafe(stillLoader)
+        try { shotWithStillLoader(dark, width, large, state) }
+        finally { SingletonImageLoader.setUnsafe(original) }
+    }
+    private fun shotWithStillLoader(dark: Boolean,width: Int,large: Boolean,state: String) {
         V6ScreenshotTest().installUiHost()
         val uri = when(state) { "loaded" -> fixture(); "error" -> "file:///no-such-station-cover.png";else -> null }
         val picks = listOf(TopPickKind.PERSONAL_STATION,TopPickKind.DISCOVERY_STATION).map { kind ->
@@ -77,13 +91,8 @@ abstract class StationArtworkScreenshotTestBase {
             // Same runner rule as PlayerDrawerFrostShotTest.captureAndStore: under the
             // plain unit-test task the roborazzi default task type is None, so a bare
             // captureRoboImage is a no-op and the read-back below fails. Force Record.
-            // Coil's 200ms crossfade runs on the Robolectric main looper, not the
-            // compose clock, so pump BOTH (the idiom the green
-            // IntegratedRootHeaderScreenshotTest uses). A pixel-sniff early exit
-            // races the fade: partial-alpha gold trips the detector while the
-            // edge pixels the assertions read are still mid-fade. Pump a fixed
-            // budget well past the 200ms crossfade (16 x 64ms = 1024ms),
-            // then capture once; the gold check below stays as the fade guard.
+            // Keep a bounded layout/draw settle budget. The fixture loader
+            // disables transitions, not decoding or any pixel assertion.
             repeat(16) {
                 org.robolectric.shadows.ShadowLooper.idleMainLooper(64L, java.util.concurrent.TimeUnit.MILLISECONDS)
                 compose.mainClock.advanceTimeBy(64L)
