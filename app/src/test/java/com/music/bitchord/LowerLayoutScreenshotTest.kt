@@ -64,7 +64,10 @@ class LowerLayoutScreenshotTest {
             }
             val viewport = compose.onRoot().fetchSemanticsNode().boundsInRoot
             val vertical = SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange)
-            val onScreen = SemanticsMatcher("visible target") { viewport.contains(it.boundsInRoot.center) }
+            val onScreen = SemanticsMatcher("positive-size visible target") {
+                val bounds = it.boundsInRoot
+                bounds.width > 0f && bounds.height > 0f && viewport.contains(bounds.center)
+            }
             val lazy = compose.onAllNodes(hasScrollToNodeAction() and vertical and SemanticsMatcher("visible page list") {
                 val b = it.boundsInRoot
                 b.width > 0f && b.height > 0f && viewport.contains(b.center)
@@ -77,7 +80,12 @@ class LowerLayoutScreenshotTest {
                 compose.onNode(hasScrollAction() and vertical and onScreen).performTouchInput { swipeUp() }
             }
             compose.waitForIdle()
-            compose.onNode(hasText(target, substring = true) and onScreen).assertIsDisplayed()
+            val visibleTargets = compose.onAllNodes(hasText(target, substring = true) and onScreen)
+            // playlistPage supplies three suggested songs by June Harbor.
+            // Require every intended bottom row, not a false unique-artist match.
+            val expected = if (page == "playlist") 3 else 1
+            visibleTargets.assertCountEquals(expected)
+            repeat(expected) { visibleTargets[it].assertIsDisplayed() }
             compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/lower_${page}_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setThemeMode(oldTheme)
