@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">यह ट्रैक नहीं चल सका</string>
     <string name="tap_to_retry">फिर से कोशिश करने के लिए टैप करें</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">फिर कोशिश करें</string>
+    <string name="find_your_mood">अपना मूड खोजें</string>
+    <string name="home_history">इतिहास</string>
+    <string name="mood_focus">फोकस</string>
+    <string name="mood_party">पार्टी</string>
+    <string name="mood_relax">रिलैक्स</string>
+    <string name="mood_sleep">नींद</string>
+    <string name="remove">हटाएँ</string>
+    <string name="sign_in_with_google">Google से साइन इन करें</string>
+    <string name="spool_related_add_to_queue">कतार में जोड़ें</string>
+    <string name="spool_related_retry">फिर कोशिश करें</string>
 </resources>
