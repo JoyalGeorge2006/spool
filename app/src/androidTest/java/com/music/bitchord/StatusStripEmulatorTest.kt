@@ -3,6 +3,7 @@ package com.music.bitchord
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -413,4 +414,212 @@ class StatusStripEmulatorTest {
         assertEquals(bounds.top, after!!.top, 1f)
         assertEquals(bounds.height, after.height, 1f)
     }
+
+    /** Navigation helpers for exhaustive reachable-page verification. No account
+     * is created, no connection is made, and no setting option is selected. */
+    private fun englishFixture() {
+        compose.runOnUiThread {
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+        }
+        completeOnboarding()
+        theme(false)
+        assertHomeVisible("Listen", "Listening history")
+    }
+
+    private fun backToParent() {
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        Thread.sleep(900)
+        compose.waitForIdle()
+    }
+
+    private fun clickRow(label: String) {
+        val matcher = hasClickAction() and (hasText(label) or hasAnyDescendant(hasText(label)))
+        val lazy = compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)
+            .fetchSemanticsNodes().maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
+        if (lazy != null) {
+            compose.onNode(SemanticsMatcher("page lazy container") { it.id == lazy.id }, useUnmergedTree = true)
+                .performScrollToNode(matcher)
+            compose.onAllNodes(matcher)[0].performClick()
+        } else {
+            compose.onAllNodes(matcher)[0].performScrollTo().performClick()
+        }
+        Thread.sleep(1000)
+        compose.waitForIdle()
+    }
+
+    /** Identity must be visible above the content; scrolling must change the
+     * actual scroll-axis value when the page has remaining vertical content.
+     * A short/empty page is logged explicitly, never called a scroll pass. */
+    private fun inspectPage(name: String, title: String) {
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+        }
+        val headings = compose.onAllNodesWithText(title).fetchSemanticsNodes()
+        val strip = stripBounds()
+        assertTrue("$name: strip exists", strip != null)
+        assertEquals("$name: strip pinned", 0f, strip!!.top, 1f)
+        assertTrue("$name: identity title clears status inset",
+            headings.any { it.boundsInRoot.top >= strip.bottom - 2f && it.boundsInRoot.height > 0 })
+        fullScreenshot("pages-$name-top", false)
+        val scroll = compose.onAllNodes(hasScrollAction(), useUnmergedTree = true)
+            .fetchSemanticsNodes().filter {
+                it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null
+            }.maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
+        val axis = scroll?.config?.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange)
+        if (scroll != null && axis != null && axis.maxValue() > axis.value() + 1f) {
+            val before = axis.value()
+            val b = scroll.boundsInRoot
+            compose.onRoot().performTouchInput {
+                swipe(androidx.compose.ui.geometry.Offset(b.center.x, b.top + b.height * 0.8f),
+                    androidx.compose.ui.geometry.Offset(b.center.x, b.top + b.height * 0.2f), 400)
+            }
+            compose.waitForIdle()
+            Thread.sleep(600)
+            val after = compose.onAllNodes(hasScrollAction(), useUnmergedTree = true)
+                .fetchSemanticsNodes().firstOrNull { it.id == scroll.id }
+                ?.config?.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange)
+            assertTrue("$name: scroll axis must advance ($before -> ${after?.value()})",
+                after != null && after.value() > before)
+            assertEquals("$name: strip remains pinned after scroll", 0f, stripBounds()!!.top, 1f)
+            fullScreenshot("pages-$name-scrolled", false)
+            // Return to the top for navigation to any child rows.
+            compose.onAllNodes(hasScrollAction(), useUnmergedTree = true)
+                .filterToOne(SemanticsMatcher("same scroll container") { it.id == scroll.id })
+                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f, -100000f) }
+            compose.waitForIdle()
+        } else {
+            println("PAGE-NO-VERTICAL-OVERFLOW $name (no scroll claimed)")
+        }
+        println("PAGE-VERIFIED $name")
+    }
+
+    @Test fun everySettingsCategoryAndChoice() {
+        englishFixture()
+        openSettingsAndAssert("Settings", "Settings")
+        for (category in com.music.bitchord.ui.screens.SettingsCategory.entries) {
+            val title = compose.activity.getString(category.title)
+            clickRow(title)
+            inspectPage("category-${category.name.lowercase()}", title)
+            val choices = when (category) {
+                com.music.bitchord.ui.screens.SettingsCategory.DOWNLOADS -> listOf(com.music.bitchord.ui.screens.SettingsChoiceKind.DOWNLOAD_QUALITY)
+                com.music.bitchord.ui.screens.SettingsCategory.PLAYBACK -> listOf(com.music.bitchord.ui.screens.SettingsChoiceKind.AUTOMIX_PERFORMANCE, com.music.bitchord.ui.screens.SettingsChoiceKind.BIT_PERFECT)
+                com.music.bitchord.ui.screens.SettingsCategory.APPEARANCE -> listOf(com.music.bitchord.ui.screens.SettingsChoiceKind.FONT)
+                else -> emptyList()
+            }
+            for (choice in choices) {
+                val option = compose.activity.getString(choice.title)
+                clickRow(option)
+                inspectPage("choice-${choice.name.lowercase()}", option)
+                backToParent()
+            }
+            if (category == com.music.bitchord.ui.screens.SettingsCategory.PLAYBACK) {
+                // Test-only state, confined to this disposable debug installation.
+                val oldEnabled = AppSettings.equalizerEnabled.value
+                val oldMode = AppSettings.equalizerMode.value
+                AppSettings.setEqualizerEnabled(true)
+                AppSettings.setEqualizerMode(com.music.bitchord.data.settings.EqualizerMode.MANUAL)
+                clickRow(compose.activity.getString(R.string.equalizer))
+                inspectPage("equalizer", compose.activity.getString(R.string.equalizer))
+                clickRow(compose.activity.getString(R.string.equalizer_preset))
+                inspectPage("equalizer-presets", compose.activity.getString(R.string.equalizer_preset))
+                backToParent()
+                backToParent()
+                AppSettings.setEqualizerEnabled(oldEnabled)
+                AppSettings.setEqualizerMode(oldMode)
+            }
+            backToParent()
+        }
+        for (choice in listOf(com.music.bitchord.ui.screens.SettingsChoiceKind.AUDIO_QUALITY_WIFI,
+            com.music.bitchord.ui.screens.SettingsChoiceKind.AUDIO_QUALITY_CELLULAR)) {
+            val title = compose.activity.getString(choice.title)
+            clickRow(title)
+            inspectPage("choice-${choice.name.lowercase()}", title)
+            backToParent()
+        }
+    }
+
+    @Test fun settingsConnectionsAndAboutPages() {
+        englishFixture()
+        openSettingsAndAssert("Settings", "Settings")
+        clickRow(compose.activity.getString(R.string.not_signed_in))
+        inspectPage("profile-signed-out", compose.activity.getString(R.string.acct_profile_header))
+        println("UNAVAILABLE SwitchProfile and ManageAccounts: signed-out fixture disables both entry rows; no accounts created")
+        backToParent()
+        clickRow(compose.activity.getString(R.string.account_integrations))
+        inspectPage("connected-services", compose.activity.getString(R.string.account_integrations))
+        for (key in listOf(R.string.discord, R.string.spotify)) {
+            val title = compose.activity.getString(key)
+            clickRow(title)
+            inspectPage(title.lowercase(), title)
+            backToParent()
+        }
+        backToParent()
+        clickRow(compose.activity.getString(R.string.source))
+        inspectPage("sources", compose.activity.getString(R.string.source))
+        backToParent()
+        clickRow(compose.activity.getString(R.string.listen_together))
+        inspectPage("listen-together-signed-out", compose.activity.getString(R.string.listen_together))
+        backToParent()
+        for (key in listOf(R.string.app_updates, R.string.about_developer_title, R.string.about_credits)) {
+            val title = compose.activity.getString(key)
+            clickRow(title)
+            inspectPage("about-$key", title)
+            if (key == R.string.about_credits) {
+                for (notice in listOf("GNU GPL v3") + com.music.bitchord.ui.screens.BUNDLED_NOTICES.map { it.second }) {
+                    clickRow(notice)
+                    inspectPage("license-${notice.replace(' ', '-').lowercase()}", notice)
+                    backToParent()
+                }
+            }
+            backToParent()
+        }
+        println("UNAVAILABLE Wear OS connected-watch state: requires paired device; no device/account changes made")
+    }
+
+    @Test fun everyRootTabAndLibraryLanding() {
+        englishFixture()
+        for ((label, identity) in listOf("Explore" to "Explore", "Library" to "Library", "Search" to "Songs, artists, albums")) {
+            val tab = hasClickAction() and (hasContentDescription(label) or hasAnyDescendant(hasContentDescription(label)))
+            compose.onAllNodes(tab, useUnmergedTree = true)[0].performClick()
+            Thread.sleep(1500)
+            compose.waitForIdle()
+            inspectPage("tab-${label.lowercase()}", identity)
+        }
+        val tab = hasClickAction() and (hasContentDescription("Library") or hasAnyDescendant(hasContentDescription("Library")))
+        compose.onAllNodes(tab, useUnmergedTree = true)[0].performClick()
+        Thread.sleep(1000)
+        compose.waitForIdle()
+        val history = hasClickAction() and (hasContentDescription("Listening history") or hasAnyDescendant(hasContentDescription("Listening history")))
+        compose.onAllNodes(history, useUnmergedTree = true)[0].performClick()
+        Thread.sleep(1000)
+        compose.waitForIdle()
+        inspectPage("history-signed-out", "History")
+        backToParent()
+        clickRow("Replay")
+        inspectPage("library-replay", "Weekly")
+        backToParent()
+        println("UNAVAILABLE authenticated library shelves/artist shelf content: signed-out fixture has no owner library; no fake populated-state claim")
+    }
+
+    @Test fun realMoodGridAllTwentyEightTiles() {
+        englishFixture()
+        compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0]
+            .performScrollToNode(hasText("Find Your Mood"))
+        val showAll = hasText("Show all") and hasClickAction() and
+            hasParent(hasAnyDescendant(hasText("Find Your Mood")))
+        compose.onAllNodes(showAll)[0].performClick()
+        Thread.sleep(1000)
+        compose.waitForIdle()
+        inspectPage("moods-grid", "Find Your Mood")
+        val labels = listOf("Energy", "Relax", "Feeling Blue", "Feel Good", "Focus", "Heartbreak", "Love", "After Hours", "Alone Time", "Chill", "Commuting", "Eating & Cooking", "Evening", "Fitness", "Gaming", "Home", "Morning", "Motivation", "Outdoors", "Party", "Sleep", "Social", "Sports", "Summertime Sounds", "Holiday", "Weekend", "Wellbeing", "Work")
+        for ((index, label) in labels.withIndex()) {
+            compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0]
+                .performScrollToNode(hasText(label))
+            compose.onNodeWithText(label).assertIsDisplayed()
+            assertEquals("$label: strip remains pinned", 0f, stripBounds()!!.top, 1f)
+            fullScreenshot("mood-grid-${index.toString().padStart(2, '0')}", false)
+        }
+        println("GRID-VISUALS 28 identities asserted; callback/personalization tested separately, no live playback claim")
+    }
+
 }
