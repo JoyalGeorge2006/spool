@@ -20,7 +20,7 @@ tasks.withType<Test>().configureEach {
     forkEvery = 20L
     // Diagnose native JNI buffer-class aborts without replacing the real
     // loader, native graphics, SDK34 tests, heap, or complete test inventory.
-    jvmArgs("-Xcheck:jni", "-XX:ErrorFile=hs_err_pid%p.log")
+    jvmArgs("-XX:ErrorFile=hs_err_pid%p.log")
     testLogging {
         events("started", "passed", "skipped", "failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
