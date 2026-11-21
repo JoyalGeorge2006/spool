@@ -267,6 +267,18 @@ object Taste {
     fun personalize(queue: List<Song>, taste: Snapshot?): List<Song> =
         rerank(blend(queue, taste), taste)
 
+    /** Mood playback's exact negative contract, including sparse profiles.
+     * Positive blending/ranking keeps its existing minimum-size safeguards.
+     * An explicit dislike never comes back merely to fill a small station.
+     * Skips and artist patterns only demote, never exclude.
+     */
+    fun personalizeMood(queue: List<Song>, taste: Snapshot?): List<Song> {
+        if (taste == null) return queue
+        val sets = Sets(taste)
+        val kept = personalize(queue, taste).filter { it.videoId !in sets.disliked }
+        return if (taste.isEmpty) demote(kept, taste, sets) else kept
+    }
+
     // ---- Storage ---------------------------------------------------------------
 
     private val json = Json {
