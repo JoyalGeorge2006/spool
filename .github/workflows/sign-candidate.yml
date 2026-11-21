@@ -1,110 +1,185 @@
-name: Spool stable58 language-only rehearsal only
-on:
-  workflow_dispatch:
+name: Focused For-you profile development compile and runtime, no release
+'on':
+  workflow_dispatch: null
 permissions:
   contents: read
-  actions: read
 concurrency:
-  group: spool-stable58-language-only-inspection
+  group: spool-focused-foryou-profile-development
   cancel-in-progress: false
 jobs:
-  inspect:
+  focused:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 85
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          ref: dd82d014c40ac9d0488736f35345f96ce35355a5
-          persist-credentials: false
-          path: proposal
-      - name: Bind immutable source commit, raw JSON and exact six files
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git -C proposal rev-parse HEAD)" = dd82d014c40ac9d0488736f35345f96ce35355a5
-          test "$(git -C proposal rev-parse HEAD^{tree})" = 26cb49cd497a1d719e22d180bf667ff442ae4e8b
-          python3 - <<'PYBIND'
-          import json,pathlib,hashlib,os
-          root=pathlib.Path('proposal')
-          p=root/'release-prep/spool-2.1.2/inspection-source.json'
-          raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='817f9ea7f6f7db6e65cb77ce99b6f6ec71401a19d6ee53ba2fc59523006fbc73'
-          def unique(pairs):
-              result={}
-              for k,v in pairs:
-                  assert k not in result, 'Duplicate JSON key'
-                  result[k]=v
-              return result
-          j=json.loads(raw,object_pairs_hook=unique)
-          assert set(j)=={'schema','purpose','files','sha256'} and j['schema']==1
-          expected={'inspect-stable.py': '05de0db5b0918f3e75922aff28a97afd612b6ab6b7f37b2daa3da1318220a3c4', 'inspect-inputs.py': 'a560f557bb19d7880994a574af9e0352f5d6ea23463e347479912fce2cc60ea1', 'inspect-evidence.py': '70e90b509def8a1419996035bcf9592698cd72e59bb9a9040aef6c85c91a7d6a', 'inspection-resources.json': '0e6e81de2ee5f72222e757f3c4409218a6b08c752420cade510f25f79dcd8479', 'navigator.py': '13aeb7fba340dbf0292e366db449e798ea1e086ad80d171ae0078b557ed633c7', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
-          assert set(j['files'])==set(expected) and j['sha256']==expected
-          # Validate every file before writing any. Only known plain basenames.
-          for name,digest in expected.items():
-              assert pathlib.PurePosixPath(name).name==name and isinstance(j['files'][name],str)
-              assert hashlib.sha256(j['files'][name].encode('utf-8')).hexdigest()==digest
-              assert not (root/name).exists()
-          for name in expected:
-              path=root/name
-              with path.open('xb') as f:f.write(j['files'][name].encode('utf-8'))
-              assert hashlib.sha256(path.read_bytes()).hexdigest()==expected[name]
-          out=pathlib.Path('source-binding');out.mkdir(exist_ok=True)
-          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='dd82d014c40ac9d0488736f35345f96ce35355a5',source_tree='26cb49cd497a1d719e22d180bf667ff442ae4e8b',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
-          PYBIND
-      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
-        with:
-          packages: platform-tools
-          log-accepted-android-sdk-licenses: false
-      - name: Install manifest/signature tools only, no Gradle/native compile
-        run: sdkmanager 'build-tools;35.0.0'
-      - name: Fetch+cryptographically verify hosted stable58 and immutable EN resources
-        env:
-          INSPECTION_METADATA_TOKEN: ${{ github.token }}
-        run: python3 proposal/inspect-inputs.py
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - name: One bounded language-only rehearsal
-        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
-        with:
-          api-level: 34
-          arch: x86_64
-          profile: pixel_6
-          ram-size: 2048M
-          heap-size: 256M
-          disk-size: 4096M
-          disable-animations: false
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader -camera-back none -no-snapshot -memory 2048 -cores 2
-          force-avd-creation: true
-          script: python3 proposal/inspect-stable.py
-      - name: Install pinned PNG decoder
-        if: always()
-        run: python3 -m pip install Pillow==11.3.0
-      - name: Validate captured bytes/pixels and stage only diagnostic allowlist
-        if: always()
-        run: python3 proposal/inspect-evidence.py
-      - name: Remove downloaded APK even on inspection stop
-        if: always()
-        run: rm -f predecessor.apk
-      - name: Upload evidence only, no APK/source/key/distribution
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: spool-stable58-language-only-${{ github.run_id }}-${{ github.run_attempt }}
-          path: inspection-upload/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Upload exact source-binding proof separately
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: spool-stable58-source-binding-${{ github.run_id }}-${{ github.run_attempt }}
-          path: source-binding/inspection-source-binding.json
-          if-no-files-found: warn
-          retention-days: 14
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        ref: e290e8c945cc51d744445ebffb3cdf6c483eff17
+        persist-credentials: false
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        ref: ce56dab89b1a06c7f4fe3b50866ca61ad7e8bbf5
+        path: proposal
+        persist-credentials: false
+    - name: Bind exact product and immutable focused test sources
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git -C proposal rev-parse HEAD)" = ce56dab89b1a06c7f4fe3b50866ca61ad7e8bbf5
+        test "$(git -C proposal rev-parse HEAD^{tree})" = 225ea7a537de392a2deff9ab8eafeb43a4e5212b
+        python3 - <<'BIND'
+        import pathlib,json,hashlib,os,subprocess
+        raw=pathlib.Path('proposal/release-prep/foryou-profile/focused-source.json').read_bytes()
+        assert hashlib.sha256(raw).hexdigest()=='9f2be0920d2be98c0bf0e8944f255c68d2686675a36bf1992cbcc3f3a5f62209'
+        expected={'StatusStripEmulatorTest.kt': 'f088c4082a6dd3cc1e9c20d8f9ca93a381240d3242a72ff7dfba459f6e8c1b28', 'spool-emulator-test.py': '4c48cb3014be95701463df920329215362cac9c666de759ccd15b094236eac81', 'raw-results.py': '633f035726719b8d30a38d5d12e0510b6d5b2024e1ac5ce75155f2865ec1a8b3', 'apk-inventory.py': 'c369a84c961086ff239e8670c04ec6a61dfaf6b6f17820832fb0ef5def157d05', 'direct-instrumentation.py': '49c533b6e4f59d0e668d8d6b671caa2aef71219cb8eb7b130399329a441ab435', 'check-remaining.py': '67aaf45597b0fcdc8e7c697f4bcb0e9c265b940e3ed7c49935d9c0fb70f5b11c', 'run-shard.py': '18bb6cca7291af899ccb436033d60663fc0e0abf6ff91c366424697cd42bc849', 'no-heavy-recompile.gradle': '3738ecb6e29e240f45fa2fa07b5f73f12c2b0e84cebc6cae3a883ebe6cf84372'}
+        def unique(pairs):
+         d={}
+         for k,v in pairs:
+          assert k not in d;d[k]=v
+         return d
+        j=json.loads(raw,object_pairs_hook=unique)
+        assert j['schema']==1 and j['sha256']==expected and set(j['files'])==set(expected)
+        assert j['selector']=='com.music.bitchord.StatusStripEmulatorTest#forYouChipUsesCollectedProfileAndCachedStationWithRealController'
+        assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==j['product_commit']
+        assert subprocess.check_output(['git','write-tree'],text=True).strip()==j['product_tree']
+        assert not subprocess.check_output(['git','diff','--name-only'])
+        for name,h in expected.items():
+         assert pathlib.PurePosixPath(name).name==name and hashlib.sha256(j['files'][name].encode()).hexdigest()==h
+        for name,body in j['files'].items():
+         path=pathlib.Path('app/src/androidTest/java/com/music/bitchord/StatusStripEmulatorTest.kt')if name=='StatusStripEmulatorTest.kt'else pathlib.Path('/tmp')/name
+         path.write_text(body)
+        changed=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+        assert changed==['app/src/androidTest/java/com/music/bitchord/StatusStripEmulatorTest.kt']
+        e=pathlib.Path('remaining10-evidence');e.mkdir(exist_ok=True)
+        (e/'focused-source-binding.json').write_text(json.dumps(dict(product_commit=j['product_commit'],product_tree=j['product_tree'],source_commit='ce56dab89b1a06c7f4fe3b50866ca61ad7e8bbf5',source_tree='225ea7a537de392a2deff9ab8eafeb43a4e5212b',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,selector=j['selector'],workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+        BIND
+    - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+      with:
+        java-version: '17'
+        distribution: temurin
+    - name: Platform and KVM
+      shell: bash
+      run: |
+        set -euo pipefail
+        "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Select sole reviewed case
+      shell: bash
+      run: printf '%s\n' 'SPOOL_SHARD=connections' 'SPOOL_CASE_SELECTORS=com.music.bitchord.StatusStripEmulatorTest#forYouChipUsesCollectedProfileAndCachedStationWithRealController'
+        >> "$GITHUB_ENV"
+    - name: Compile exact development app and focused instrumentation before device
+      id: prebuild
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p remaining10-evidence
+        ./gradlew --init-script /tmp/platform.gradle --init-script /tmp/no-heavy-recompile.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true' -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee remaining10-evidence/prebuild.log
+    - name: Stop and verify build daemons even compile failure
+      if: always()
+      shell: bash
+      run: |
+        ./gradlew --stop
+        python3 - <<'PYTHON'
+        import datetime
+        import json
+        import pathlib
+        import subprocess
+        import time
+
+
+        def await_shutdown(read_processes, monotonic, sleep, emit, timeout=60, interval=1):
+            started = monotonic()
+            while True:
+                try:
+                    text = read_processes()
+                except Exception as error:
+                    emit({'timestamp_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                          'elapsed_seconds': round(monotonic() - started, 3),
+                          'error': type(error).__name__ + ': ' + str(error)})
+                    raise
+                remaining = [line for line in text.splitlines()
+                             if 'java' in line and ('GradleDaemon' in line or 'KotlinCompileDaemon' in line)]
+                elapsed = monotonic() - started
+                emit({'timestamp_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                      'elapsed_seconds': round(elapsed, 3), 'remaining': remaining})
+                if not remaining:
+                    return
+                if elapsed >= timeout:
+                    raise RuntimeError('Build daemons still present after bounded shutdown grace')
+                sleep(min(interval, timeout - elapsed))
+
+
+        if __name__ == '__main__':
+            path = pathlib.Path('remaining10-evidence/build-daemon-shutdown.jsonl')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open('w', encoding='utf-8', buffering=1) as evidence:
+                def emit(row):
+                    line = json.dumps(row, sort_keys=True)
+                    evidence.write(line + '\n')
+                    print('BUILD-DAEMON-SNAPSHOT ' + line, flush=True)
+                def read_processes():
+                    return subprocess.check_output(['ps', '-eo', 'pid,comm,rss,stat,args'], text=True, timeout=5)
+                await_shutdown(read_processes, time.monotonic, time.sleep, emit)
+        PYTHON
+    - name: Verify immutable source inputs before device
+      shell: bash
+      run: |
+        python3 - <<'VERIFY'
+        import pathlib,hashlib,json,subprocess,os
+        expected={'StatusStripEmulatorTest.kt': 'f088c4082a6dd3cc1e9c20d8f9ca93a381240d3242a72ff7dfba459f6e8c1b28', 'spool-emulator-test.py': '4c48cb3014be95701463df920329215362cac9c666de759ccd15b094236eac81', 'raw-results.py': '633f035726719b8d30a38d5d12e0510b6d5b2024e1ac5ce75155f2865ec1a8b3', 'apk-inventory.py': 'c369a84c961086ff239e8670c04ec6a61dfaf6b6f17820832fb0ef5def157d05', 'direct-instrumentation.py': '49c533b6e4f59d0e668d8d6b671caa2aef71219cb8eb7b130399329a441ab435', 'check-remaining.py': '67aaf45597b0fcdc8e7c697f4bcb0e9c265b940e3ed7c49935d9c0fb70f5b11c', 'run-shard.py': '18bb6cca7291af899ccb436033d60663fc0e0abf6ff91c366424697cd42bc849', 'no-heavy-recompile.gradle': '3738ecb6e29e240f45fa2fa07b5f73f12c2b0e84cebc6cae3a883ebe6cf84372'}
+        seen={}
+        for name,digest in expected.items():
+         path=pathlib.Path('app/src/androidTest/java/com/music/bitchord/StatusStripEmulatorTest.kt')if name=='StatusStripEmulatorTest.kt'else pathlib.Path('/tmp')/name
+         seen[name]=hashlib.sha256(path.read_bytes()).hexdigest()
+        assert seen==expected
+        assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()=='e290e8c945cc51d744445ebffb3cdf6c483eff17'
+        assert subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()==['app/src/androidTest/java/com/music/bitchord/StatusStripEmulatorTest.kt']
+        assert subprocess.check_output(['git','write-tree'],text=True).strip()=='bcb909208d5345fe6f6c0e8f7829b1c87821b779'
+        pathlib.Path('remaining10-evidence/source-inputs-before.json').write_text(json.dumps(dict(files=seen,run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+        VERIFY
+    - name: Exact shard, fresh disposable emulator
+      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+      with:
+        api-level: 34
+        arch: x86_64
+        profile: pixel_6
+        avd-name: spool-foryou-profile
+        force-avd-creation: true
+        ram-size: 2048M
+        script: python3 /tmp/run-shard.py
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader -camera-back none -no-snapshot -memory 2048
+          -cores 2
+    - name: Verify immutable source inputs after device or failure
+      if: always()
+      shell: bash
+      run: |
+        python3 - <<'VERIFY'
+        import pathlib,hashlib,json,subprocess,os
+        expected={'StatusStripEmulatorTest.kt': 'f088c4082a6dd3cc1e9c20d8f9ca93a381240d3242a72ff7dfba459f6e8c1b28', 'spool-emulator-test.py': '4c48cb3014be95701463df920329215362cac9c666de759ccd15b094236eac81', 'raw-results.py': '633f035726719b8d30a38d5d12e0510b6d5b2024e1ac5ce75155f2865ec1a8b3', 'apk-inventory.py': 'c369a84c961086ff239e8670c04ec6a61dfaf6b6f17820832fb0ef5def157d05', 'direct-instrumentation.py': '49c533b6e4f59d0e668d8d6b671caa2aef71219cb8eb7b130399329a441ab435', 'check-remaining.py': '67aaf45597b0fcdc8e7c697f4bcb0e9c265b940e3ed7c49935d9c0fb70f5b11c', 'run-shard.py': '18bb6cca7291af899ccb436033d60663fc0e0abf6ff91c366424697cd42bc849', 'no-heavy-recompile.gradle': '3738ecb6e29e240f45fa2fa07b5f73f12c2b0e84cebc6cae3a883ebe6cf84372'}
+        seen={}
+        for name,digest in expected.items():
+         path=pathlib.Path('app/src/androidTest/java/com/music/bitchord/StatusStripEmulatorTest.kt')if name=='StatusStripEmulatorTest.kt'else pathlib.Path('/tmp')/name
+         seen[name]=hashlib.sha256(path.read_bytes()).hexdigest()
+        assert seen==expected
+        assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()=='e290e8c945cc51d744445ebffb3cdf6c483eff17'
+        assert subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()==['app/src/androidTest/java/com/music/bitchord/StatusStripEmulatorTest.kt']
+        assert subprocess.check_output(['git','write-tree'],text=True).strip()=='bcb909208d5345fe6f6c0e8f7829b1c87821b779'
+        pathlib.Path('remaining10-evidence/source-inputs-after.json').write_text(json.dumps(dict(files=seen,run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+        VERIFY
+    - name: Evidence only, never APKs
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: spool-foryou-profile-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+        path: remaining10-evidence/**
+        if-no-files-found: warn
+        retention-days: 14
