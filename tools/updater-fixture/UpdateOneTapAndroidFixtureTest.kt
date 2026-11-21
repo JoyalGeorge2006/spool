@@ -109,9 +109,37 @@ class UpdateOneTapAndroidFixtureTest {
   assertEquals(-1,UpdateDownloads.snapshot()!!.session)
   return UpdateDownloads.snapshot()!!
  }
+ private fun recordPermissionWindowEvidence(name: String) {
+  // Evidence only. Never let screenshot/tree collection replace the assertion.
+  runCatching { shot(name) }.onFailure { println("FIXTURE-EVIDENCE-ERROR screenshot ${it.javaClass.name}") }
+  runCatching {
+   val state=nodes().joinToString("\n") { n ->
+    "package=${n.packageName} id=${n.viewIdResourceName} text=${n.text} visible=${n.isVisibleToUser} enabled=${n.isEnabled} clickable=${n.isClickable} bounds=${bounds(n)}"
+   }
+   File(context.getExternalFilesDir(null),"$name.txt").writeText(state)
+   println("FIXTURE-WINDOW-EVIDENCE $name root=${ui.rootInActiveWindow?.packageName}")
+  }.onFailure { println("FIXTURE-EVIDENCE-ERROR window ${it.javaClass.name}") }
+ }
  private suspend fun awaitPermission() {
-  until("real Settings launch recorded") { UpdateDownloads.snapshot()?.let { it.phase=="permission" && it.permissionHandoffLaunched }==true }
-  assertFalse(context.packageManager.canRequestPackageInstalls());assertSettings();shot("updater-real-settings")
+  try {
+   // The durable handoff flag precedes asynchronous system activity/window
+   // rendering. Share one original45s deadline across both readiness checks.
+   withTimeout(45000) {
+    until("real Settings launch recorded") { UpdateDownloads.snapshot()?.let { it.phase=="permission" && it.permissionHandoffLaunched }==true }
+    until("exact Settings permission window ready") {
+     val tree=nodes()
+     val exactLabel=tree.filter { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.text?.toString()==fixtureLabel }
+     val switches=tree.filter { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.isEnabled && it.isClickable && !bounds(it).isEmpty &&
+      (it.viewIdResourceName=="android:id/switch_widget" || it.viewIdResourceName=="com.android.settings:id/switch_widget") }
+     ui.rootInActiveWindow?.packageName?.toString()=="com.android.settings" && exactLabel.size==1 && switches.size==1 &&
+      tree.any { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.text?.toString()?.equals("Allow from this source",true)==true }
+    }
+   }
+   assertFalse(context.packageManager.canRequestPackageInstalls());assertSettings();shot("updater-real-settings")
+  } catch(error: Throwable) {
+   recordPermissionWindowEvidence("updater-permission-window-failure")
+   throw error
+  }
  }
  private suspend fun grantAndReturn() {
   assertSettings();exactClick("com.android.settings",{ it.viewIdResourceName=="android:id/switch_widget" || it.viewIdResourceName=="com.android.settings:id/switch_widget" },unchecked=true)
