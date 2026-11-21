@@ -49,7 +49,10 @@ class StatusBarStripTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun injectStatusBarInset(px: Int) {
-        val content: View = compose.activity.findViewById(android.R.id.content)
+        // Dispatch through the decor view, the same entry point the OS uses:
+        // the strip listens there for the raw platform inset (page chrome
+        // consumes Compose-level insets before the strip would see them).
+        val content: View = compose.activity.window.decorView
         ViewCompat.dispatchApplyWindowInsets(
             content,
             WindowInsetsCompat.Builder()
