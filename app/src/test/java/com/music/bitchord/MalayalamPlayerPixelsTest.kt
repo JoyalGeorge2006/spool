@@ -67,9 +67,9 @@ class MalayalamPlayerPixelsTest {
                 compose.onNode(hasText(label) and visible and SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)).assertIsSelected()
                 compose.onNodeWithTag("player-section-header").assertIsDisplayed()
                 when(index) {
-                    0 -> compose.onNodeWithText("Track 1").assertIsDisplayed()
-                    1 -> compose.onNodeWithText("First line of the song").assertIsDisplayed()
-                    2 -> compose.onNodeWithText("Track 5").assertIsDisplayed()
+                    0 -> compose.onNode(hasText("Track 1") and visible).assertIsDisplayed()
+                    1 -> compose.onNode(hasText("First line of the song") and visible).assertIsDisplayed()
+                    2 -> compose.onNode(hasText("Track 5") and visible).assertIsDisplayed()
                 }
                 capture(listOf("queue", "lyrics", "related")[index])
             }
