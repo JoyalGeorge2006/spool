@@ -62,7 +62,11 @@ class LowerLayoutScreenshotTest {
                 compose.mainClock.advanceTimeBy(800L)
                 compose.waitForIdle()
             }
-            val lazy = compose.onAllNodes(hasScrollToNodeAction())
+            val viewport = compose.onRoot().fetchSemanticsNode().boundsInRoot
+            val lazy = compose.onAllNodes(hasScrollToNodeAction() and SemanticsMatcher("visible page list") {
+                val b = it.boundsInRoot
+                b.width > 0f && b.height > 0f && viewport.contains(b.center)
+            })
             if (lazy.fetchSemanticsNodes().isNotEmpty()) {
                 lazy.onLast().performScrollToNode(hasText(target, substring = true))
                 repeat(2) { lazy.onLast().performTouchInput { swipeUp() }; compose.waitForIdle() }
@@ -72,7 +76,7 @@ class LowerLayoutScreenshotTest {
             }
             compose.waitForIdle()
             compose.onAllNodesWithText(target, substring = true, useUnmergedTree = true).onLast().assertIsDisplayed()
-            compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/lower_${page}_${if (dark) "dark" else "light"}.png")
+            compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/lower_${page}_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setThemeMode(oldTheme)
             AppSettings.lastPlayerScreen.value = oldPane
