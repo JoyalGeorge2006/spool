@@ -1,5 +1,8 @@
 package com.music.bitchord.data.stats
 
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.CancellationException
 import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.Taste
 import com.music.bitchord.data.model.LikeStatus
@@ -46,11 +49,32 @@ object TasteProfile {
      */
     private const val ARTIST_DISLIKE_MIN = 2
 
-    suspend fun current(): Taste.Snapshot {
-        val month = runCatching { ListeningStats.summary(ReplayPeriod.THIS_MONTH) }.getOrNull()
-        val allTime = runCatching { ListeningStats.summary(ReplayPeriod.ALL_TIME) }.getOrNull()
-        if (month == null && allTime == null) return Taste.Snapshot()
-        val skips = runCatching { ListeningStats.skips(ReplayPeriod.ALL_TIME) }.getOrDefault(emptyMap())
+    suspend fun current(): Taste.Snapshot = current(
+        readSummary = { ListeningStats.summary(it) },
+        readSkips = { ListeningStats.skips(ReplayPeriod.ALL_TIME) },
+    )
+
+    /** Injectable source reads let regressions suspend at the real rebuild boundary. */
+    internal suspend fun current(
+        readSummary: suspend (ReplayPeriod) -> ReplaySummary?,
+        readSkips: suspend () -> Map<String, Int>,
+    ): Taste.Snapshot {
+        val generation = com.music.bitchord.data.innertube.Innertube.listenerGeneration
+        suspend fun reconcile(snapshot: Taste.Snapshot): Taste.Snapshot {
+            currentCoroutineContext().ensureActive()
+            return com.music.bitchord.data.TopPicks.reconcileTaste(snapshot, generation)
+                ?: throw CancellationException("Listener changed during taste rebuild")
+        }
+        suspend fun <T> sourceOrNull(read: suspend () -> T): T? = try { read() }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
+        val month = sourceOrNull { readSummary(ReplayPeriod.THIS_MONTH) }
+        val allTime = sourceOrNull { readSummary(ReplayPeriod.ALL_TIME) }
+        // A missing chart is not evidence that the listener undid a dislike.
+        // The bound cache supplies known exact negatives; live ratings win.
+        val skips = sourceOrNull { readSkips() }.orEmpty()
+        val dislikedIds = reconcile(Taste.Snapshot()).dislikedIds
+        if (month == null && allTime == null) return reconcile(Taste.Snapshot(dislikedIds = dislikedIds))
         val ratings = LikeState.overrides.value
 
         // Artists: the all-time chart weighted once, this month's treble, so a
@@ -90,7 +114,6 @@ object TasteProfile {
             }
 
         val likedIds = ratings.filterValues { it == LikeStatus.LIKE }.keys.take(MAX_LIKED)
-        val dislikedIds = ratings.filterValues { it == LikeStatus.DISLIKE }.keys.toList()
 
         // Demotions, and only demotions: an artist earns one from a pattern —
         // two or more thumbed-down tracks, or skips outnumbering plays two to
@@ -117,7 +140,7 @@ object TasteProfile {
             if (skipCount >= HEAVY_SKIP_MIN && plays * 2 <= skipCount) demoted += artist
         }
 
-        return Taste.Snapshot(
+        return reconcile(Taste.Snapshot(
             artists = artists,
             languages = Taste.deriveLanguages(genres),
             genres = genres,
@@ -129,6 +152,6 @@ object TasteProfile {
                 .take(MAX_SKIPPED)
                 .associate { it.toPair() },
             demotedArtists = demoted.toList(),
-        )
+        ))
     }
 }
