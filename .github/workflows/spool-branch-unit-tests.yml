@@ -17,6 +17,11 @@ on:
         description: Base ref for the comparison run
         required: true
         default: v2.1.1
+      include_base:
+        description: Also run the unresolved v2.1.1 comparison lane explicitly
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 jobs:
@@ -26,7 +31,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [branch, base]
+        # Pushes and normal dispatch verify the full branch suite only.
+        # The baseline remains unresolved, not a passing/waived comparison.
+        target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.include_base == true && '["branch","base"]' || '["branch"]') }}
     steps:
     - uses: actions/checkout@v4
       with:
