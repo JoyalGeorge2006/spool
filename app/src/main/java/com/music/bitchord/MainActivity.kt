@@ -282,6 +282,7 @@ import com.music.bitchord.ui.components.GlassNavBar
 import com.music.bitchord.ui.components.floatingtabbar.rememberFloatingTabBarScrollConnection
 import com.music.bitchord.ui.components.FloatingHistoryProfileCapsule
 import com.music.bitchord.ui.components.FrostedTopBar
+import com.music.bitchord.ui.components.SettingsRouteChrome
 import com.music.bitchord.ui.components.hiddenBehindSheet
 import com.music.bitchord.ui.components.InlineFrostSheet
 import com.music.bitchord.ui.components.HeaderActionButton
@@ -3856,9 +3857,15 @@ private fun BitChordApp(
                         .graphicsLayer { alpha = topFadeAlpha },
                 )
 
+                // Settings routes run headerless with no floating controls at
+                // all — the approved preview carried none, and the profile is
+                // already reachable from the Settings account row. See
+                // [SettingsRouteChrome], which the render tests compose too.
+                if (settingsChromeException) {
+                    SettingsRouteChrome()
+                } else
                 FrostedTopBar(
-                    // Every page floats its controls now: Settings routes take this
-                    // branch too, with no Back circle (see onBack below).
+                    // Every non-Settings page floats its controls.
                     controlsOnly = true,
                     rootTitle = if (compactRootHeader) tabs[selectedTab].let {
                         if (it.label == "Play") stringResource(R.string.listen_now) else it.label

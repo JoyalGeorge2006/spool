@@ -165,6 +165,31 @@ fun topBarContentPadding(): Dp = topBarHeight() + TopBarContentGap
  * Apple Music behaviour: the big in-list header owns the title at rest;
  * once the list scrolls, the small centered title fades in.
  */
+
+/**
+ * The chrome over a Settings-family route: headerless, as approved 21 Nov -
+ * no pinned bar, no Back circle, no floating account or download controls;
+ * the Android system Back gesture does the return, download progress stays
+ * in its bottom bar and the Downloads page. BitChordApp mounts this for
+ * Settings routes and the render tests compose the same function, so a test
+ * cannot pass on parameters the app does not ship.
+ */
+@Composable
+fun SettingsRouteChrome(
+    statusBarInsets: WindowInsets = stableStatusBarInsets(),
+) {
+    FrostedTopBar(
+        title = "",
+        controlsOnly = true,
+        statusBarInsets = statusBarInsets,
+        scrolled = { false },
+        transparentBackdrop = true,
+        artworkPageChrome = true,
+        onBack = null,
+        actions = {},
+    )
+}
+
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun FrostedTopBar(

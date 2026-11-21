@@ -20,9 +20,7 @@ import com.music.bitchord.auth.AuthStore
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.PaletteMode
 import com.music.bitchord.data.settings.ThemeMode
-import com.music.bitchord.ui.components.FrostedTopBar
-import com.music.bitchord.ui.components.TopBarAccountButton
-import com.music.bitchord.ui.components.TopBarDownloadButton
+import com.music.bitchord.ui.components.SettingsRouteChrome
 import com.music.bitchord.ui.screens.SettingsCategory
 import com.music.bitchord.ui.theme.BitChordTheme
 import org.junit.Assert.*
@@ -34,13 +32,13 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The headerless Settings chrome approved 21 Nov: no pinned bar and no Back
- * circle on Settings or any of its subpages, titles scrolling away with the
- * page, live controls (download batch, account) still floating as circles.
- * Composes the page with the same FrostedTopBar parameters MainActivity now
- * passes for a Settings route — controlsOnly, onBack null, no settings pane —
- * so the pixels are of the real route composition, not a paraphrase.
- * Returning is the Android system Back gesture, which never renders a control.
+ * The headerless Settings chrome approved 21 Nov: no pinned bar, no Back
+ * circle and no floating account or download controls on Settings or any of
+ * its subpages; titles scroll away with the page. Composes the page with the
+ * exact production [SettingsRouteChrome] BitChordApp mounts for Settings
+ * routes, so the pixels and assertions are of what ships — returning is the
+ * Android system Back gesture, which never renders a control (the navigator's
+ * BackHandler code path is unchanged by this work; not runtime-verified here).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -63,34 +61,24 @@ class SettingsHeaderlessScreenshotTest {
                     BitChordTheme(darkTheme = dark, palette = AppSettings.paletteMode.value) {
                         Box(Modifier.width(390.dp).height(800.dp).background(MaterialTheme.colorScheme.background)) {
                             fixture.SettingsShot(section)
-                            // The exact chrome a Settings route gets in BitChordApp.
-                            FrostedTopBar(
-                                title = "Settings",
-                                controlsOnly = true,
-                                statusBarInsets = WindowInsets(top = 24.dp),
-                                scrolled = { false },
-                                transparentBackdrop = true,
-                                artworkPageChrome = true,
-                                onBack = null,
-                                actions = {
-                                    TopBarDownloadButton(onClick = {})
-                                    TopBarAccountButton(null) {}
-                                },
-                                modifier = Modifier.align(Alignment.TopCenter),
-                            )
+                            // The same production composable MainActivity mounts
+                            // over a Settings route — no parameter copy to drift.
+                            Box(Modifier.align(Alignment.TopCenter)) { SettingsRouteChrome() }
                         }
                     }
                 }
             }
             compose.waitForIdle()
-            // No Back affordance anywhere on a Settings route.
+            // No Back affordance and no floating action controls at all.
             assertEquals(0, compose.onAllNodesWithContentDescription(backLabel).fetchSemanticsNodes().size)
+            assertEquals(0, compose.onAllNodesWithTag("header-action-target").fetchSemanticsNodes().size)
             compose.onRoot().captureRoboImage("build/outputs/roborazzi/${tag}_top.png")
             // The title rides away with the content instead of sitting in a bar.
             compose.onAllNodes(hasScrollAction()).onFirst()
                 .performTouchInput { swipeUp(centerY + height * 0.3f, centerY - height * 0.3f) }
             compose.waitForIdle()
             assertEquals(0, compose.onAllNodesWithContentDescription(backLabel).fetchSemanticsNodes().size)
+            assertEquals(0, compose.onAllNodesWithTag("header-action-target").fetchSemanticsNodes().size)
             compose.onRoot().captureRoboImage("build/outputs/roborazzi/${tag}_scrolled.png")
         } finally {
             AppSettings.setPaletteMode(oldPalette)
