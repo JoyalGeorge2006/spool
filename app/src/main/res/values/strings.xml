@@ -983,6 +983,7 @@
     <string name="personal">Personal</string>
     <string name="brand_account">Brand account</string>
     <string name="add_account">Add account</string>
+    <string name="manage_account">Manage account</string>
     <string name="manage_accounts">Manage accounts</string>
     <string name="current_account">Current account</string>
     <string name="current_profile">Current profile</string>
