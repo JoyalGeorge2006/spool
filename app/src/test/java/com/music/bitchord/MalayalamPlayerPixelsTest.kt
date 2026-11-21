@@ -73,7 +73,7 @@ class MalayalamPlayerPixelsTest {
                         compose.onNode(hasText("Track 5") and visible).assertIsDisplayed()
                         compose.onNodeWithText("സമാനമായ സംഗീതം").assertIsDisplayed()
                         compose.onNodeWithText("Track 1 എന്ന ഗാനത്തെ അടിസ്ഥാനമാക്കി").assertIsDisplayed()
-                        compose.onNodeWithText("സ്വയമേവ പ്ലേ ചെയ്യുക").assertIsDisplayed()
+                        compose.onNode(hasText("AutoPlay") and visible).assertIsDisplayed()
                         compose.onNodeWithText("നിങ്ങളുടെ ക്യൂ അവസാനിച്ചാലും സമാനമായ സംഗീതം പ്ലേ ചെയ്യുന്നത് തുടരുക.").assertIsDisplayed()
                         compose.onNode(hasText("Related music") and visible).assertDoesNotExist()
                     }
