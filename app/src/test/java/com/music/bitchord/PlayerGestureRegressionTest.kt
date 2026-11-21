@@ -112,7 +112,7 @@ class PlayerGestureRegressionTest {
                 repeat(10) { compose.mainClock.advanceTimeBy(100L); settle() }
                 compose.mainClock.autoAdvance = !playing
                 compose.onNode(visibleList).performScrollToNode(hasText("Track 6"))
-                compose.onNodeWithText("Track 6").assertIsDisplayed()
+                visibleText("Track 6").assertIsDisplayed()
             } else {
                 val title = compose.onNodeWithText("Midnight Rain", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
                 val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
