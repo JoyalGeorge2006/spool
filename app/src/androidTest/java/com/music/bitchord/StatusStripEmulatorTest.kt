@@ -469,6 +469,7 @@ class StatusStripEmulatorTest {
      * actual scroll-axis value when the page has remaining vertical content.
      * A short/empty page is logged explicitly, never called a scroll pass. */
     private fun inspectPage(name: String, title: String) {
+        try {
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
         }
@@ -509,6 +510,19 @@ class StatusStripEmulatorTest {
             println("PAGE-NO-VERTICAL-OVERFLOW $name (no scroll claimed)")
         }
         println("PAGE-VERIFIED $name")
+        } catch (failure: Throwable) {
+            fullScreenshot("failure-page-$name")
+            val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow
+            fun windowTree(node: android.view.accessibility.AccessibilityNodeInfo?, depth: Int = 0): String {
+                if (node == null || depth > 30) return ""
+                return " ".repeat(depth) + "${node.packageName} ${node.className} id=${node.viewIdResourceName} text=${node.text} description=${node.contentDescription}\n" +
+                    (0 until node.childCount).joinToString("") { windowTree(node.getChild(it), depth + 1) }
+            }
+            println("FAILURE-WINDOW $name\n" + windowTree(root))
+            println("FAILURE-COMPOSE $name\n" + runCatching { compose.onRoot(useUnmergedTree = true).printToString() }.getOrElse { it.toString() })
+            throw failure
+        }
+
     }
 
     private fun verifySettingsCategory(category: com.music.bitchord.ui.screens.SettingsCategory) {
