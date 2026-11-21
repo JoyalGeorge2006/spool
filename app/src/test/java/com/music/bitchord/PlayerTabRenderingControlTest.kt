@@ -41,7 +41,9 @@ class PlayerTabRenderingControlTest {
                         .background(androidx.compose.material3.MaterialTheme.colorScheme.background)
                         .testTag("isolated-player-tabs")) {
                         Spacer(Modifier.height(64.dp))
-                        PlayerPaneTabRow(selected=selected,onSelect={ selected=it })
+                        CompositionLocalProvider(com.music.bitchord.ui.player.LocalPlayerFlat provides true) {
+                            PlayerPaneTabRow(selected=selected,onSelect={ selected=it })
+                        }
                     }
                 }
             }
