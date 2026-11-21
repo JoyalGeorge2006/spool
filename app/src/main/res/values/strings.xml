@@ -377,7 +377,7 @@
     <string name="palette_astryx_subtitle">The original spool look</string>
     <string name="palette_material_you">Material You</string>
     <string name="palette_material_you_subtitle">Wallpaper colours on Android 12+; fixed palette on older phones</string>
-    <string name="theme_style">Theme style</string>
+    <string name="theme_style">Theme Style</string>
     <string name="theme_style_subtitle">How Material You builds its colours from the seed</string>
     <string name="theme_style_tonal_spot">Tonal Spot</string>
     <string name="theme_style_expressive">Expressive</string>
@@ -1459,7 +1459,7 @@
     <string name="update_size_patch">%1$s patch. Full APK is reconstructed on this phone.</string>
     <string name="update_size_full">%1$s full APK</string>
     <string name="update_download_full_instead">Download full update instead</string>
-    <string name="update_continue_using">Continue using spool</string>
+    <string name="update_continue_using">Continue using Spool</string>
     <string name="update_continue_using_subtitle">Leaves this page without stopping the update</string>
     <string name="update_stop">Stop update</string>
     <string name="update_whats_new">What\'s new</string>
