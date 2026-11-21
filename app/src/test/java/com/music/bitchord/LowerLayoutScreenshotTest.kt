@@ -77,7 +77,7 @@ class LowerLayoutScreenshotTest {
                 compose.onNode(hasScrollAction() and vertical and onScreen).performTouchInput { swipeUp() }
             }
             compose.waitForIdle()
-            compose.onNode(hasText(target, substring = true) and onScreen, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNode(hasText(target, substring = true) and onScreen).assertIsDisplayed()
             compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/lower_${page}_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setThemeMode(oldTheme)
