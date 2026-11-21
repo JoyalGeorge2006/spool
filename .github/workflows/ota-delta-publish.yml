@@ -1,29 +1,37 @@
 name: OTA delta patch publisher
 
-# Rebuilds the SPDELTA-1 patch assets and spool-ota-v1.json catalog for an
-# ALREADY PUBLISHED release, verifies every patch by reconstructing the exact
-# signed target APK through the app's real Java decoder (SpoolDelta.apply),
-# uploads only missing assets, and refreshes the catalog and SHA256SUMS.txt.
-# Idempotent: assets that already exist are re-verified from their published
-# bytes, never replaced. The release's APKs, source archive and tag are
-# never touched. Free GitHub-hosted runner only (public repo).
+# Attaches SPDELTA-1 patch assets and the spool-ota-v1.json catalog to a
+# release, verifying every patch by reconstructing the exact signed target
+# APK through the app's real Java decoder (SpoolDelta.apply). The target
+# release, its predecessor bases, every size and every hash are DISCOVERED
+# from live release metadata and each APK's own manifest at run time; there
+# are no per-release hardcoded pins. Uploads only missing assets; assets
+# that already exist are re-verified from their published bytes, never
+# replaced. The release's APKs, source archive and tag are never touched.
+# Free GitHub-hosted runner only (public repo).
 #
-# To publish patches for a NEW release: update BASES below with the previous
-# releases' APKs (asset name on its own release, versionCode, size, sha256)
-# and dispatch with the new release_tag (it also runs automatically when a
-# release is published; bases for the new predecessor must be added first).
-# The target is always the release's preferred spool.apk, matching the app's
-# apkAssetUrl selection.
+# Triggers: manual dispatch (optional tag), release publication (fires when
+# a human publishes; token-published releases do NOT fire it - GitHub docs),
+# a daily backstop that heals the latest release if its patches are missing,
+# and workflow_call so a publisher pipeline can invoke it explicitly.
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Existing published release tag to attach delta patches to'
-        required: true
-        default: 'v2.1.1'
+        description: 'Release tag to attach delta patches to (default: latest release)'
+        required: false
+        default: ''
+  workflow_call:
+    inputs:
+      release_tag:
+        required: false
+        type: string
+        default: ''
   release:
     types: [published]
+  schedule:
+    - cron: '47 19 * * *'
 
 permissions:
   contents: write
@@ -36,12 +44,133 @@ jobs:
   publish-deltas:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch OTA tooling from the exact release source tag
+      - name: Discover target release and predecessor bases from live metadata
         run: |
           set -euo pipefail
           mkdir -p ota && cd ota
-          curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag || github.event.release.tag_name }}/tools/ota/make_delta.py" -o make_delta.py
-          curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag || github.event.release.tag_name }}/app/src/main/java/com/music/bitchord/data/SpoolDelta.java" -o SpoolDelta.java
+          cat > discover.py <<'DISCOVER_EOF'
+          """Discover the target release and its predecessor patch bases from live
+          release metadata. No hardcoded per-release pins: everything comes from the
+          GitHub Releases API plus each APK's own manifest/native-code (via aapt).
+
+          Writes, in the current directory:
+            bases.tsv   name<TAB>base release tag<TAB>asset name<TAB>versionCode<TAB>size<TAB>sha256
+            target.env  TAG=, TARGET_ASSET=, TCODE=, TSIZE=, THASH=
+          Prints the plan. Fails (no writes) on any inconsistency.
+          """
+          import json, os, re, subprocess, sys
+
+          REPO = os.environ['REPO']
+          TAG_ARG = sys.argv[1] if len(sys.argv) > 1 else ''
+          MIN_DECODER_CODE = 55   # lowest versionCode verified to ship SpoolDelta (v1.9.17)
+          MAX_BASE_RELEASES = 3   # how many immediate predecessor releases to support
+
+          def api(path):
+              r = subprocess.run(['gh', 'api', path], capture_output=True, text=True)
+              if r.returncode != 0:
+                  sys.exit('gh api failed: ' + path + '\n' + r.stderr[:400])
+              return json.loads(r.stdout)
+
+          def aapt_path():
+              home = os.environ.get('ANDROID_HOME', '')
+              import glob
+              cands = sorted(glob.glob(home + '/build-tools/*/aapt'))
+              if not cands:
+                  sys.exit('aapt not found under ANDROID_HOME=' + home)
+              return cands[-1]
+
+          AAPT = aapt_path() if os.environ.get('DISCOVER_TEST') != '1' else None
+
+          def badging(apk):
+              out = subprocess.run([AAPT, 'dump', 'badging', apk],
+                                   capture_output=True, text=True).stdout
+              m = re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']*)'", out)
+              nc = re.search(r'native-code: (.*)', out)
+              abis = set(re.findall(r"'([^']+)'", nc.group(1))) if nc else set()
+              return m.group(1), int(m.group(2)), m.group(3), abis
+
+          def download(tag, asset, out):
+              subprocess.run(['gh', 'release', 'download', tag, '--repo', REPO,
+                              '--pattern', asset, '--output', out, '--clobber'],
+                             check=True, capture_output=True, text=True)
+
+          def plan(rels, tag_arg, inspect):
+              """Pure selection logic (fixture-testable). inspect(release, asset)->(pkg,code,ver,abis)"""
+              rels = [r for r in rels if not r['draft']]
+              if not rels:
+                  sys.exit('no non-draft releases')
+              tag = tag_arg or rels[0]['tag_name']
+              ti = next((i for i, r in enumerate(rels) if r['tag_name'] == tag), None)
+              if ti is None:
+                  sys.exit('target tag not found: ' + tag)
+              target = rels[ti]
+              tapks = [a for a in target['assets'] if a['name'].endswith('.apk')]
+              if not tapks:
+                  sys.exit('target release has no APK asset')
+              pref = next((a for a in tapks if a['name'] == 'spool.apk'),
+                          max(tapks, key=lambda a: a['size']))
+              tpkg, tcode, tver, _ = inspect(target, pref)
+              if tpkg != 'app.spool.music':
+                  sys.exit('target package mismatch: ' + tpkg)
+              rows, emitted = [], set()
+              cands = {}  # code -> {kind -> (name, tag, asset, code, size, sha)}
+              for r in rels[ti + 1: ti + 9]:
+                  apks = sorted((a for a in r['assets'] if a['name'].endswith('.apk')),
+                                key=lambda a: -a['size'])
+                  for a in apks[:2]:
+                      pkg, code, ver, abis = inspect(r, a)
+                      if pkg != 'app.spool.music' or code < MIN_DECODER_CODE or code >= tcode:
+                          continue
+                      kind = 'arm64' if abis == {'arm64-v8a'} else ('universal' if len(abis) > 1 else None)
+                      if kind is None:
+                          continue
+                      slot = cands.setdefault(code, {})
+                      if kind in slot:
+                          continue
+                      suffix = '-arm64' if kind == 'arm64' else ''
+                      name = 'spool-%d%s-to-%d.spdelta' % (code, suffix, tcode)
+                      slot[kind] = (name, r['tag_name'], a['name'], str(code),
+                                    str(a['size']), a['digest'].replace('sha256:', ''))
+              for code in sorted(cands, reverse=True)[:MAX_BASE_RELEASES]:
+                  for kind in ('universal', 'arm64'):
+                      if kind in cands[code]:
+                          rows.append(cands[code][kind])
+              if not rows:
+                  sys.exit('no usable predecessor bases found')
+              return tag, target, pref, tcode, tver, rows
+
+          def main():
+              rels = api('repos/%s/releases?per_page=30' % REPO)
+              def inspect(r, a):
+                  fn = 'disc-%s.apk' % a['id']
+                  download(r['tag_name'], a['name'], fn)
+                  return badging(fn)
+              tag, target, pref, tcode, tver, rows = plan(rels, TAG_ARG, inspect)
+              with open('bases.tsv', 'w') as f:
+                  for row in rows:
+                      f.write('\t'.join(row) + '\n')
+              with open('target.env', 'w') as f:
+                  f.write('TAG=%s\nTARGET_ASSET=%s\nTCODE=%s\nTSIZE=%s\nTHASH=%s\n' % (
+                      tag, pref['name'], tcode, pref['size'],
+                      pref['digest'].replace('sha256:', '')))
+              print('target %s (code %d, asset %s)' % (tag, tcode, pref['name']))
+              for row in rows:
+                  print('base %s from %s (%s bytes)' % (row[0], row[1], row[4]))
+
+          if __name__ == '__main__':
+              main()
+          DISCOVER_EOF
+          python3 discover.py "${{ inputs.release_tag || github.event.release.tag_name || '' }}"
+          cat bases.tsv
+          set -a; . ./target.env; set +a
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+      - name: Fetch OTA tooling from the exact release source tag
+        run: |
+          set -euo pipefail
+          cd ota
+          curl -fsSL "https://raw.githubusercontent.com/$REPO/$TAG/tools/ota/make_delta.py" -o make_delta.py
+          curl -fsSL "https://raw.githubusercontent.com/$REPO/$TAG/app/src/main/java/com/music/bitchord/data/SpoolDelta.java" -o SpoolDelta.java
           python3 -c "import ast; ast.parse(open('make_delta.py').read())"
           grep -q 'MAGIC' SpoolDelta.java
 
@@ -67,35 +196,24 @@ jobs:
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
-          # name|release tag holding the base asset|asset name on that release|versionCode|size|sha256
-          cat > bases.tsv <<'BASES_EOF'
-          spool-55-to-58.spdelta	v1.9.17	spool.apk	55	153714152	79ac9cd96a2a4ca10475b37b28ba42c3121552b80e04103b5734aaceb2778aa7
-          spool-56-to-58.spdelta	v2.0.0	spool-v2.0.0.apk	56	153604765	e0170ce9d39601393cb4780760e988ff16b1c2bcba8dc36bdf6bf7b4080b5599
-          spool-56-arm64-to-58.spdelta	v2.0.0	spool.apk	56	84078313	7920b198e13a6c6c990eab25bbd6810991fa7826a34109bc609aae2d951cd04e
-          spool-57-to-58.spdelta	v2.1.0-theme-preview	Spool-2.1.0-universal.apk	57	153656069	4a5993dc5cd3947c1f11ecc4bf1da1796e2db1c98ea539be924f0399b21da933
-          spool-57-arm64-to-58.spdelta	v2.1.0-theme-preview	Spool-2.1.0-arm64-v8a.apk	57	84129617	181c9e1788bf6c26197700bc61d430dc9e30d29c31fb45163e31c0f4d7161e10
-          BASES_EOF
-          sed -i 's/^          //' bases.tsv
-          gh release download "$TAG" --repo "$REPO" --pattern 'spool.apk' --output target.apk --clobber
+          set -a; . ./target.env; set +a
+          gh release download "$TAG" --repo "$REPO" --pattern "$TARGET_ASSET" --output target.apk --clobber
+          [ "$(sha256sum target.apk | cut -d' ' -f1)" = "$THASH" ] || { echo "TARGET HASH MISMATCH"; exit 1; }
+          [ "$(stat -c%s target.apk)" = "$TSIZE" ] || { echo "TARGET SIZE MISMATCH"; exit 1; }
+          echo "target.apk matches discovered metadata: $THASH ($TSIZE bytes, code $TCODE)"
           while IFS=$'\t' read -r name btag asset code size hash; do
             gh release download "$btag" --repo "$REPO" --pattern "$asset" --output "base-$code-$name.apk" --clobber
             actual=$(sha256sum "base-$code-$name.apk" | cut -d' ' -f1)
             [ "$actual" = "$hash" ] || { echo "BASE HASH MISMATCH $name: $actual != $hash"; exit 1; }
             [ "$(stat -c%s "base-$code-$name.apk")" = "$size" ] || { echo "BASE SIZE MISMATCH $name"; exit 1; }
           done < bases.tsv
-          echo "All base APKs match their pinned release digests."
+          echo "All base APKs match their discovered release digests."
 
       - name: Generate or adopt patches, verify reconstruction with the shipped decoder
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
-          thash=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .digest' | sed 's/sha256://')
-          tsize=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .size')
-          actual=$(sha256sum target.apk | cut -d' ' -f1)
-          [ "$actual" = "$thash" ] && [ "$(stat -c%s target.apk)" = "$tsize" ] || { echo "TARGET MISMATCH"; exit 1; }
-          echo "target.apk matches release metadata: $thash ($tsize bytes)"
+          set -a; . ./target.env; set +a
           # Remove mis-named leftovers from earlier broken runs of this workflow (never the release's own assets)
           for a in $(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name | startswith("gen-")) | .id'); do
             echo "Removing mis-named leftover asset $a"
@@ -118,7 +236,7 @@ jobs:
             pid=$(echo "$meta" | cut -f1); psize=$(echo "$meta" | cut -f2); phash=$(echo "$meta" | cut -f3)
             [ "$(sha256sum "use-$name" | cut -d' ' -f1)" = "$phash" ] || { echo "PATCH HASH MISMATCH $name"; exit 1; }
             rm -f out.apk
-            java -Xmx256m -cp classes DeltaApply "$base" "use-$name" out.apk "$size" "$tsize" "$hash" "$thash"
+            java -Xmx256m -cp classes DeltaApply "$base" "use-$name" out.apk "$size" "$TSIZE" "$hash" "$THASH"
             cmp out.apk target.apk
             echo "VERIFIED $name: published bytes reconstruct the signed target APK exactly (asset $pid, $psize bytes)"
             printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name" "$code" "$size" "$hash" "$psize" "$phash" >> used.tsv
@@ -129,22 +247,15 @@ jobs:
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
-          thash=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .digest' | sed 's/sha256://')
-          tsize=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .size')
-          # Read the target versionCode straight from the published APK manifest
-          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt 2>/dev/null | sort -V | tail -1)
-          [ -n "$AAPT" ] || { echo "aapt not found on runner"; exit 1; }
-          tcode=$("$AAPT" dump badging target.apk | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
-          [ -n "$tcode" ] || { echo "Could not read versionCode from target.apk"; exit 1; }
-          echo "target versionCode from APK manifest: $tcode"
-          python3 - "$thash" "$tsize" "$tcode" "$TAG" <<'PY_EOF'
-          import json, subprocess, sys
+          set -a; . ./target.env; set +a
+          python3 - "$THASH" "$TSIZE" "$TCODE" "$TAG" <<'PY_EOF'
+          import json, sys
           thash, tsize, tcode, tag = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
           version = tag.lstrip('v')
           patches = []
           ids = [l.strip() for l in open('ids.txt') if l.strip()]
           rows = [l.rstrip('\n').split('\t') for l in open('used.tsv') if l.strip()]
+          assert len(rows) == len(ids), 'row/id count mismatch'
           for (name, code, bsize, bhash, psize, phash), pid in zip(rows, ids):
               patches.append({
                   'format': 'spdelta-1', 'layout': 'standalone',
@@ -159,43 +270,62 @@ jobs:
           json.dump({'schema': 1, 'patches': patches}, open('spool-ota-v1.json', 'w'), indent=2)
           print(json.dumps({'entries': len(patches)}))
           PY_EOF
-          old=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool-ota-v1.json") | .id' || true)
-          [ -z "$old" ] || gh api -X DELETE "repos/$REPO/releases/assets/$old"
-          gh release upload "$TAG" spool-ota-v1.json --repo "$REPO"
+          newh=$(sha256sum spool-ota-v1.json | cut -d' ' -f1)
+          live=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool-ota-v1.json") | [.id, (.digest | sub("sha256:";""))] | @tsv' || true)
+          if [ -n "$live" ] && [ "$(echo "$live" | cut -f2)" = "$newh" ]; then
+            echo "catalog already current (sha256 $newh) - leaving published asset untouched"
+          else
+            [ -z "$live" ] || gh api -X DELETE "repos/$REPO/releases/assets/$(echo "$live" | cut -f1)"
+            gh release upload "$TAG" spool-ota-v1.json --repo "$REPO"
+          fi
 
       - name: Refresh SHA256SUMS.txt (original entries preserved)
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
-          gh release download "$TAG" --repo "$REPO" --pattern 'SHA256SUMS.txt' --output sums.txt --clobber
+          gh release download "$TAG" --repo "$REPO" --pattern 'SHA256SUMS.txt' --output sums.txt --clobber || touch sums.txt
           grep -v -e '\.spdelta$' -e 'spool-ota-v1\.json$' sums.txt > sums.new || true
           while IFS=$'\t' read -r name code size hash psize phash; do
             printf '%s  %s\n' "$phash" "$name" >> sums.new
           done < used.tsv
           chash=$(sha256sum spool-ota-v1.json | cut -d' ' -f1)
           printf '%s  %s\n' "$chash" 'spool-ota-v1.json' >> sums.new
-          old=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="SHA256SUMS.txt") | .id' || true)
-          [ -z "$old" ] || gh api -X DELETE "repos/$REPO/releases/assets/$old"
-          cp sums.new SHA256SUMS.txt
-          gh release upload "$TAG" SHA256SUMS.txt --repo "$REPO"
+          newh=$(sha256sum sums.new | cut -d' ' -f1)
+          live=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="SHA256SUMS.txt") | [.id, (.digest | sub("sha256:";""))] | @tsv' || true)
+          if [ -n "$live" ] && [ "$(echo "$live" | cut -f2)" = "$newh" ]; then
+            echo "SHA256SUMS.txt already current - leaving published asset untouched"
+          else
+            [ -z "$live" ] || gh api -X DELETE "repos/$REPO/releases/assets/$(echo "$live" | cut -f1)"
+            cp sums.new SHA256SUMS.txt
+            gh release upload "$TAG" SHA256SUMS.txt --repo "$REPO"
+          fi
           cat sums.new
 
       - name: Final public verification from download URLs
         run: |
           set -euo pipefail
-          cd ota && mkdir -p pub && cd pub
-          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
-          base="https://github.com/$REPO/releases/download/$TAG"
-          curl -fsSL "$base/spool-ota-v1.json" -o cat.json
-          gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | [.name, .size, (.digest | sub("sha256:";""))] | @tsv' > remote.tsv
-          while IFS=$'\t' read -r name size hash; do
-            case "$name" in
-              *.spdelta)
-                curl -fsSL "$base/$name" -o "$name"
-                [ "$(sha256sum "$name" | cut -d' ' -f1)" = "$hash" ] || { echo "PUBLIC HASH MISMATCH $name"; exit 1; }
-                echo "public $name ok ($size bytes)";;
-            esac
-          done < remote.tsv
-          [ "$(sha256sum cat.json | cut -d' ' -f1)" = "$(awk -F'\t' '$1=="spool-ota-v1.json"{print $3}' remote.tsv)" ]
+          cd ota
+          set -a; . ./target.env; set +a
+          mkdir -p pub && cd pub
+          baseurl="https://github.com/$REPO/releases/download/$TAG"
+          while IFS=$'\t' read -r name code size hash psize phash; do
+            curl -fsSL "$baseurl/$name" -o "$name"
+            [ "$(sha256sum "$name" | cut -d' ' -f1)" = "$phash" ] || { echo "PUBLIC HASH MISMATCH $name"; exit 1; }
+            [ "$(stat -c%s "$name")" = "$psize" ] || { echo "PUBLIC SIZE MISMATCH $name"; exit 1; }
+          done < ../used.tsv
+          curl -fsSL "$baseurl/spool-ota-v1.json" -o catalog.json
+          [ "$(sha256sum catalog.json | cut -d' ' -f1)" = "$(sha256sum ../spool-ota-v1.json | cut -d' ' -f1)" ] || { echo "PUBLIC CATALOG MISMATCH"; exit 1; }
+          python3 - "$TCODE" <<'PY_EOF'
+          import json, sys
+          cat = json.load(open('catalog.json'))
+          tcode = int(sys.argv[1])
+          assert cat['schema'] == 1
+          entries = cat['patches']
+          assert 1 <= len(entries) <= 16
+          for p in entries:
+              assert p['target_code'] == tcode and p['base_code'] < tcode
+              assert len(p['patch_sha256']) == 64 and len(p['base_sha256']) == 64
+          assert len({p['base_sha256'] for p in entries}) == len(entries)
+          print('public catalog OK:', len(entries), 'entries for target_code', tcode)
+          PY_EOF
           echo 'PUBLIC CATALOG AND ALL PUBLISHED PATCHES HASH-VERIFIED'
