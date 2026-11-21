@@ -304,21 +304,10 @@ class StatusStripEmulatorTest {
     @Test fun replaySpacingIndependentlyVerified() {
         englishFixture()
         // Independent setup: a Settings scroll failure cannot suppress Replay.
-        val libraryTab = hasClickAction() and (
-            hasContentDescription("Library") or hasAnyDescendant(hasContentDescription("Library"))
-            )
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(libraryTab, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onAllNodes(libraryTab, useUnmergedTree = true)[0].performClick()
-        compose.waitForIdle()
-        Thread.sleep(1500)
-        compose.waitForIdle()
-        val replayEntry = hasClickAction() and (hasText("Replay") or hasAnyDescendant(hasText("Replay")))
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(replayEntry, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onAllNodes(replayEntry, useUnmergedTree = true)[0].performClick()
+        openSettingsAndAssert("Settings", "Settings")
+        clickRow(compose.activity.getString(R.string.your_data))
+        requireDestination("Your data", "Export data")
+        clickRow("Replay")
         compose.waitForIdle()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Weekly").fetchSemanticsNodes().isNotEmpty()
@@ -362,12 +351,20 @@ class StatusStripEmulatorTest {
 
             theme(dark = true)
             fullScreenshot("12-ml-home-dark", expectDark = true)
+            compose.onAllNodes(hasScrollToIndexAction())[0].performScrollToIndex(0)
+            compose.waitForIdle()
+            fullScreenshot("15-ml-home-dark-top", expectDark = true)
             theme(dark = false)
 
             openSettingsAndAssert("ക്രമീകരണങ്ങൾ", "ക്രമീകരണങ്ങൾ")
             fullScreenshot("13-ml-settings-light", expectDark = false)
             scrollPageAndAssertMoved("ml-settings-light", "ഓഡിയോ നിലവാരം")
             fullScreenshot("14-ml-settings-light-scrolled", expectDark = false)
+            theme(dark = true)
+            fullScreenshot("16-ml-settings-dark-scrolled", expectDark = true)
+            compose.onAllNodes(hasScrollToIndexAction())[0].performScrollToIndex(0)
+            compose.waitForIdle()
+            fullScreenshot("17-ml-settings-dark-top", expectDark = true)
         } finally {
             compose.runOnUiThread {
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
@@ -430,18 +427,37 @@ class StatusStripEmulatorTest {
     }
 
     private fun clickRow(label: String) {
-        val matcher = hasClickAction() and (hasText(label) or hasAnyDescendant(hasText(label)))
+        val text = hasText(label)
         val lazy = compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)
-            .fetchSemanticsNodes().maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
+            .fetchSemanticsNodes().filter {
+                it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null
+            }.maxByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
         if (lazy != null) {
             compose.onNode(SemanticsMatcher("page lazy container") { it.id == lazy.id }, useUnmergedTree = true)
-                .performScrollToNode(matcher)
-            compose.onAllNodes(matcher)[0].performClick()
+                .performScrollToNode(text)
         } else {
-            compose.onAllNodes(matcher)[0].performScrollTo().performClick()
+            compose.onAllNodes(text, useUnmergedTree = true)[0].performScrollTo()
         }
+        val matcher = hasClickAction() and (text or hasAnyDescendant(text))
+        val viewport = compose.onRoot().fetchSemanticsNode().boundsInRoot
+        val row = compose.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes()
+            .filter { it.boundsInRoot.width > 0 && it.boundsInRoot.height > 0 && viewport.contains(it.boundsInRoot.center) }
+            .minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
+            ?: error("No visible clickable row for $label")
+        compose.onNode(SemanticsMatcher("smallest clickable row") { it.id == row.id }, useUnmergedTree = true).performClick()
         Thread.sleep(1000)
         compose.waitForIdle()
+    }
+
+    private fun requireDestination(title: String, uniqueChild: String) {
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(uniqueChild).fetchSemanticsNodes().any {
+                val b = it.boundsInRoot
+                b.width > 0 && b.height > 0 && compose.onRoot().fetchSemanticsNode().boundsInRoot.contains(b.center)
+            }
+        }
+        compose.onAllNodesWithText(title)[0].assertIsDisplayed()
+        compose.onAllNodesWithText(uniqueChild)[0].assertIsDisplayed()
     }
 
     /** Identity must be visible above the content; scrolling must change the
@@ -490,12 +506,16 @@ class StatusStripEmulatorTest {
         println("PAGE-VERIFIED $name")
     }
 
-    @Test fun everySettingsCategoryAndChoice() {
+    private fun verifySettingsCategory(category: com.music.bitchord.ui.screens.SettingsCategory) {
         englishFixture()
         openSettingsAndAssert("Settings", "Settings")
-        for (category in com.music.bitchord.ui.screens.SettingsCategory.entries) {
+        run {
             val title = compose.activity.getString(category.title)
             clickRow(title)
+            // The root also contains category labels; require that root-only
+            // connected-services row has disappeared before counting a child.
+            compose.waitUntil(10_000) { compose.onAllNodesWithText("Connected services").fetchSemanticsNodes().isEmpty() }
+            compose.onAllNodesWithText(title)[0].assertIsDisplayed()
             inspectPage("category-${category.name.lowercase()}", title)
             val choices = when (category) {
                 com.music.bitchord.ui.screens.SettingsCategory.DOWNLOADS -> listOf(com.music.bitchord.ui.screens.SettingsChoiceKind.DOWNLOAD_QUALITY)
@@ -526,6 +546,22 @@ class StatusStripEmulatorTest {
             }
             backToParent()
         }
+    }
+
+    @Test fun settingsCategory_downloads() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.DOWNLOADS)
+    @Test fun settingsCategory_playback() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.PLAYBACK)
+    @Test fun settingsCategory_content_preferences() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.CONTENT_PREFERENCES)
+    @Test fun settingsCategory_appearance() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.APPEARANCE)
+    @Test fun settingsCategory_performance() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.PERFORMANCE)
+    @Test fun settingsCategory_local_music() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.LOCAL_MUSIC)
+    @Test fun settingsCategory_storage() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.STORAGE)
+    @Test fun settingsCategory_your_data() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.YOUR_DATA)
+    @Test fun settingsCategory_miscellaneous() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.MISCELLANEOUS)
+    @Test fun settingsCategory_language() = verifySettingsCategory(com.music.bitchord.ui.screens.SettingsCategory.LANGUAGE)
+
+    @Test fun rootAudioChoices() {
+        englishFixture()
+        openSettingsAndAssert("Settings", "Settings")
         for (choice in listOf(com.music.bitchord.ui.screens.SettingsChoiceKind.AUDIO_QUALITY_WIFI,
             com.music.bitchord.ui.screens.SettingsChoiceKind.AUDIO_QUALITY_CELLULAR)) {
             val title = compose.activity.getString(choice.title)
@@ -596,9 +632,6 @@ class StatusStripEmulatorTest {
         compose.waitForIdle()
         inspectPage("history-signed-out", "History")
         backToParent()
-        clickRow("Replay")
-        inspectPage("library-replay", "Weekly")
-        backToParent()
         for (key in listOf(R.string.downloads, R.string.local_music)) {
             val title = compose.activity.getString(key)
             clickRow(title)
@@ -610,11 +643,8 @@ class StatusStripEmulatorTest {
 
     @Test fun realMoodGridAllTwentyEightTiles() {
         englishFixture()
-        compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0]
-            .performScrollToNode(hasText("Find Your Mood"))
-        val showAll = hasText("Show all") and hasClickAction() and
-            hasParent(hasAnyDescendant(hasText("Find Your Mood")))
-        compose.onAllNodes(showAll)[0].performClick()
+        val showAll = hasText("Show all") and hasAnyAncestor(hasTestTag("home-mood-chip-row"))
+        compose.onNode(showAll).performScrollTo().performClick()
         Thread.sleep(1000)
         compose.waitForIdle()
         inspectPage("moods-grid", "Find Your Mood")
