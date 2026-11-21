@@ -1,4 +1,5 @@
-name: Bounded remaining ten Android cases, no release
+name: Disposable one-tap updater Android fixture, no distribution
+# Branch-only fixture cycle. No default branch or publisher changes.
 on:
   push:
     branches: [taste-aware-moods]
@@ -6,505 +7,56 @@ on:
 permissions:
   contents: read
 jobs:
-  remaining-ten:
-    strategy:
-      max-parallel: 1
-      fail-fast: false
-      matrix:
-        shard: [connections, settings, mood, strip]
+  updater-fixture:
     runs-on: ubuntu-latest
-    timeout-minutes: 85
+    timeout-minutes: 75
     steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: e290e8c945cc51d744445ebffb3cdf6c483eff17
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: temurin
-    - name: Platform and KVM
-      shell: bash
-      run: |
-        set -euo pipefail
-        "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
-        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-        sudo udevadm control --reload-rules
-        sudo udevadm trigger --name-match=kvm
-        cat > /tmp/platform.gradle <<'INIT'
-        allprojects {
-          afterEvaluate { p ->
-            def android = p.extensions.findByName('android')
-            if (android != null) android.compileSdkVersion('android-37.0')
-          }
-        }
-        INIT
-    - name: Prepare exact bounded selectors and retention
-      shell: bash
-      run: |
-        cat > /tmp/spool-emulator-test.py <<'REVIEWED_SCRIPT'
-        #!/usr/bin/env python3
-        """One test invocation with bounded, incremental, validated screenshot retention."""
-        import hashlib, json, os, re, signal, struct, subprocess, threading, time, zlib
-        from pathlib import Path
-        SELECTIONS={'connections': 'com.music.bitchord.StatusStripEmulatorTest#settingsConnectionsAndAboutPages', 'settings': 'com.music.bitchord.StatusStripEmulatorTest#settingsCategory_appearance,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_language,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_local_music,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_miscellaneous,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_your_data,com.music.bitchord.StatusStripEmulatorTest#rootAudioChoices', 'mood': 'com.music.bitchord.StatusStripEmulatorTest#allMoodTilesReachRealControllerAndLocalPlayback,com.music.bitchord.StatusStripEmulatorTest#allBlockedMoodPreservesExistingRealControllerQueue', 'strip': 'com.music.bitchord.StatusStripEmulatorTest#osInjectedTapOnStripNeverReachesContent'}
-        assert os.environ.get('SPOOL_SHARD') in SELECTIONS
-        assert os.environ.get('SPOOL_CASE_SELECTORS')==SELECTIONS[os.environ['SPOOL_SHARD']]
-        OUT=Path('emulator-screens'); DIAG=Path('emulator-diagnostics')
-        for directory in (OUT,DIAG):
-            try:directory.mkdir(exist_ok=True)
-            except Exception:pass
-        ADB=['adb','-s','emulator-5554']; ROOT='/sdcard/Android/data/app.spool.music.dev/files/'
-        device_gone=threading.Event(); stop=threading.Event(); seen={}; active=set(); lock=threading.Lock(); cancelled=[None]
-        pending=[]; queued=set(); latest={}
-        MAX_FILE=12*1024*1024; MAX_RAW=64*1024*1024
-        
-        def note(message):
-            try:
-                with (DIAG/'retention.log').open('a') as f:f.write(time.strftime('%FT%TZ',time.gmtime())+' '+message+'\n')
-            except Exception:pass
-        
-        def bounded(args,seconds=8,cap=MAX_FILE,input_bytes=None):
-            """Bound time and output, kill the whole diagnostic subprocess group."""
-            if args and args[0]=='adb' and device_gone.is_set():raise RuntimeError('device previously confirmed gone; no further device command')
-            started=time.monotonic()
-            p=subprocess.Popen(args,stdin=subprocess.PIPE if input_bytes is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
-            with lock:active.add(p)
-            if input_bytes is not None:
-                # Only the fixed short manifest program is written here, never file data.
-                try:p.stdin.write(input_bytes);p.stdin.close()
-                except BrokenPipeError:pass
-            chunks=[]; errors=[]; size=[0]; overflow=threading.Event()
-            def consume(pipe,target,limit):
-                while True:
-                    data=pipe.read(65536)
-                    if not data:break
-                    size[0]+=len(data)
-                    if size[0]>limit:overflow.set();break
-                    target.append(data)
-            readers=[threading.Thread(target=consume,args=(p.stdout,chunks,cap),daemon=True),threading.Thread(target=consume,args=(p.stderr,errors,cap),daemon=True)]
-            for t in readers:t.start()
-            deadline=time.monotonic()+seconds
-            while p.poll() is None and time.monotonic()<deadline and not overflow.is_set():time.sleep(.05)
-            timed_out=p.poll() is None and not overflow.is_set()
-            if p.poll() is None:
-                try:os.killpg(p.pid,signal.SIGKILL)
-                except ProcessLookupError:pass
-            try:p.wait(timeout=2)
-            except subprocess.TimeoutExpired:pass
-            for t in readers:t.join(timeout=1)
-            with lock:active.discard(p)
-            output=b''.join(chunks);error=b''.join(errors)
-            if args and args[0]=='adb' and ((b'device' in error and b'not found' in error) or b'no devices/emulators found' in error):
-                if not device_gone.is_set():device_gone.set();host_snapshot('confirmed-device-gone');note('DEVICE-GONE stop all subsequent device diagnostics')
-            if overflow.is_set() or timed_out or p.returncode!=0:
-                raise RuntimeError('diagnostic failed '+json.dumps(dict(args=args,rc=p.returncode,timeout=timed_out,overflow=overflow.is_set(),elapsed=round(time.monotonic()-started,3),stdout=repr(output[:1024]),stderr=repr(error[:1024]))))
-            return output
-        
-        def validate(data):
-            if len(data)>MAX_FILE or data[:8]!=b'\x89PNG\r\n\x1a\n':raise ValueError('PNG size/signature')
-            at=8; ihdr=None; payload=[]; ended=False; has_idat=False
-            while at+12<=len(data):
-                n=struct.unpack('>I',data[at:at+4])[0];kind=data[at+4:at+8];end=at+8+n
-                if n>MAX_FILE or end+4>len(data):raise ValueError('truncated chunk')
-                body=data[at+8:end]
-                if zlib.crc32(kind+body)&0xffffffff!=struct.unpack('>I',data[end:end+4])[0]:raise ValueError('CRC')
-                if ihdr is None:
-                    if kind!=b'IHDR' or n!=13:raise ValueError('first chunk IHDR required')
-                    w,h,depth,color,comp,filt,inter=struct.unpack('>IIBBBBB',body)
-                    channels={0:1,2:3,3:1,4:2,6:4}.get(color)
-                    if not channels or depth!=8 or comp or filt or inter or not (1<=w<=4096 and 1<=h<=8192):raise ValueError('unsupported IHDR/dimensions')
-                    stride=w*channels+1;expected=stride*h
-                    if expected>MAX_RAW:raise ValueError('inflated cap')
-                    ihdr=(stride,expected)
-                elif kind==b'IHDR':raise ValueError('duplicate IHDR')
-                if kind==b'IDAT':payload.append(body);has_idat=True
-                if kind==b'IEND':
-                    if n or end+4!=len(data):raise ValueError('bad IEND/trailing bytes')
-                    ended=True;break
-                at=end+4
-            if not ended or not has_idat:raise ValueError('missing image/end')
-            dec=zlib.decompressobj();raw=dec.decompress(b''.join(payload),ihdr[1]+1)
-            if len(raw)!=ihdr[1] or not dec.eof or dec.unused_data or dec.unconsumed_tail:raise ValueError('scanline size/zlib integrity')
-            if any(raw[i]>4 for i in range(0,len(raw),ihdr[0])):raise ValueError('invalid scanline filter')
-        
-        def drain():
-            # The app writes flat screenshot PNGs. No tar extraction, links or paths
-            # supplied by the device are accepted. Hash manifest detects same-name edits.
-            manifest=bounded(ADB+['shell','-T','sh'],
-                seconds=10,cap=256*1024,input_bytes=(
-                    b'cd /sdcard/Android/data/app.spool.music.dev/files || exit 1\n'
-                    b'for f in *.png; do [ -f "$f" ] && [ ! -L "$f" ] && sha256sum "$f"; done\n'
-                )).decode()
-            for line in manifest.splitlines():
-                match=re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.png)',line)
-                if not match:note('invalid manifest record rejected '+repr(line[:300]));continue
-                digest,name=match.groups()
-                if '..' in name:note('invalid name rejected');continue
-                latest[name]=digest
-                if seen.get(name)!=digest and name not in queued:pending.append(name);queued.add(name)
-            count=0;deadline=time.monotonic()+20;attempts=min(len(pending),20)
-            for _ in range(attempts):
-                if time.monotonic()>deadline:break
-                name=pending.pop(0);queued.discard(name);digest=latest[name]
-                if seen.get(name)==digest:continue
-                try:
-                    data=bounded(ADB+['exec-out','cat',ROOT+name],seconds=6)
-                    if hashlib.sha256(data).hexdigest()!=digest:raise ValueError('in-flight hash mismatch')
-                    validate(data)
-                    tmp=OUT/(name+'.part');tmp.write_bytes(data);os.replace(tmp,OUT/name);seen[name]=digest;count+=1
-                except Exception as e:
-                    note('unretained '+name+' '+str(e));pending.append(name);queued.add(name)
-            note('promoted '+str(count)+' unresolved '+str(len(pending))+' '+repr(pending))
-            return len(pending)
-        
-        def host_snapshot(label):
-            stamp=time.strftime('%FT%TZ',time.gmtime())
-            data={'time':stamp,'label':label}
-            for file in ['/proc/meminfo','/proc/vmstat','/proc/pressure/memory','/sys/fs/cgroup/memory.current','/sys/fs/cgroup/memory.max','/sys/fs/cgroup/memory.events']:
-                try:data[file]=Path(file).read_text()[:32768]
-                except Exception as e:data[file]={'unavailable':str(e)}
-            try:data['processes']=bounded(['ps','-eo','pid,ppid,rss,%cpu,stat,comm,args'],3,256*1024).decode(errors='replace')
-            except Exception as e:data['processes']={'unavailable':str(e)}
-            try:
-                with (DIAG/'host-snapshots.jsonl').open('a') as f:f.write(json.dumps(data)+'\n')
-            except Exception:pass
-        
-        def monitor():
-            while not stop.is_set():
-                try:
-                    host_snapshot('during')
-                    note('device '+bounded(ADB+['get-state'],3,4096).decode().strip())
-                except Exception as e:
-                    note(str(e))
-                    if device_gone.is_set():return
-                    stop.wait(60);continue
-                try:drain()
-                except Exception as e:note(str(e))
-                stop.wait(60)
-        
-        worker=threading.Thread(target=monitor,daemon=True)
-        gradle=None
-        
-        def on_signal(sig,frame):
-            cancelled[0]=sig;stop.set()
-            if gradle is not None and gradle.poll() is None:
-                try:os.killpg(gradle.pid,signal.SIGTERM)
-                except ProcessLookupError:pass
-        
-        for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,on_signal)
-        status=1
-        try:
-            host_snapshot('before-gradle')
-            gradle=subprocess.Popen(['./gradlew','--init-script','/tmp/platform.gradle','--init-script','/tmp/no-heavy-recompile.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class='+os.environ['SPOOL_CASE_SELECTORS'], '-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true', '-Pkotlin.compiler.execution.strategy=in-process', '-Pspool.requirePrebuilt=true', '--max-workers=2','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],start_new_session=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
-            def forward_gradle():
-                with (DIAG/'connected-gradle.log').open('a') as log:
-                    for line in gradle.stdout:
-                        print(line,end='',flush=True);log.write(line);log.flush()
-            output_thread=threading.Thread(target=forward_gradle,daemon=True);output_thread.start()
-            try:worker.start()
-            except BaseException as e:note('mirror failed to start '+str(e))
-            cancel_deadline=None
-            while gradle.poll() is None:
-                if cancelled[0] is not None:
-                    cancel_deadline=cancel_deadline or time.monotonic()+8
-                    if time.monotonic()>cancel_deadline:
-                        try:os.killpg(gradle.pid,signal.SIGKILL)
-                        except ProcessLookupError:pass
-                time.sleep(.1)
-            output_thread.join(timeout=5)
-            status=gradle.returncode
-            if device_gone.is_set() and status==0:status=1
-        finally:
-            try:
-                # Every cleanup operation is best-effort. None may replace the test status,
-                # even when diagnostics cannot write because disk is full.
-                try:stop.set()
-                except BaseException:pass
-                try:worker.join(timeout=28)
-                except BaseException:pass
-                try:
-                    with lock:children=list(active)
-                    for p in children:
-                        try:os.killpg(p.pid,signal.SIGKILL)
-                        except BaseException:pass
-                except BaseException:pass
-                try:worker.join(timeout=4)
-                except BaseException:pass
-                alive=True
-                try:alive=worker.is_alive()
-                except BaseException:pass
-                if alive:note('mirror worker did not stop; final drain skipped to avoid concurrent drains')
-                elif cancelled[0] is None and not device_gone.is_set():
-                    deadline=time.monotonic()+45
-                    while time.monotonic()<deadline:
-                        try:
-                            remaining=drain()
-                            if remaining==0:break
-                        except BaseException as e:
-                            note('final drain '+str(e));break
-                    note('final retention unresolved='+str(len(pending))+' budget_expired='+str(time.monotonic()>=deadline)+' names='+repr(pending))
-                diagnostics=[('processes',['ps','-eo','pid,ppid,rss,%cpu,stat,comm'])]
-                if not device_gone.is_set():diagnostics += [('crash',ADB+['logcat','-b','crash','-d']),('devices',['adb','devices','-l'])]
-                for name,args in diagnostics:
-                    try:(DIAG/(name+'.txt')).write_bytes(bounded(args,4,1024*1024))
-                    except BaseException as e:note(name+' '+str(e))
-                host_snapshot('after-gradle')
-                try:(DIAG/'test-exit.txt').write_text(str(status)+'\n')
-                except BaseException:pass
-            except BaseException:pass
-        raise SystemExit(128+cancelled[0] if cancelled[0] is not None else 128-status if status<0 else status)
-        REVIEWED_SCRIPT
-        cat > /tmp/check-remaining.py <<'REVIEWED_SCRIPT'
-        #!/usr/bin/env python3
-        """Execute the unchanged v6 supervisor once, then reconcile completed SHOT output.
-        No fallback, route change, automatic re-run, or release operation.
-        """
-        import hashlib,json,os,re,struct,sys,types
-        from pathlib import Path
-        source=Path('/tmp/spool-emulator-test.py').read_bytes()
-        assert hashlib.sha256(source).hexdigest()=='6ed0197cbe7247a33d825f2b90ea6998f262421c7b24f845c1d662b4d43a32e5'
-        r=types.ModuleType('retention')
-        test_status=1;check_status=1;failure=None
-        try:
-            exec(compile(source,'exact-v6-helper','exec'),r.__dict__)
-        except SystemExit as e:
-            test_status=e.code if isinstance(e.code,int) else 1
-        except BaseException as e:
-            failure='supervisor '+repr(e)
-        # v6 already validates and atomically promotes each image before this checker.
-        # Keep all completed files even if later inventory assertions fail.
-        evidence={'test_status':test_status,'retained':{},'shot_names':[],'manifest':{},'failure':failure}
-        try:
-            if r.device_gone.is_set():raise RuntimeError('confirmed device disappeared; final inventory unavailable, no device re-poll')
-            if r.cancelled[0] is not None:raise RuntimeError('cancelled; no post-suite reads')
-            assert not r.worker.is_alive(),'worker still active; no concurrent manifest read'
-            for f in sorted(r.OUT.glob('*.png')):
-                data=f.read_bytes();r.validate(data)
-                evidence['retained'][f.name]={'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'dimensions':struct.unpack('>II',data[16:24])}
-            # Persist completed image evidence BEFORE inventory/reconciliation assertions.
-            (r.DIAG/'full24-retained-before-inventory.json').write_text(json.dumps(evidence,indent=2))
-            if os.environ['SPOOL_SHARD']=='strip':
-                assert not evidence['retained'],'Unexpected images require full reconciliation'
-                evidence['pixel_scope']='not applicable: unchanged OS-input test emits no screenshots; no pixel pass claimed'
-                check_status=0
-                raise StopIteration('input-only shard, PNG reconciliation not applicable')
-            manifest=r.bounded(r.ADB+['shell','-T','sh'],seconds=10,cap=256*1024,input_bytes=(
-                b'cd /sdcard/Android/data/app.spool.music.dev/files || exit 1\n'
-                b'for f in *.png; do [ -f "$f" ] && [ ! -L "$f" ] && sha256sum "$f"; done\n'))
-            (r.DIAG/'full24-final-manifest.txt').write_bytes(manifest)
-            hashes={}
-            for line in manifest.decode().splitlines():
-                m=re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.png)',line)
-                assert m is not None,repr(line)
-                digest,name=m.groups();assert '..' not in name and name not in hashes
-                hashes[name]=digest
-            evidence['manifest']=hashes
-            # Include helper click/scroll frames, not merely the two named Replay shots.
-            shots={};records=0
-            for path in sorted(Path('app/build/outputs/androidTest-results').rglob('logcat-*.txt')):
-                for line in path.read_text(errors='replace').splitlines():
-                    if 'SHOT-SAVED ' not in line:continue
-                    m=re.search(r'SHOT-SAVED /(?:sdcard|storage/emulated/0)/Android/data/app\.spool\.music\.dev/files/([A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.png) bytes=(\d+)',line)
-                    assert m is not None,(str(path),line)
-                    name,size=m.groups();assert '..' not in name
-                    shots.setdefault(name,set()).add(int(size));records+=1
-            evidence['shot_names']=sorted(shots);evidence['shot_records']=records
-            evidence['pending']=list(r.pending);evidence['latest']=dict(r.latest);evidence['seen']=dict(r.seen)
-            assert shots or os.environ['SPOOL_SHARD']=='strip','No SHOT-SAVED evidence; not a successful empty collection'
-            evidence['pixel_scope']='no screenshots emitted by existing strip input-only test' if os.environ['SPOOL_SHARD']=='strip' else 'SHOT reconciliation required'
-            assert set(hashes)==set(shots),{'manifest_only':sorted(set(hashes)-set(shots)),'shots_only':sorted(set(shots)-set(hashes))}
-            assert set(evidence['retained'])==set(hashes),'retained inventory mismatch'
-            assert r.seen==hashes and r.latest==hashes,'seen/latest do not match final manifest'
-            assert r.pending==[] and r.queued==set(),'unresolved retention backlog'
-            assert not list(r.OUT.glob('*.part')),'unfinished atomic promotion'
-            for name,digest in hashes.items():
-                item=evidence['retained'][name]
-                assert item['sha256']==digest,(name,'hash mismatch')
-                assert item['bytes'] in shots[name],(name,'no matching SHOT byte count')
-                assert min(item['dimensions'])>1,(name,'invalid dimensions')
-            check_status=0
-        except StopIteration as e:
-            evidence['pixel_scope']=str(e)
-        except BaseException as e:
-            evidence['failure']=repr(e)
-        finally:
-            evidence['retention_status']=check_status
-            try:(Path('emulator-diagnostics')/'full24-reconciliation.json').write_text(json.dumps(evidence,indent=2))
-            except BaseException:pass
-        # A failing/cancelled suite always wins over post-suite diagnostics.
-        sys.exit(test_status if test_status else check_status)
-        REVIEWED_SCRIPT
-        cat > /tmp/run-shard.py <<'REVIEWED_SCRIPT'
-        #!/usr/bin/env python3
-        import os,subprocess,shutil,json,hashlib,sys
-        from pathlib import Path
-        shard=os.environ['SPOOL_SHARD'];dest=Path('remaining10-evidence')/shard;dest.mkdir(parents=True,exist_ok=False)
-        # Previous shard evidence is moved, never overwritten or mistaken for this selection.
-        assert not Path('emulator-screens').exists() and not Path('emulator-diagnostics').exists()
-        assert not Path('app/build/outputs/androidTest-results').exists()
-        settings={'shard':shard,'selectors':os.environ['SPOOL_CASE_SELECTORS'],'gradle_heap_mib':2048,'kotlin_execution':'in-process','max_workers':2,'emulator_ram_mib':2048}
-        (dest/'settings.json').write_text(json.dumps(settings,indent=2))
-        files=sorted(Path('app/build/outputs/apk').rglob('*.apk'))
-        before={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files};assert len(before)==2,before
-        (dest/'apk-before.json').write_text(json.dumps(before,indent=2))
-        status=1;failure=None;xml_ok=False
-        try:
-            status=subprocess.run([sys.executable,'/tmp/check-remaining.py']).returncode
-            import xml.etree.ElementTree as ET
-            expected={x.split('#',1)[1] for x in os.environ['SPOOL_CASE_SELECTORS'].split(',')}
-            xmls=list(Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml'))
-            cases=[t for p in xmls for t in ET.parse(p).getroot().iter('testcase')]
-            actual=[{'name':t.attrib.get('name'),'classname':t.attrib.get('classname')} for t in cases]
-            xml_result={'expected':sorted(expected),'actual':actual,'failures':sum(t.find('failure') is not None for t in cases),'errors':sum(t.find('error') is not None for t in cases),'skips':sum(t.find('skipped') is not None for t in cases)}
-            xml_ok=len(actual)==len(expected) and {t['name'] for t in actual}==expected and all(t['classname']=='com.music.bitchord.StatusStripEmulatorTest' for t in actual) and xml_result['failures']==xml_result['errors']==xml_result['skips']==0
-            (dest/'exact-selector-result.json').write_text(json.dumps(xml_result,indent=2))
-        except BaseException as e:
-            failure=repr(e)
-        finally:
-            same_apks=False
-            try:
-                after={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
-                (dest/'apk-after.json').write_text(json.dumps(after,indent=2));same_apks=before==after
-            except BaseException as e:failure=(failure or '')+' APK check '+repr(e)
-            if (not xml_ok or not same_apks or failure) and status==0:status=1
-            for source in ['emulator-screens','emulator-diagnostics','app/build/outputs/androidTest-results']:
-                try:
-                    p=Path(source)
-                    if p.exists():shutil.move(str(p),str(dest/p.name))
-                except BaseException as e:
-                    failure=(failure or '')+' preserve '+repr(e)
-                    if status==0:status=1
-            (dest/'wrapper-exit.json').write_text(json.dumps({'test_and_retention_status':status,'same_apks':same_apks,'xml_ok':xml_ok,'failure':failure}))
-        sys.exit(status)
-        REVIEWED_SCRIPT
-        cat > /tmp/no-heavy-recompile.gradle <<'REVIEWED_SCRIPT'
-        gradle.projectsEvaluated {
-            allprojects { p ->
-                p.tasks.configureEach { t ->
-                    def n = t.name.toLowerCase(java.util.Locale.ROOT)
-                    if (n.contains('compile') || n.contains('dex') || n.contains('package') || n.contains('cmake') || n.startsWith('merge') || n.startsWith('strip') || n.startsWith('generate') || n.startsWith('process')) {
-                        t.doFirst {
-                            if (project.findProperty("spool.requirePrebuilt") == "true") throw new GradleException("UNEXPECTED-HEAVY-ACTION before instrumentation: " + t.path + "; prebuilt task must be UP-TO-DATE or NO-SOURCE")
-                        }
-                    }
-                }
-            }
-        }
-        REVIEWED_SCRIPT
-    - name: Select exact method partition
-      shell: bash
-      env:
-        SPOOL_SHARD: ${{ matrix.shard }}
-      run: |
-        python3 - <<'PYTHON'
-        import os,json
-        selections={'connections': 'com.music.bitchord.StatusStripEmulatorTest#settingsConnectionsAndAboutPages', 'settings': 'com.music.bitchord.StatusStripEmulatorTest#settingsCategory_appearance,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_language,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_local_music,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_miscellaneous,com.music.bitchord.StatusStripEmulatorTest#settingsCategory_your_data,com.music.bitchord.StatusStripEmulatorTest#rootAudioChoices', 'mood': 'com.music.bitchord.StatusStripEmulatorTest#allMoodTilesReachRealControllerAndLocalPlayback,com.music.bitchord.StatusStripEmulatorTest#allBlockedMoodPreservesExistingRealControllerQueue', 'strip': 'com.music.bitchord.StatusStripEmulatorTest#osInjectedTapOnStripNeverReachesContent'}
-        with open(os.environ['GITHUB_ENV'],'a') as f:f.write('SPOOL_SHARD='+os.environ['SPOOL_SHARD']+'\nSPOOL_CASE_SELECTORS='+selections[os.environ['SPOOL_SHARD']]+'\n')
-        PYTHON
-    - name: Build once before emulator with bounded shared heap
-      id: prebuild
-      shell: bash
-      run: |
-        set -euo pipefail
-        mkdir -p remaining10-evidence
-        ./gradlew --init-script /tmp/platform.gradle --init-script /tmp/no-heavy-recompile.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true' -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee remaining10-evidence/prebuild.log
-        python3 - <<'PYTHON'
-        import datetime
-        import json
-        import pathlib
-        import subprocess
-        import time
-
-
-        def await_shutdown(read_processes, monotonic, sleep, emit, timeout=60, interval=1):
-            started = monotonic()
-            while True:
-                try:
-                    text = read_processes()
-                except Exception as error:
-                    emit({'timestamp_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                          'elapsed_seconds': round(monotonic() - started, 3),
-                          'error': type(error).__name__ + ': ' + str(error)})
-                    raise
-                remaining = [line for line in text.splitlines()
-                             if 'java' in line and ('GradleDaemon' in line or 'KotlinCompileDaemon' in line)]
-                elapsed = monotonic() - started
-                emit({'timestamp_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                      'elapsed_seconds': round(elapsed, 3), 'remaining': remaining})
-                if not remaining:
-                    return
-                if elapsed >= timeout:
-                    raise RuntimeError('Build daemons still present after bounded shutdown grace')
-                sleep(min(interval, timeout - elapsed))
-
-
-        if __name__ == '__main__':
-            path = pathlib.Path('remaining10-evidence/build-daemon-shutdown.jsonl')
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open('w', encoding='utf-8', buffering=1) as evidence:
-                def emit(row):
-                    line = json.dumps(row, sort_keys=True)
-                    evidence.write(line + '\n')
-                    print('BUILD-DAEMON-SNAPSHOT ' + line, flush=True)
-                def read_processes():
-                    return subprocess.check_output(['ps', '-eo', 'pid,comm,rss,stat,args'], text=True, timeout=5)
-                await_shutdown(read_processes, time.monotonic, time.sleep, emit)
-        PYTHON
-    - name: Exact shard, fresh disposable emulator
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 34
-        arch: x86_64
-        profile: pixel_6
-        avd-name: spool-${{ matrix.shard }}
-        force-avd-creation: true
-        ram-size: 2048M
-        script: python3 /tmp/run-shard.py
-    - name: Evidence only, never APKs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: remaining-ten-${{ matrix.shard }}
-        path: remaining10-evidence/**
-        if-no-files-found: warn
-  aggregate:
-    needs: remaining-ten
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/download-artifact@v4
-      with:
-        pattern: remaining-ten-*
-        path: evidence
-    - name: Verify exact ten-case union, no substitute passes
-      shell: bash
-      run: |
-        cat > /tmp/aggregate.py <<'REVIEWED_SCRIPT'
-        #!/usr/bin/env python3
-        import json,sys
-        from pathlib import Path
-        EXPECTED={'connections': ['settingsConnectionsAndAboutPages'], 'settings': ['settingsCategory_appearance', 'settingsCategory_language', 'settingsCategory_local_music', 'settingsCategory_miscellaneous', 'settingsCategory_your_data', 'rootAudioChoices'], 'mood': ['allMoodTilesReachRealControllerAndLocalPlayback', 'allBlockedMoodPreservesExistingRealControllerQueue'], 'strip': ['osInjectedTapOnStripNeverReachesContent']}
-        root=Path(sys.argv[1]);report={};all_actual=[];ok=True
-        for shard,names in EXPECTED.items():
-            results=list(root.rglob(shard+'/exact-selector-result.json'));statuses=list(root.rglob(shard+'/wrapper-exit.json'));retentions=list(root.rglob(shard+'/emulator-diagnostics/full24-reconciliation.json'))
-            entry={'result_files':len(results),'status_files':len(statuses),'retention_files':len(retentions)}
-            good=len(results)==len(statuses)==len(retentions)==1
-            try:
-                if good:
-                    r=json.loads(results[0].read_text());s=json.loads(statuses[0].read_text());t=json.loads(retentions[0].read_text());all_actual.extend(t['name'] for t in r['actual'])
-                    good=len(r['actual'])==len(names) and {t['name'] for t in r['actual']}==set(names) and all(t['classname']=='com.music.bitchord.StatusStripEmulatorTest' for t in r['actual']) and r['failures']==r['errors']==r['skips']==0 and s['same_apks'] and s['test_and_retention_status']==0 and t['retention_status']==t['test_status']==0
-                    entry.update(result=r,status=s,retention_status=t['retention_status'],retained=len(t['retained']),pixel_scope=t.get('pixel_scope'))
-            except BaseException as e:
-                good=False;entry['failure']=repr(e)
-            entry['pass']=good;ok=ok and good;report[shard]=entry
-        expected=sum(EXPECTED.values(),[]);ok=ok and len(all_actual)==len(expected) and set(all_actual)==set(expected)
-        report['aggregate']={'pass':ok,'expected':expected,'actual':all_actual,'missing':sorted(set(expected)-set(all_actual)),'duplicates':sorted({n for n in all_actual if all_actual.count(n)>1})}
-        Path('remaining-ten-aggregate.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2));sys.exit(0 if ok else 1)
-        REVIEWED_SCRIPT
-        python3 /tmp/aggregate.py evidence
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: remaining-ten-aggregate
-        path: remaining-ten-aggregate.json
-        if-no-files-found: warn
+      - uses: actions/checkout@v4
+        with:
+          ref: e290e8c945cc51d744445ebffb3cdf6c483eff17
+          path: product
+      - uses: actions/checkout@v4
+        with:
+          ref: 060cbf34bd90c451082b9277158c9f424ab93da9
+          path: fixture-source
+      - name: Select exact reviewed fixture source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -r fixture-source/tools/updater-fixture fixture-src
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+      - name: Prepare platform and KVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Build isolated same-key fixtures, no upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f fixture-src/fixture-host.py
+          python3 fixture-src/fixture-host.py build "$PWD/product" "$PWD/local-fixture"
+      - name: Bounded real system UI cases
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          script: python3 fixture-src/fixture-host.py device "$PWD/product" "$PWD/local-fixture"
+      - name: Upload evidence only, never APKs or delta
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-real-android-evidence
+          path: |
+            local-fixture/**/*.txt
+            local-fixture/**/*.log
+            local-fixture/**/*.json
+            local-fixture/**/*.png
+          if-no-files-found: warn
