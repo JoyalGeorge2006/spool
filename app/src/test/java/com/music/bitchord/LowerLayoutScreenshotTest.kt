@@ -63,7 +63,9 @@ class LowerLayoutScreenshotTest {
                 compose.waitForIdle()
             }
             val viewport = compose.onRoot().fetchSemanticsNode().boundsInRoot
-            val lazy = compose.onAllNodes(hasScrollToNodeAction() and SemanticsMatcher("visible page list") {
+            val vertical = SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange)
+            val onScreen = SemanticsMatcher("visible target") { viewport.contains(it.boundsInRoot.center) }
+            val lazy = compose.onAllNodes(hasScrollToNodeAction() and vertical and SemanticsMatcher("visible page list") {
                 val b = it.boundsInRoot
                 b.width > 0f && b.height > 0f && viewport.contains(b.center)
             })
@@ -72,10 +74,10 @@ class LowerLayoutScreenshotTest {
                 repeat(2) { lazy.onLast().performTouchInput { swipeUp() }; compose.waitForIdle() }
             } else {
                 compose.onAllNodesWithText(target, substring = true, useUnmergedTree = true).onLast().performScrollTo()
-                compose.onAllNodes(hasScrollAction()).onLast().performTouchInput { swipeUp() }
+                compose.onNode(hasScrollAction() and vertical and onScreen).performTouchInput { swipeUp() }
             }
             compose.waitForIdle()
-            compose.onAllNodesWithText(target, substring = true, useUnmergedTree = true).onLast().assertIsDisplayed()
+            compose.onNode(hasText(target, substring = true) and onScreen, useUnmergedTree = true).assertIsDisplayed()
             compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/lower_${page}_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setThemeMode(oldTheme)
