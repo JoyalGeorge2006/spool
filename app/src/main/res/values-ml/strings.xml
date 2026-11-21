@@ -953,6 +953,7 @@
     <string name="personal">വ്യക്തിപരം</string>
     <string name="brand_account">Brand അക്കൗണ്ട്</string>
     <string name="add_account">അക്കൗണ്ട് ചേർക്കുക</string>
+    <string name="manage_account">അക്കൗണ്ട് നിയന്ത്രിക്കുക</string>
     <string name="manage_accounts">അക്കൗണ്ടുകൾ നിയന്ത്രിക്കുക</string>
     <string name="current_account">നിലവിലെ അക്കൗണ്ട്</string>
     <string name="current_profile">നിലവിലെ പ്രൊഫൈൽ</string>
