@@ -241,8 +241,18 @@ class StatusStripEmulatorTest {
         }.firstOrNull() ?: error("No target-owned vertical container for $anchorText")
     }
 
+    private val pageScrollOwnerIds = mutableMapOf<String, Int>()
+
     private fun scrollAnchorToTopAndAssert(anchorText: String) {
-        val target = verticalScrollForAnchor(anchorText)
+        // A LazyColumn can recycle the anchor after scrolling. Retain only
+        // its previously verified owner ID, never fall back to another page.
+        val ownerId = requireNotNull(pageScrollOwnerIds[anchorText]) {
+            "No previously verified page owner for $anchorText"
+        }
+        val target = compose.onNode(SemanticsMatcher("previously verified page owner") { it.id == ownerId },
+            useUnmergedTree=true).fetchSemanticsNode()
+        check(target.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null &&
+            target.config.getOrNull(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) != null)
         val container = compose.onNode(SemanticsMatcher("page anchor vertical ancestor") { it.id == target.id },
             useUnmergedTree = true)
         container.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f, -100000f) }
@@ -256,6 +266,7 @@ class StatusStripEmulatorTest {
 
     private fun scrollPageAndAssertMoved(label: String, anchorText: String) {
         val target = verticalScrollForAnchor(anchorText)
+        pageScrollOwnerIds[anchorText] = target.id
         val anchorBefore = compose.onAllNodesWithText(anchorText).fetchSemanticsNodes().firstOrNull()
         assertTrue("$label: anchor '$anchorText' must exist before scrolling", anchorBefore != null)
         val beforeTop = anchorBefore!!.boundsInRoot.top
@@ -347,9 +358,24 @@ class StatusStripEmulatorTest {
         Thread.sleep(1500)
         compose.waitForIdle()
         fullScreenshot("06-replay-light", expectDark = false)
+        compose.runOnUiThread {
+            val icons = androidx.core.view.WindowCompat.getInsetsController(
+                compose.activity.window, compose.activity.window.decorView)
+            assertTrue("Replay light must use dark status icons", icons.isAppearanceLightStatusBars)
+            assertTrue("Replay light must use dark navigation icons", icons.isAppearanceLightNavigationBars)
+        }
         val stripOnReplay = stripBounds()
         assertTrue("strip must exist on Replay too", stripOnReplay != null)
         assertEquals(0f, stripOnReplay!!.top, 1f)
+        theme(dark = true)
+        compose.onNodeWithText("Weekly").assertIsDisplayed()
+        fullScreenshot("07-replay-dark", expectDark = true)
+        compose.runOnUiThread {
+            val icons = androidx.core.view.WindowCompat.getInsetsController(
+                compose.activity.window, compose.activity.window.decorView)
+            assertTrue("Replay dark must use light status icons", !icons.isAppearanceLightStatusBars)
+            assertTrue("Replay dark must use light navigation icons", !icons.isAppearanceLightNavigationBars)
+        }
     }
 
     /**
@@ -517,7 +543,13 @@ class StatusStripEmulatorTest {
             val after = container.fetchSemanticsNode().config[
                 androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
             println("TARGET-SCROLL $label ancestor=${scroll!!.id} before=$before after=$after")
-            check(after != before) { "Target-owned scroll made no progress for $label" }
+            if (after == before) {
+                fullScreenshot("failure-row-safe-band-${label.replace(' ', '-').lowercase()}")
+                println("FAILED-ROW-BOUNDS label=$label target=${current.boundsInRoot} " +
+                    "container=${container.fetchSemanticsNode().boundsInRoot} clearTop=$clearTop clearBottom=$clearBottom")
+                println("FAILED-ROW-TREE\n" + compose.onRoot(useUnmergedTree=true).printToString())
+                error("Target-owned scroll made no progress for $label")
+            }
             attempts++
         }
         val row = safeRow() ?: error("No unobscured clickable row for $label after $attempts scrolls")
