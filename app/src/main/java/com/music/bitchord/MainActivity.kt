@@ -6215,10 +6215,31 @@ private const val TAB_SEARCH = 3
  */
 @Composable
 internal fun StatusBarStrip(modifier: Modifier = Modifier) {
+    // Read the RAW platform status-bar inset from the decor view rather than
+    // Compose's WindowInsets.statusBars: page chrome (FrostedTopBar) consumes
+    // those insets for its own padding, which left this strip measuring zero
+    // height on a real device (emulator run 44865397021). Listening on the
+    // decor view catches the OS dispatch exactly; forwarding through
+    // onApplyWindowInsets keeps normal dispatch to the content intact.
+    val view = LocalView.current
+    val density = LocalDensity.current
+    var stripHeight by remember { mutableStateOf(0.dp) }
+    DisposableEffect(view) {
+        val root = view.rootView ?: view
+        val listener = View.OnApplyWindowInsetsListener { v, insets ->
+            stripHeight = with(density) {
+                insets.getInsets(android.view.WindowInsets.Type.statusBars()).top.toDp()
+            }
+            v.onApplyWindowInsets(insets)
+        }
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, listener)
+        androidx.core.view.ViewCompat.requestApplyInsets(root)
+        onDispose { androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, null) }
+    }
     Box(
         modifier
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
+            .height(stripHeight)
             .fillMaxWidth()
             // The strip hides scrolled content, so it must hide it from
             // touch too: every gesture landing here is consumed, never
