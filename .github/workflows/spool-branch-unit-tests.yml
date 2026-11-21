@@ -1,46 +1,23 @@
-name: Unit tests on a Spool branch (no APK, no release)
-# Test-only verification for the taste-aware moods branch. Builds nothing
-# shippable: no assemble*, no signing, no release upload. Compares the branch
-# against its base so failures that predate the change are visible as such.
-# Platform prep mirrors the 2.1.1 build workflow: platforms;android-37.0 plus
-# an init script remapping compileSdk, since AGP has no stable android-37 id.
+name: Targeted player visible-tab selector verification, no release
 on:
   push:
     branches: [taste-aware-moods]
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: Branch or tag under test
-        required: true
-        default: taste-aware-moods
-      base:
-        description: Base ref for the comparison run
-        required: true
-        default: v2.1.1
-      include_base:
-        description: Also run the unresolved v2.1.1 comparison lane explicitly
-        type: boolean
-        required: false
-        default: false
+    paths: ['.github/workflows/spool-branch-unit-tests.yml']
 permissions:
   contents: read
 jobs:
-  unit-tests:
+  player-selector:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        # Pushes and normal dispatch verify the full branch suite only.
-        # The baseline remains unresolved, not a passing/waived comparison.
-        target: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.include_base == true && '["branch","base"]' || '["branch"]') }}
+    timeout-minutes: 35
     steps:
     - uses: actions/checkout@v4
       with:
-        # On push, inputs.* are empty: branch tests the pushed SHA, base tests
-        # the real v2.1.1 baseline (previously both legs silently tested the
-        # same pushed SHA).
-        ref: ${{ matrix.target == 'branch' && (inputs.ref || github.sha) || (inputs.base || 'v2.1.1') }}
+        ref: e290e8c945cc51d744445ebffb3cdf6c483eff17
+        path: product
+    - uses: actions/checkout@v4
+      with:
+        ref: dbb0572512f3a8462075ba311f41b9935540db40
+        path: test-source
     - uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -60,29 +37,58 @@ jobs:
           }
         }
         INIT
-    - name: Record exact checkout
+    - name: Verify immutable product and exact approved test overlay
+      working-directory: product
+      shell: bash
       run: |
-        echo "matrix target: ${{ matrix.target }}"
-        echo "CHECKED_OUT_SHA=$(git rev-parse HEAD)"
-    - name: Runner diagnostics (sizes any memory decision with facts)
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = e290e8c945cc51d744445ebffb3cdf6c483eff17
+        test -z "$(git status --porcelain)"
+        test "$(git -C ../test-source rev-parse HEAD)" = dbb0572512f3a8462075ba311f41b9935540db40
+        echo '38f14126e33ef82ef7a41a65eb2ba0b3cba68320daaf3e844e092129de5e2002  ../test-source/app/src/test/java/com/music/bitchord/PlayerContextLayerDiscriminatorTest.kt' | sha256sum -c -
+        cp ../test-source/app/src/test/java/com/music/bitchord/PlayerContextLayerDiscriminatorTest.kt app/src/test/java/com/music/bitchord/PlayerContextLayerDiscriminatorTest.kt
+        git diff --stat
+    - name: Exact five-method class only
+      working-directory: product
+      shell: bash
       run: |
-        nproc
-        free -h
-        java -version 2>&1
-        java -XX:+PrintFlagsFinal -version 2>&1 | grep -E 'MaxHeapSize|MaxRAM' || true
-    - name: Unit tests (shared JVM + app dev unit tests)
-      # timeout bounds a hung test VM at 25 min so artifacts still upload
-      # instead of dying at the 60-min job cap; the exit code is preserved.
-      run: timeout 1500 ./gradlew --init-script /tmp/platform.gradle :shared:jvmTest :app:testDevDebugUnitTest --no-daemon
-    - name: Upload test reports
+        set -euo pipefail
+        timeout 1500 ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.PlayerContextLayerDiscriminatorTest --no-daemon 2>&1 | tee player-selector-gradle.log
+    - name: Reconcile exact class methods and retained PNG pairs
+      if: always()
+      working-directory: product
+      shell: bash
+      run: |
+        python3 - <<'PYTHON'
+        import hashlib,json,pathlib,xml.etree.ElementTree as ET
+        root=pathlib.Path('.')
+        expected={'unchangedAutoBoundary','forcedParentOffscreenBoundary','forcedParentOffscreenExactSemanticsDiagnostic','forcedParentOffscreenExactVisibleTouchDiagnostic','zeroAreaDuplicateCannotBeAVisibleTab'}
+        files=list(root.glob('app/build/test-results/testDevDebugUnitTest/TEST-*.xml'))
+        cases=[]
+        for file in files:
+            cases.extend(ET.parse(file).getroot().iter('testcase'))
+        assert len(cases)==5 and {c.attrib['name'] for c in cases}==expected
+        assert all(c.attrib['classname']=='com.music.bitchord.PlayerContextLayerDiscriminatorTest' for c in cases)
+        assert all(not any(c.find(tag) is not None for tag in ('failure','error','skipped')) for c in cases)
+        names={'player_context_layer_'+mode+suffix+'.png' for mode in ('auto','offscreen','offscreen_semantics','offscreen_exact_touch') for suffix in ('','_artwork')}
+        shots=[p for p in root.glob('app/build/outputs/roborazzi/**/*.png') if p.name in names]
+        assert len(shots)==8 and {p.name for p in shots}==names
+        rows=[]
+        for p in shots:
+            b=p.read_bytes();assert b[:8]==b'\x89PNG\r\n\x1a\n' and len(b)>100
+            rows.append(dict(path=str(p),bytes=len(b),sha256=hashlib.sha256(b).hexdigest()))
+        (root/'player-selector-reconciliation.json').write_text(json.dumps(dict(methods=sorted(expected),screenshots=rows),indent=2))
+        PYTHON
+    - name: Evidence only, no APKs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: unit-tests-${{ matrix.target }}
+        name: player-selector-five-method-evidence
         path: |
-          **/build/test-results/
-          **/build/reports/tests/
-          **/build/outputs/roborazzi/
-          **/hs_err_pid*.log
-          **/replay_pid*.log
+          product/app/build/test-results/testDevDebugUnitTest/
+          product/app/build/reports/tests/testDevDebugUnitTest/
+          product/app/build/outputs/roborazzi/
+          product/player-selector-gradle.log
+          product/player-selector-reconciliation.json
+          product/**/hs_err_pid*.log
         if-no-files-found: warn
