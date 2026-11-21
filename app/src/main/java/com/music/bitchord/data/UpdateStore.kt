@@ -17,6 +17,8 @@ internal data class UpdateAttempt(
     val session: Int = -1,
     val installToken: String = "",
     val legacy: Boolean = false,
+    val autoInstallPending: Boolean = false,
+    val permissionHandoffLaunched: Boolean = false,
 ) {
     fun directory(c: Context) = File(c.noBackupFilesDir, "ota/$token")
     fun transfer(c: Context) = File(requireNotNull(c.getExternalFilesDir(null)), "updates/$token/download.bin")
@@ -35,7 +37,7 @@ internal object UpdateStore {
             .put("version",i.version).put("apk",i.apkUrl).put("release",i.releaseUrl)
             .put("sha",i.sha256).put("size",i.sizeBytes).put("notes",i.notes?.take(8192) ?: "")
             .put("releaseId",i.releaseId ?: "").put("assetId",i.assetId ?: "")
-            .put("legacy",a.legacy).put("message",a.message.take(1024)).put("session",a.session).put("installToken",a.installToken)
+            .put("permissionHandoffLaunched",a.permissionHandoffLaunched).put("autoInstallPending",a.autoInstallPending).put("legacy",a.legacy).put("message",a.message.take(1024)).put("session",a.session).put("installToken",a.installToken)
         a.delta?.let { d -> j.put("delta",JSONObject().put("baseCode",d.baseCode).put("baseSize",d.baseSize)
             .put("baseHash",d.baseSha256).put("url",d.url).put("size",d.size).put("sha",d.sha256)
             .put("code",d.targetCode).put("min",d.minSdk).put("abi",d.abi)) }
@@ -65,6 +67,6 @@ internal object UpdateStore {
             }
         }
         val phase=j.getString("phase");require(phase in setOf("preparing","queued","downloading","waiting","verifying","applying","ready","failed","fallback","cancelled","permission","staging","confirmation","installing","installed"))
-        return UpdateAttempt(token,i,phase,j.optLong("id",-1),d,j.optString("message"),j.optInt("session",-1),j.optString("installToken"),j.optBoolean("legacy",false))
+        return UpdateAttempt(token,i,phase,j.optLong("id",-1),d,j.optString("message"),j.optInt("session",-1),j.optString("installToken"),j.optBoolean("legacy",false),j.optBoolean("autoInstallPending",false),j.optBoolean("permissionHandoffLaunched",false))
     }
 }
