@@ -58,15 +58,18 @@ abstract class IntegratedRootHeaderScreenshotTestBase {
   }
   val taps=mutableListOf<TopPick>()
   var measured by mutableIntStateOf(0)
+  var signInCalls = 0
+  var homeList: androidx.compose.foundation.lazy.LazyListState? = null
   compose.setContent { CompositionLocalProvider(LocalDensity provides Density(1f,scale)) {
    BitChordTheme(darkTheme=dark) {
     Box(Modifier.width(width.dp).height(740.dp).background(MaterialTheme.colorScheme.background).testTag("integrated-root")) {
      val padding=PaddingValues(top=measured.dp+12.dp,bottom=80.dp)
      val list=rememberLazyListState()
+     if(page == "Listen") homeList = list
      when(page) {
       "Listen" -> HomeScreen(state=UiState.Success(emptyList()),listState=list,onItemClick={_,_->},onRetry={},
        refreshing=false,onRefresh={},pullState=rememberPullToRefreshState(),contentPadding=padding,
-       title="Listen",showTitle=false,signedIn=false,onSignIn={},onSearchClick={},onMoodClick={_,_->},
+       title="Listen",showTitle=false,signedIn=false,onSignIn={signInCalls++},onSearchClick={},onMoodClick={_,_->},
        topPicks=prepared,onTopPickClick={pick,_->taps+=pick})
       "Explore" -> ExploreScreen(state=UiState.Success(listOf(MoodGenreSection("Moods & moments",emptyList()))),
        listState=list,onCategoryClick={},onRetry={},refreshing=false,onRefresh={},
@@ -100,6 +103,72 @@ abstract class IntegratedRootHeaderScreenshotTestBase {
   assertTrue("first content below measured header",bounds.top>=measured)
   assertTrue("no extra toolbar-sized gap",bounds.top-measured<55)
   compose.onNodeWithTag("integrated-root").captureRoboImage("build/outputs/roborazzi/integrated_${page}_${width}_${scale}_${if(art)"loaded" else "fallback"}_${if(dark)"dark" else "light"}.png", roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
+  if(page == "Listen" && width == 320 && scale == 2f) {
+   // Additional reachability check AFTER all original assertions/captures.
+   // The Google row is a visual button inside the production clickable banner;
+   // bind that actual merged OnClick ancestor, not a made-up Role.Button.
+   val googleText = hasText("Sign in with Google")
+   val signInTarget = googleText and hasClickAction() and isEnabled()
+   val candidates = compose.onAllNodes(signInTarget).fetchSemanticsNodes()
+   assertEquals("Exactly one production Google sign-in click target", 1, candidates.size)
+   val id = candidates.single().id
+   val actual = compose.onNode(SemanticsMatcher("captured Google sign-in banner id=$id") { it.id == id })
+   val unmergedCard = compose.onNode(SemanticsMatcher("captured card unmerged") { it.id == id }, useUnmergedTree=true)
+   val labelCandidates = compose.onAllNodes(googleText, useUnmergedTree=true).fetchSemanticsNodes().filter { node ->
+    generateSequence(node.parent) { it.parent }.any { it.id == id }
+   }
+   assertEquals("Exactly one Google label descendant of captured card", 1, labelCandidates.size)
+   val labelId = labelCandidates.single().id
+   val labelTarget = compose.onNode(SemanticsMatcher("captured card Google label id=$labelId") { it.id == labelId }, useUnmergedTree=true)
+   val listNode = generateSequence(unmergedCard.fetchSemanticsNode().parent) { it.parent }.firstOrNull {
+    it.config.contains(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) &&
+     it.config.contains(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange)
+   } ?: error("Captured sign-in card has no vertical scrolling ancestor")
+   val listId = listNode.id
+   val listTarget = compose.onNode(SemanticsMatcher("same enclosing Home list id=$listId") { it.id == listId }, useUnmergedTree=true)
+   val before = homeList!!.firstVisibleItemIndex to homeList!!.firstVisibleItemScrollOffset
+   println("HOME-SIGNIN-BEFORE card=$id label=$labelId list=$listId state=$before")
+   actual.performScrollTo()
+   compose.waitForIdle()
+   val root = compose.onNodeWithTag("integrated-root").getUnclippedBoundsInRoot()
+   // Dp bounds equal pixels in this fixture's Density1, not Android insets.
+   val safeTop = root.top.value + measured
+   val safeBottom = root.bottom.value - 80f
+   fun full(target: SemanticsNodeInteraction): androidx.compose.ui.geometry.Rect {
+    val b = target.getUnclippedBoundsInRoot()
+    return androidx.compose.ui.geometry.Rect(b.left.value, b.top.value, b.right.value, b.bottom.value)
+   }
+   fun inside(b: androidx.compose.ui.geometry.Rect) = b.width > 0f && b.height > 0f &&
+    b.left >= root.left.value && b.right <= root.right.value && b.top >= safeTop && b.bottom <= safeBottom
+   for(attempt in 0 until 8) {
+    val card = full(actual)
+    val label = full(labelTarget)
+    check(card.height <= safeBottom-safeTop && card.width <= root.width.value) { "Sign-in target is oversized: $card" }
+    if(inside(card) && inside(label)) break
+    val delta = if(card.bottom > safeBottom) card.bottom-safeBottom else card.top-safeTop
+    check(kotlin.math.abs(delta) > 0.5f) { "No useful scroll delta for hidden sign-in target" }
+    val previous = homeList!!.firstVisibleItemIndex to homeList!!.firstVisibleItemScrollOffset
+    listTarget.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { scroll ->
+     check(scroll(0f, delta)) { "Home list rejected measured scroll" }
+    }
+    compose.waitForIdle()
+    val next = homeList!!.firstVisibleItemIndex to homeList!!.firstVisibleItemScrollOffset
+    check(previous != next) { "Home list made no scroll progress: $previous" }
+   }
+   val after = homeList!!.firstVisibleItemIndex to homeList!!.firstVisibleItemScrollOffset
+   assertNotEquals("Clipped initial sign-in target must really scroll into view", before, after)
+   val card = full(actual)
+   val label = full(labelTarget)
+   assertTrue("Whole unclipped banner within fixture safe band: $card / $safeTop..$safeBottom", inside(card))
+   assertTrue("Unclipped captured Google label within fixture safe band: $label", inside(label))
+   compose.onNodeWithTag("integrated-root").captureRoboImage(
+    "build/outputs/roborazzi/integrated_Listen_320_2.0_signin_scrolled_${if(dark)"dark" else "light"}.png",
+    roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
+   // Touch the visual Google row, whose clickable ancestor is the bound banner.
+   labelTarget.performTouchInput { click() }
+   compose.runOnIdle { assertEquals("Production sign-in callback invoked exactly once", 1, signInCalls) }
+   println("HOME-SIGNIN-REACHABLE id=$id card=$card label=$label list=$after callback=$signInCalls")
+  }
  }
 }
 class IntegratedRootHeaderScreenshotTest_listenDark:IntegratedRootHeaderScreenshotTestBase(){@Test fun verify()=shot("Listen",true)}
