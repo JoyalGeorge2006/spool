@@ -64,7 +64,7 @@ class PlayerContextLayerDiscriminatorTest {
         }
     }
     @get:Rule(order=2) val compose = createComposeRule()
-    private fun capture(offscreen: Boolean) {
+    private fun capture(offscreen: Boolean, directSemantics: Boolean = false) {
         val fixture = V6ScreenshotTest()
         fixture.installUiHost()
         val restore = fixture.installVideoStubHost()
@@ -105,7 +105,7 @@ class PlayerContextLayerDiscriminatorTest {
             }
             // Preserve evidence even if the specific cover request times out.
             val coverFailure = runCatching { compose.waitUntil(10_000) { loaded.get() } }.exceptionOrNull()
-            val mode = if(offscreen) "offscreen" else "auto"
+            val mode = if(directSemantics) "offscreen_semantics" else if(offscreen) "offscreen" else "auto"
             val artworkPath = "build/outputs/roborazzi/player_context_layer_${mode}_artwork.png"
             fun record(): Unit {
                 compose.onNodeWithTag("player-context-layer-control").captureRoboImage(
@@ -143,7 +143,37 @@ class PlayerContextLayerDiscriminatorTest {
                 val b=it.boundsInRoot
                 b.left>=0f && b.right<=390f && b.top>=0f && b.bottom<=780f
             }
-            compose.onAllNodes(visibleRelated).onFirst().performClick()
+            val matches = compose.onAllNodes(visibleRelated).fetchSemanticsNodes()
+            println("PLAYER-RELATED-MATCHES mode=$mode count=${matches.size}")
+            matches.forEach { node ->
+                println("PLAYER-RELATED-MATCH mode=$mode id=${node.id} bounds=${node.boundsInRoot} config=${node.config}")
+            }
+            if (directSemantics) {
+                // Separate diagnostic condition: exact visible, enabled Tab
+                // with its own OnClick. Never a fallback that greens the
+                // unchanged original touch-path Offscreen control.
+                val exactTab = visibleRelated and SemanticsMatcher("positive-size Related tab") {
+                    it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f
+                } and hasClickAction() and isEnabled() and
+                    SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role,
+                        androidx.compose.ui.semantics.Role.Tab)
+                val nodes = compose.onAllNodes(exactTab).fetchSemanticsNodes()
+                check(nodes.size == 1) { "Expected one visible enabled Related Tab, got ${nodes.size}" }
+                val id = nodes.single().id
+                println("PLAYER-RELATED-EXACT-SEMANTICS mode=$mode id=$id bounds=${nodes.single().boundsInRoot}")
+                compose.onNode(SemanticsMatcher("exact captured Related Tab") { it.id == id })
+                    .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click ->
+                        check(click()) { "Exact Related semantics action declined" }
+                    }
+            } else {
+                check(matches.isNotEmpty()) { "No visible Related match" }
+                val id = matches.first().id
+                println("PLAYER-RELATED-ORIGINAL-TOUCH mode=$mode id=$id bounds=${matches.first().boundsInRoot}")
+                // This log is pre-click selection evidence, not atomic clicked-ID
+                // proof: onFirst is deliberately re-resolved by original code.
+                // Preserve original merged-tree selector and touch mechanics.
+                compose.onAllNodes(visibleRelated).onFirst().performClick()
+            }
             compose.mainClock.advanceTimeBy(1800)
             compose.waitForIdle()
             println("PLAYER-RELATED-AFTER mode=$mode requests=${relatedRequests.get()}\n"+compose.onRoot(useUnmergedTree=true).printToString())
@@ -163,4 +193,5 @@ class PlayerContextLayerDiscriminatorTest {
     }
     @Test fun unchangedAutoBoundary() = capture(false)
     @Test fun forcedParentOffscreenBoundary() = capture(true)
+    @Test fun forcedParentOffscreenExactSemanticsDiagnostic() = capture(true, directSemantics = true)
 }
