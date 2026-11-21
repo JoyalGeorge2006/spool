@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">לא ניתן להשמיע את הרצועה הזו</string>
     <string name="tap_to_retry">יש להקיש כדי לנסות שוב</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">ניסיון נוסף</string>
+    <string name="find_your_mood">מצא את מצב הרוח שלך</string>
+    <string name="home_history">היסטוריה</string>
+    <string name="mood_focus">ריכוז</string>
+    <string name="mood_party">מסיבה</string>
+    <string name="mood_relax">רוגע</string>
+    <string name="mood_sleep">שינה</string>
+    <string name="remove">הסרה</string>
+    <string name="sign_in_with_google">התחברות עם Google</string>
+    <string name="spool_related_add_to_queue">הוסף לתור</string>
+    <string name="spool_related_retry">ניסיון נוסף</string>
 </resources>
