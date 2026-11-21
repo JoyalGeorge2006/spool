@@ -1,6 +1,7 @@
 package com.music.bitchord
 
 import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -9,6 +10,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
@@ -56,7 +59,7 @@ class StatusStripEmulatorTest {
             shot.recycle()
         } else {
             // Fallback: app window only, still shows the strip over content.
-            saveBitmap(name, compose.onRoot().captureToImage())
+            saveBitmap(name, compose.onRoot().captureToImage().asAndroidBitmap())
         }
     }
 
@@ -126,6 +129,55 @@ class StatusStripEmulatorTest {
             val stripInSettings = stripBounds()
             assertTrue("strip must exist on the Settings page too", stripInSettings != null)
             assertEquals(0f, stripInSettings!!.top, 1f)
+        }
+    }
+
+    /**
+     * Malayalam runtime proof: switch the real app to ml via the same
+     * mechanism the picker uses, then capture real pages so glyph fallback,
+     * layout and truncation can be reviewed on actual pixels.
+     */
+    @Test
+    fun malayalamLocaleRendersRealGlyphs() {
+        compose.waitForIdle()
+        Thread.sleep(6000)
+        compose.waitForIdle()
+        try {
+            compose.runOnUiThread {
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("ml"))
+            }
+            Thread.sleep(4000)
+            compose.waitForIdle()
+            fullScreenshot("10-ml-home-light")
+
+            compose.onRoot().performTouchInput { swipeUp() }
+            compose.waitForIdle()
+            Thread.sleep(1500)
+            fullScreenshot("11-ml-home-light-scrolled")
+
+            nightMode(true)
+            fullScreenshot("12-ml-home-dark")
+            nightMode(false)
+
+            val settingsEntry = compose.onAllNodesWithContentDescription(
+                "Settings", substring = true, ignoreCase = true, useUnmergedTree = true,
+            ).fetchSemanticsNodes()
+            if (settingsEntry.isNotEmpty()) {
+                compose.onAllNodesWithContentDescription(
+                    "Settings", substring = true, ignoreCase = true, useUnmergedTree = true,
+                )[0].performClick()
+                compose.waitForIdle()
+                Thread.sleep(2000)
+                fullScreenshot("13-ml-settings-light")
+                compose.onRoot().performTouchInput { swipeUp() }
+                compose.waitForIdle()
+                Thread.sleep(1200)
+                fullScreenshot("14-ml-settings-light-scrolled")
+            }
+        } finally {
+            compose.runOnUiThread {
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+            }
         }
     }
 
