@@ -10,6 +10,10 @@ import com.music.bitchord.data.model.TopPick
 import com.music.bitchord.data.model.TopPickKind
 import com.music.bitchord.data.model.TopPickMood
 import com.music.bitchord.data.model.WatchTarget
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -73,13 +77,15 @@ object TopPicks {
         val bound = boundTaste ?: return null
         return bound.snapshot.takeIf { bound.generation == com.music.bitchord.data.innertube.Innertube.listenerGeneration }
     }
-    private val taste: Taste.Snapshot? get() = currentTaste()
+    // Preserve the existing positive-profile steering defaults. Exact negatives
+    // remain available to mood playback through the raw bound snapshot.
+    private val taste: Taste.Snapshot? get() = currentTaste()?.takeUnless { it.isEmpty }
 
     fun updateTaste(snapshot: Taste.Snapshot?) = updateTaste(snapshot, com.music.bitchord.data.innertube.Innertube.listenerGeneration)
 
     fun updateTaste(snapshot: Taste.Snapshot?, generation: Long) {
         com.music.bitchord.data.innertube.Innertube.ifCurrentListener(generation) {
-            boundTaste = BoundTaste(generation, snapshot?.takeUnless { it.isEmpty })
+            boundTaste = BoundTaste(generation, snapshot)
         }
     }
 
@@ -93,7 +99,78 @@ object TopPicks {
             TopPickMood.entries.none { it.name == seed.playbackSourceId }) return emptySet()
         val bound = boundTaste
         if (bound != null && bound.generation != com.music.bitchord.data.innertube.Innertube.listenerGeneration) return emptySet()
-        val excluded = bound?.snapshot?.dislikedIds.orEmpty().toMutableSet()
+        return moodDislikedIds(bound?.snapshot)
+    }
+
+    /** Carry known exact negatives into a same-listener profile rebuild. */
+    fun knownMoodDislikedIds(): Set<String> {
+        val bound = boundTaste
+        if (bound != null && bound.generation != com.music.bitchord.data.innertube.Innertube.listenerGeneration) return emptySet()
+        return moodDislikedIds(bound?.snapshot)
+    }
+
+    /** Re-read exact negatives at the final same-listener publication boundary. */
+    fun reconcileTaste(snapshot: Taste.Snapshot, generation: Long): Taste.Snapshot? {
+        var result: Taste.Snapshot? = null
+        com.music.bitchord.data.innertube.Innertube.ifCurrentListener(generation) {
+            val known = currentTaste()?.dislikedIds.orEmpty()
+            result = snapshot.copy(dislikedIds = moodDislikedIds(
+                snapshot.copy(dislikedIds = (snapshot.dislikedIds + known).distinct()),
+            ).toList())
+        }
+        return result
+    }
+
+    /** Same-listener taste publication, not an arbitrary identity-lock callback. */
+    fun publishTaste(snapshot: Taste.Snapshot, generation: Long): Taste.Snapshot? {
+        var published: Taste.Snapshot? = null
+        com.music.bitchord.data.innertube.Innertube.ifCurrentListener(generation) {
+            reconcileTaste(snapshot, generation)?.let { latest ->
+                boundTaste = BoundTaste(generation, latest)
+                published = latest
+            }
+        }
+        return published
+    }
+
+    /** Prepare off-lock; only the final same-directory atomic rename is fenced.
+     * Ratings changed during preparation retry. LikeState is not serialized by
+     * the identity lock: a rating concurrent with final rename remains a live
+     * override and is captured on the next save, not promised durable here.
+     * Existing destination is never deleted when preparation/publication fails.
+     */
+    suspend fun persistTaste(
+        destination: java.io.File, listener: String?, snapshot: Taste.Snapshot, generation: Long,
+    ): Boolean = withContext(Dispatchers.IO) {
+        repeat(3) {
+            currentCoroutineContext().ensureActive()
+            val ratings = LikeState.overrides.value
+            val baseline = currentTaste()
+            val latest = reconcileTaste(snapshot, generation) ?: return@withContext false
+            val temporary = java.io.File.createTempFile("taste-prepared-", ".json", destination.parentFile)
+            try {
+                temporary.writeText(encodeTaste(listener, latest))
+                currentCoroutineContext().ensureActive()
+                var installed = false
+                com.music.bitchord.data.innertube.Innertube.ifCurrentListener(generation) {
+                    if (ratings == LikeState.overrides.value && baseline == currentTaste()) {
+                        java.nio.file.Files.move(temporary.toPath(), destination.toPath(),
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                        boundTaste = BoundTaste(generation, latest)
+                        installed = true
+                    }
+                }
+                if (installed) return@withContext true
+                if (generation != com.music.bitchord.data.innertube.Innertube.listenerGeneration)
+                    return@withContext false
+            } finally { temporary.delete() }
+        }
+        false
+    }
+
+    private fun moodDislikedIds(snapshot: Taste.Snapshot?): Set<String> {
+        val excluded = snapshot?.dislikedIds.orEmpty().toMutableSet()
         LikeState.overrides.value.forEach { (id, rating) ->
             if (rating == com.music.bitchord.data.model.LikeStatus.DISLIKE) excluded += id
             else excluded -= id
@@ -557,6 +634,7 @@ object TopPicks {
      * wins; two of its playlists are drawn at random and mixed.
      */
     private suspend fun moodQueue(pick: TopPick): Result<List<Song>> = coroutineScope {
+        val generation = com.music.bitchord.data.innertube.Innertube.listenerGeneration
         val mood = pick.mood ?: return@coroutineScope Result.failure(IllegalStateException("mood card without a mood"))
         val shelves = YtMusicRepository.moodGenreShelves(TopPickMood.CATEGORY_BROWSE_ID, mood.params)
             .getOrElse { return@coroutineScope Result.failure(it) }
@@ -587,7 +665,13 @@ object TopPicks {
         // chart toppers the mood already carries, open on their artists and
         // likes, and sink what they keep skipping — all of it fail-closed
         // back to the queue as fetched.
-        Result.success(Taste.personalize(fetched, taste))
+        if (generation != com.music.bitchord.data.innertube.Innertube.listenerGeneration)
+            return@coroutineScope Result.failure(IllegalStateException("Listener changed while mood loaded"))
+        val snapshot = currentTaste()
+        val effective = (snapshot ?: Taste.Snapshot()).copy(dislikedIds = moodDislikedIds(snapshot).toList())
+        val personalized = Taste.personalizeMood(fetched, effective)
+        if (personalized.isEmpty()) Result.failure(IllegalStateException("$mood has no permitted tracks"))
+        else Result.success(personalized)
     }
 
     private const val MOOD_PLAYLISTS = 3
