@@ -2,19 +2,15 @@ package com.music.bitchord
 
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeUp
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
+import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.settings.ThemeMode
 import java.io.File
 import java.io.FileOutputStream
 import org.junit.Assert.assertEquals
@@ -35,9 +31,20 @@ import org.junit.runners.JUnit4
  * content beneath it. Screenshots land in the app's external files dir and
  * are pulled by the workflow for human pixel review.
  *
- * Page navigation beyond Home is best-effort (network-dependent content may
- * or may not render on a CI emulator); the assertions above never depend on
- * it. Anything not reached here stays on the untested list, disclosed.
+ * Every page-specific capture is gated on asserted identity, because a
+ * mislabeled screenshot is worse than none:
+ * - Onboarding is completed first (a fresh install would otherwise capture
+ *   the welcome flow under a Home/Settings name - it renders nothing of
+ *   either page).
+ * - "Home" means the Home TAB: the Listen tab is selected by clicking it,
+ *   then the history button and account button of the Home title row must
+ *   both be present (neither exists on onboarding; the account button is
+ *   suppressed on Settings).
+ * - "Settings" means the Settings page title is showing AND the Home-only
+ *   account button is gone.
+ * - Light/dark is not implied by the file name: the app theme is set
+ *   explicitly, and each capture's strip pixels are sampled to prove the
+ *   rendered surface matches the label before the shot is kept.
  */
 @RunWith(JUnit4::class)
 class StatusStripEmulatorTest {
@@ -53,22 +60,56 @@ class StatusStripEmulatorTest {
         println("SHOT-SAVED ${out.absolutePath} bytes=${out.length()}")
     }
 
-    /** Full screen including the system status bar icons (API 30+). */
-    private fun fullScreenshot(name: String) {
+    /** Median relative luminance of samples taken across the strip band. */
+    private fun stripLuminance(bitmap: Bitmap): Double {
+        val strip = stripBounds()
+        val top = ((strip?.top ?: 0f) + 2f).toInt().coerceIn(0, bitmap.height - 1)
+        val bottom = ((strip?.bottom ?: 0f) - 2f).toInt().coerceIn(top, bitmap.height - 1)
+        val lums = mutableListOf<Double>()
+        for (fx in listOf(0.08f, 0.25f, 0.42f, 0.58f, 0.75f, 0.92f)) {
+            val x = (bitmap.width * fx).toInt().coerceIn(0, bitmap.width - 1)
+            val y = (top + bottom) / 2
+            val c = bitmap.getPixel(x, y)
+            val r = android.graphics.Color.red(c) / 255.0
+            val g = android.graphics.Color.green(c) / 255.0
+            val b = android.graphics.Color.blue(c) / 255.0
+            lums.add(0.2126 * r + 0.7152 * g + 0.0722 * b)
+        }
+        lums.sort()
+        return lums[lums.size / 2]
+    }
+
+    /**
+     * Full screen including the system status bar icons (API 30+). When
+     * [expectDark] is non-null the strip band is sampled and must match the
+     * mode the file name claims: the strip is painted in the theme's surface
+     * colour, so its luminance is the rendered-mode truth, not a setting.
+     */
+    private fun fullScreenshot(name: String, expectDark: Boolean? = null) {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         val shot = automation.takeScreenshot()
         if (shot != null) {
+            if (expectDark != null) {
+                val lum = stripLuminance(shot)
+                assertTrue(
+                    "capture '$name' labeled ${if (expectDark) "dark" else "light"} but strip luminance is $lum",
+                    if (expectDark) lum < 0.35 else lum > 0.65,
+                )
+            }
             saveBitmap(name, shot)
             shot.recycle()
         } else {
             // Fallback: app window only, still shows the strip over content.
-            saveBitmap(name, compose.onRoot().captureToImage().asAndroidBitmap())
+            val bmp = compose.onRoot().captureToImage().asAndroidBitmap()
+            saveBitmap(name, bmp)
         }
     }
 
-    private fun nightMode(on: Boolean) {
+    /** App theme AND system night mode set together, then let it settle. */
+    private fun theme(dark: Boolean) {
         InstrumentationRegistry.getInstrumentation().uiAutomation
-            .executeShellCommand("cmd uimode night " + if (on) "yes" else "no").close()
+            .executeShellCommand("cmd uimode night " + if (dark) "yes" else "no").close()
+        AppSettings.setThemeMode(if (dark) ThemeMode.DARK else ThemeMode.LIGHT)
         Thread.sleep(2000)
         compose.waitForIdle()
     }
@@ -77,12 +118,112 @@ class StatusStripEmulatorTest {
         compose.onAllNodesWithTag("status-bar-strip", useUnmergedTree = true)
             .fetchSemanticsNodes().firstOrNull()?.boundsInRoot
 
+    /**
+     * Fresh installs open on the welcome flow; without this every capture
+     * below would be the onboarding page wearing a Home/Settings label.
+     * setOnboardingComplete persists and flips the StateFlow, so the
+     * welcome animates away in the already-running activity. The Diwali
+     * greeting fires once right after onboarding - dismiss it up front so
+     * it can never stand between the test and the real pages.
+     */
+    private fun completeOnboarding() {
+        AppSettings.setOnboardingComplete()
+        AppSettings.setDiwaliGreetingShown()
+        compose.waitForIdle()
+        Thread.sleep(2500)
+        compose.waitForIdle()
+    }
+
+    /**
+     * Home identity, not just "past onboarding": force the Home tab via its
+     * Listen label, then require the Home title row's history button (only
+     * rendered on the Home and Library tabs, never on Settings) and the
+     * account button (suppressed on Settings). Both labels are localized,
+     * so callers pass the strings of the active locale.
+     */
+    private fun assertHomeVisible(listenTab: String, historyLabel: String) {
+        val tab = hasClickAction() and (
+            hasContentDescription(listenTab) or hasAnyDescendant(hasContentDescription(listenTab))
+            )
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(tab, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        val tabs = compose.onAllNodes(tab, useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue("bottom bar must expose the Listen tab", tabs.isNotEmpty())
+        compose.onAllNodes(tab, useUnmergedTree = true)[0].performClick()
+        compose.waitForIdle()
+        Thread.sleep(1500)
+        compose.waitForIdle()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("header-profile-surface", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodes(
+                    hasContentDescription(historyLabel) or hasAnyDescendant(hasContentDescription(historyLabel)),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue(
+            "Home identity: account button must be visible",
+            compose.onAllNodesWithTag("header-profile-surface", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty(),
+        )
+        assertTrue(
+            "Home identity: history button ('$historyLabel') must be visible on the Home tab",
+            compose.onAllNodes(
+                hasContentDescription(historyLabel) or hasAnyDescendant(hasContentDescription(historyLabel)),
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
+    /**
+     * Opens Settings through the same path a person uses (the Home title
+     * row's account button) and asserts the Settings page actually arrived:
+     * its localized title is showing and the Home-only account button is
+     * gone. Fails the test when the page cannot be reached, instead of
+     * capturing whatever is on screen.
+     */
+    private fun openSettingsAndAssert(settingsLabel: String, settingsTitle: String) {
+        val accountButton = hasClickAction() and (
+            hasContentDescription(settingsLabel) or
+                hasAnyDescendant(hasContentDescription(settingsLabel))
+            )
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(accountButton, useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        val buttons = compose.onAllNodes(accountButton, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+        assertTrue("Home must expose the account button that opens Settings", buttons.isNotEmpty())
+        compose.onAllNodes(accountButton, useUnmergedTree = true)[0].performClick()
+        compose.waitForIdle()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(settingsTitle).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag("header-profile-surface", useUnmergedTree = true)
+                    .fetchSemanticsNodes().isEmpty()
+        }
+        assertTrue(
+            "Settings identity: title '$settingsTitle' must be visible after tapping the account button",
+            compose.onAllNodesWithText(settingsTitle).fetchSemanticsNodes().isNotEmpty(),
+        )
+        assertTrue(
+            "Settings identity: the Home-only account button must be gone on Settings",
+            compose.onAllNodesWithTag("header-profile-surface", useUnmergedTree = true)
+                .fetchSemanticsNodes().isEmpty(),
+        )
+        Thread.sleep(1500)
+        compose.waitForIdle()
+    }
+
     @Test
     fun realAppPagesUnderRealStatusBar() {
         compose.waitForIdle()
+        completeOnboarding()
         // Give Home's network content a chance; whatever renders is real.
         Thread.sleep(6000)
         compose.waitForIdle()
+        theme(dark = false)
+        assertHomeVisible("Listen", "Listening history")
 
         val bounds = stripBounds()
         assertTrue("status-bar-strip must exist in the real running app", bounds != null)
@@ -99,7 +240,7 @@ class StatusStripEmulatorTest {
         )
         assertEquals("strip must sit at the very top", 0f, bounds.top, 1f)
 
-        fullScreenshot("01-home-light")
+        fullScreenshot("01-home-light", expectDark = false)
 
         // Scroll the real page; the strip must stay pinned at the top.
         compose.onRoot().performTouchInput { swipeUp() }
@@ -108,41 +249,34 @@ class StatusStripEmulatorTest {
         val afterScroll = stripBounds()
         assertTrue(afterScroll != null)
         assertEquals(0f, afterScroll!!.top, 1f)
-        fullScreenshot("02-home-light-scrolled")
+        fullScreenshot("02-home-light-scrolled", expectDark = false)
 
-        nightMode(true)
-        fullScreenshot("03-home-dark")
-        nightMode(false)
+        theme(dark = true)
+        fullScreenshot("03-home-dark", expectDark = true)
+        theme(dark = false)
 
-        // Best effort: open Settings from wherever the real UI exposes it.
-        val settingsEntry = compose.onAllNodesWithContentDescription(
-            "Settings", substring = true, ignoreCase = true, useUnmergedTree = true,
-        ).fetchSemanticsNodes()
-        if (settingsEntry.isNotEmpty()) {
-            compose.onAllNodesWithContentDescription(
-                "Settings", substring = true, ignoreCase = true, useUnmergedTree = true,
-            )[0].performClick()
-            compose.waitForIdle()
-            Thread.sleep(2000)
-            fullScreenshot("04-settings-light")
-            compose.onRoot().performTouchInput { swipeUp() }
-            compose.waitForIdle()
-            Thread.sleep(1200)
-            fullScreenshot("05-settings-light-scrolled")
-            val stripInSettings = stripBounds()
-            assertTrue("strip must exist on the Settings page too", stripInSettings != null)
-            assertEquals(0f, stripInSettings!!.top, 1f)
-        }
+        // Settings, reached the way a person reaches it; identity asserted.
+        openSettingsAndAssert("Settings", "Settings")
+        fullScreenshot("04-settings-light", expectDark = false)
+        compose.onRoot().performTouchInput { swipeUp() }
+        compose.waitForIdle()
+        Thread.sleep(1200)
+        fullScreenshot("05-settings-light-scrolled", expectDark = false)
+        val stripInSettings = stripBounds()
+        assertTrue("strip must exist on the Settings page too", stripInSettings != null)
+        assertEquals(0f, stripInSettings!!.top, 1f)
     }
 
     /**
      * Malayalam runtime proof: switch the real app to ml via the same
      * mechanism the picker uses, then capture real pages so glyph fallback,
-     * layout and truncation can be reviewed on actual pixels.
+     * layout and truncation can be reviewed on actual pixels. Identity
+     * assertions use the localized tab and Settings labels.
      */
     @Test
     fun malayalamLocaleRendersRealGlyphs() {
         compose.waitForIdle()
+        completeOnboarding()
         Thread.sleep(6000)
         compose.waitForIdle()
         try {
@@ -151,44 +285,40 @@ class StatusStripEmulatorTest {
             }
             Thread.sleep(4000)
             compose.waitForIdle()
-            fullScreenshot("10-ml-home-light")
+            theme(dark = false)
+            assertHomeVisible("കേൾക്കുക", "കേട്ട ചരിത്രം")
+            fullScreenshot("10-ml-home-light", expectDark = false)
 
             compose.onRoot().performTouchInput { swipeUp() }
             compose.waitForIdle()
             Thread.sleep(1500)
-            fullScreenshot("11-ml-home-light-scrolled")
+            fullScreenshot("11-ml-home-light-scrolled", expectDark = false)
 
-            nightMode(true)
-            fullScreenshot("12-ml-home-dark")
-            nightMode(false)
+            theme(dark = true)
+            fullScreenshot("12-ml-home-dark", expectDark = true)
+            theme(dark = false)
 
-            val settingsEntry = compose.onAllNodesWithContentDescription(
-                "Settings", substring = true, ignoreCase = true, useUnmergedTree = true,
-            ).fetchSemanticsNodes()
-            if (settingsEntry.isNotEmpty()) {
-                compose.onAllNodesWithContentDescription(
-                    "Settings", substring = true, ignoreCase = true, useUnmergedTree = true,
-                )[0].performClick()
-                compose.waitForIdle()
-                Thread.sleep(2000)
-                fullScreenshot("13-ml-settings-light")
-                compose.onRoot().performTouchInput { swipeUp() }
-                compose.waitForIdle()
-                Thread.sleep(1200)
-                fullScreenshot("14-ml-settings-light-scrolled")
-            }
+            openSettingsAndAssert("ക്രമീകരണങ്ങൾ", "ക്രമീകരണങ്ങൾ")
+            fullScreenshot("13-ml-settings-light", expectDark = false)
+            compose.onRoot().performTouchInput { swipeUp() }
+            compose.waitForIdle()
+            Thread.sleep(1200)
+            fullScreenshot("14-ml-settings-light-scrolled", expectDark = false)
         } finally {
             compose.runOnUiThread {
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
             }
+            AppSettings.setThemeMode(ThemeMode.DARK)
         }
     }
 
     @Test
     fun osInjectedTapOnStripNeverReachesContent() {
         compose.waitForIdle()
+        completeOnboarding()
         Thread.sleep(4000)
         compose.waitForIdle()
+        assertHomeVisible("Listen", "Listening history")
         val bounds = stripBounds()
         assertTrue(bounds != null)
 
