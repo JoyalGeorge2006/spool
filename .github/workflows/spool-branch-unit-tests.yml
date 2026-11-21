@@ -58,7 +58,7 @@ jobs:
       with:
         name: unit-tests-${{ matrix.target }}
         path: |
-          **/build/test-results/**/TEST-*.xml
-          **/build/reports/tests/**
-          **/build/outputs/roborazzi/*.png
+          **/build/test-results/
+          **/build/reports/tests/
+          **/build/outputs/roborazzi/
         if-no-files-found: warn
