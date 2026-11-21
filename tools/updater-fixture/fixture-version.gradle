@@ -1,0 +1,11 @@
+// Isolated fixture only. Pass -PspoolFixtureTarget=true only for target59 build.
+allprojects {
+    afterEvaluate { p ->
+        def android = p.extensions.findByName('android')
+        if (android != null) android.compileSdkVersion('android-37.0')
+        if (p.path == ':app' && p.findProperty('spoolFixtureTarget') == 'true') {
+            android.defaultConfig.versionCode = 59
+            android.defaultConfig.versionName = '99.0.0'
+        }
+    }
+}
