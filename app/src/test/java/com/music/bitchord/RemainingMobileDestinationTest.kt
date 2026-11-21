@@ -76,7 +76,16 @@ class RemainingMobileDestinationTest {
                 }
             }
             compose.waitForIdle()
-            compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_top.png")
+            val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+            val identity = when(page) {
+                "ALBUM", "ARTIST", "PLAYLIST", "LOCAL_FOLDER" -> "Fixture ${page.lowercase()}"
+                "WEBDAV_EDITOR" -> context.getString(R.string.webdav)
+                "SMB_EDITOR" -> context.getString(R.string.smb)
+                "SOURCE_QUALITY" -> context.getString(R.string.audio_quality)
+                else -> null
+            }
+            if(identity != null) compose.onAllNodesWithText(identity).onFirst().assertExists()
+            compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_top.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             val lists = compose.onAllNodes(hasScrollAction())
             if (lists.fetchSemanticsNodes().isNotEmpty()) {
                 val list = lists.onFirst()
@@ -93,7 +102,7 @@ class RemainingMobileDestinationTest {
                     compose.waitForIdle()
                     val after = list.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
                     check(after > before) { "Secondary scroll made no progress: $name $before -> $after" }
-                    compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_position_${step.toString().padStart(2, '0')}.png")
+                    compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_position_${step.toString().padStart(2, '0')}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                     step++
                 }
             }
