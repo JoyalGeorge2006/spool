@@ -48,6 +48,9 @@ class StatusStripEmulatorTest {
         val dir = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
         val out = File(dir, "$name.png")
         FileOutputStream(out).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        // Visible in instrumentation output: proves the capture path executed and where.
+        check(out.exists() && out.length() > 0) { "pixel capture failed for $name" }
+        println("SHOT-SAVED ${out.absolutePath} bytes=${out.length()}")
     }
 
     /** Full screen including the system status bar icons (API 30+). */
