@@ -30,7 +30,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ matrix.target == 'branch' && inputs.ref || inputs.base }}
+        # On push, inputs.* are empty: branch tests the pushed SHA, base tests
+        # the real v2.1.1 baseline (previously both legs silently tested the
+        # same pushed SHA).
+        ref: ${{ matrix.target == 'branch' && (inputs.ref || github.sha) || (inputs.base || 'v2.1.1') }}
     - uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -50,8 +53,20 @@ jobs:
           }
         }
         INIT
+    - name: Record exact checkout
+      run: |
+        echo "matrix target: ${{ matrix.target }}"
+        echo "CHECKED_OUT_SHA=$(git rev-parse HEAD)"
+    - name: Runner diagnostics (sizes any memory decision with facts)
+      run: |
+        nproc
+        free -h
+        java -version 2>&1
+        java -XX:+PrintFlagsFinal -version 2>&1 | grep -E 'MaxHeapSize|MaxRAM' || true
     - name: Unit tests (shared JVM + app dev unit tests)
-      run: ./gradlew --init-script /tmp/platform.gradle :shared:jvmTest :app:testDevDebugUnitTest --no-daemon
+      # timeout bounds a hung test VM at 25 min so artifacts still upload
+      # instead of dying at the 60-min job cap; the exit code is preserved.
+      run: timeout 1500 ./gradlew --init-script /tmp/platform.gradle :shared:jvmTest :app:testDevDebugUnitTest --no-daemon
     - name: Upload test reports
       if: always()
       uses: actions/upload-artifact@v4
@@ -61,4 +76,6 @@ jobs:
           **/build/test-results/
           **/build/reports/tests/
           **/build/outputs/roborazzi/
+          **/hs_err_pid*.log
+          **/replay_pid*.log
         if-no-files-found: warn
