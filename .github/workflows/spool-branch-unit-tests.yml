@@ -3,6 +3,8 @@ name: Unit tests on a Spool branch (no APK, no release)
 # shippable: no assemble*, no signing, no release upload. Compares the branch
 # against its base so failures that predate the change are visible as such.
 on:
+  push:
+    branches: [taste-aware-moods]
   workflow_dispatch:
     inputs:
       ref:
