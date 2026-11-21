@@ -296,4 +296,49 @@ class MoodQueueProviderIntegrationTest {
         }
     }
 
+
+    @Test fun sparseDislikesApplyToInitialAndAutoplayWithSameLiveOverridePrecedence() = runBlocking<Unit> {
+        val oldRatings = LikeState.overrides.value.toMap()
+        try {
+            LikeState.clear()
+            isolatedTransport({ path, _ -> if (path == "browse") browse() else watch() }) {
+                TopPicks.updateTaste(Taste.Snapshot(dislikedIds = listOf("f24")))
+                val seed = com.music.bitchord.data.model.Song("seed", "Seed", "Artist", null,
+                    playbackSourceType = com.music.bitchord.data.model.PlaybackSourceType.HOME,
+                    playbackSourceId = TopPickMood.ENERGY.name)
+                suspend fun queue() = TopPicks.queue(TopPicks.moodStation(TopPickMood.ENERGY, listOf("malayalam"))).getOrThrow()
+                assertFalse(queue().any { it.videoId == "f24" })
+                assertEquals(setOf("f24"), TopPicks.moodAutoplayDislikedIds(seed, false))
+                for (undo in listOf(com.music.bitchord.data.model.LikeStatus.LIKE, com.music.bitchord.data.model.LikeStatus.INDIFFERENT)) {
+                    LikeState.set("f24", undo)
+                    assertTrue(queue().any { it.videoId == "f24" })
+                    assertTrue(TopPicks.moodAutoplayDislikedIds(seed, false).isEmpty())
+                }
+            }
+        } finally { LikeState.clear(); oldRatings.forEach { (id, status) -> LikeState.set(id, status) } }
+    }
+
+    @Test fun fewerThanTwelveAllowedTracksNeverRefillDislikedTracks() = runBlocking<Unit> {
+        isolatedTransport({ path, _ -> if (path == "browse") browse() else watch() }) {
+            TopPicks.updateTaste(Taste.Snapshot(dislikedIds = (1..20).map { "f$it" }))
+            val songs = TopPicks.queue(TopPicks.moodStation(TopPickMood.ENERGY, listOf("malayalam"))).getOrThrow()
+            assertEquals(setOf("f21", "f22", "f23", "f24"), songs.map { it.videoId }.toSet())
+        }
+    }
+
+    @Test fun allDislikedProviderTracksReturnFailureRatherThanEmptySuccess() = runBlocking<Unit> {
+        isolatedTransport({ path, _ -> if (path == "browse") browse() else watch() }) {
+            TopPicks.updateTaste(Taste.Snapshot(dislikedIds = (1..24).map { "f$it" }))
+            assertTrue(TopPicks.queue(TopPicks.moodStation(TopPickMood.ENERGY, listOf("malayalam"))).isFailure)
+        }
+    }
+
+    @Test fun emptyProfileLeavesInitialProviderQueueUnchanged() = runBlocking<Unit> {
+        isolatedTransport({ path, _ -> if (path == "browse") browse() else watch() }) {
+            TopPicks.updateTaste(Taste.Snapshot())
+            val songs = TopPicks.queue(TopPicks.moodStation(TopPickMood.ENERGY, listOf("malayalam"))).getOrThrow()
+            assertEquals((1..24).map { "f$it" }.toSet(), songs.map { it.videoId }.toSet())
+        }
+    }
+
 }
