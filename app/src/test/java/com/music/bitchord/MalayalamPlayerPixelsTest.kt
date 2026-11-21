@@ -62,9 +62,9 @@ class MalayalamPlayerPixelsTest {
                 b.width > 0f && b.height > 0f && screen.contains(b.center)
             }
             for ((index, label) in labels.withIndex()) {
-                compose.onNode(hasText(label) and visible).assertIsDisplayed().performClick()
+                compose.onNode(hasText(label) and visible and SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)).assertIsDisplayed().performClick()
                 settle()
-                compose.onNode(hasText(label) and visible).assertIsSelected()
+                compose.onNode(hasText(label) and visible and SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)).assertIsSelected()
                 compose.onNodeWithTag("player-section-header").assertIsDisplayed()
                 when(index) {
                     0 -> compose.onNodeWithText("Track 1").assertIsDisplayed()
