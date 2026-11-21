@@ -1,7 +1,8 @@
-name: Temporary retention transport smoke (branch, no release)
-# Temporary transport-only probe. Installs the existing debug variant without
-# instrumentation, creates one known PNG, verifies exact candidate drain logic,
-# and uploads only the probe fixture and bounded diagnostics. Not app pixels.
+name: Actual SHOT transport probe (one existing case, no release)
+# Runs only the existing Replay instrumentation case to create real app-owned
+# external SHOT files. Probes both storage aliases and identities with bounded
+# diagnostics, then exercises the exact shell-identity retention candidate.
+# Not the full24 suite, no production edits, no release or publishing.
 on:
   push:
     branches: [taste-aware-moods]
@@ -42,7 +43,7 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
-    - name: Prepare exact retention candidate and transport probe
+    - name: Prepare bounded incremental pixel retention
       shell: bash
       run: |
         cat > /tmp/spool-emulator-test.py <<'SPOOL_HELPER'
@@ -128,7 +129,7 @@ jobs:
         def drain():
             # The app writes flat screenshot PNGs. No tar extraction, links or paths
             # supplied by the device are accepted. Hash manifest detects same-name edits.
-            manifest=bounded(ADB+['shell','-T','run-as','app.spool.music.dev','sh'],
+            manifest=bounded(ADB+['shell','-T','sh'],
                 seconds=10,cap=256*1024,input_bytes=(
                     b'cd /sdcard/Android/data/app.spool.music.dev/files || exit 1\n'
                     b'for f in *.png; do [ -f "$f" ] && [ ! -L "$f" ] && sha256sum "$f"; done\n'
@@ -146,7 +147,7 @@ jobs:
                 name=pending.pop(0);queued.discard(name);digest=latest[name]
                 if seen.get(name)==digest:continue
                 try:
-                    data=bounded(ADB+['exec-out','run-as','app.spool.music.dev','cat',ROOT+name],seconds=6)
+                    data=bounded(ADB+['exec-out','cat',ROOT+name],seconds=6)
                     if hashlib.sha256(data).hexdigest()!=digest:raise ValueError('in-flight hash mismatch')
                     validate(data)
                     tmp=OUT/(name+'.part');tmp.write_bytes(data);os.replace(tmp,OUT/name);seen[name]=digest;count+=1
@@ -225,64 +226,118 @@ jobs:
             except BaseException:pass
         raise SystemExit(128+cancelled[0] if cancelled[0] is not None else 128-status if status<0 else status)
         SPOOL_HELPER
-        cat > /tmp/retention-transport-smoke.py <<'SPOOL_SMOKE'
+        cat > /tmp/actual-shot-transport-probe.py <<'SPOOL_PROBE'
         #!/usr/bin/env python3
-        """Transport-only smoke. Not app-rendering or large-directory proof."""
-        import hashlib,base64,struct,zlib,types
+        """One existing Replay case's actual app-owned SHOT files. No full-suite claim."""
+        import hashlib,types,re,struct
         from pathlib import Path
         source=Path('/tmp/spool-emulator-test.py').read_bytes()
-        assert hashlib.sha256(source).hexdigest()=='91a01ee70b7cbe0d49128c069859dba6241a7824bfdb3b477ede2a9d51c8f400'
-        # Exact production-candidate definitions and globals, stopping before thread/Gradle launch.
+        assert hashlib.sha256(source).hexdigest()=='ff9a1d21b30546cc657598b2994bf5ecfcee3ab8cecbf6dd48f998202d28f4e7'
         prefix=source.decode().split('worker=threading.Thread',1)[0]
-        assert 'def drain():' in prefix
-        retention=types.ModuleType('retention')
-        exec(compile(prefix,'/tmp/spool-emulator-test.py','exec'),retention.__dict__)
+        retention=types.ModuleType('retention');exec(compile(prefix,'exact-v6-helper','exec'),retention.__dict__)
         bounded=retention.bounded;note=retention.note;ADB=retention.ADB;ROOT=retention.ROOT;OUT=retention.OUT
+        expected={'06-replay-light.png','07-replay-dark.png'}
         assert not list(OUT.glob('*.png')) and not list(OUT.glob('*.part'))
-        def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
-        fixture=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(b'\0\xff\0\0\xff'))+chunk(b'IEND',b'')
-        name='retention_transport_probe.png';path=ROOT+name
+        # Every diagnostic has its own bounded stdout/stderr/rc/timeout result. An
+        # expected failed identity/path does not skip independent valid-route checks.
+        def diagnostic(label,args,seconds=4,cap=8192,input_bytes=None):
+            try:
+                data=bounded(args,seconds,cap,input_bytes)
+                detail=('bytes='+str(len(data))+' signature='+repr(data[:16])+' sha256='+hashlib.sha256(data).hexdigest()) if ' binary ' in label else 'stdout='+repr(data[:8192])
+                note(label+' rc=0 '+detail);return data
+            except Exception as e:note(label+' '+str(e));return None
         try:
             note('candidate SHA256 '+hashlib.sha256(source).hexdigest())
-            note('version '+bounded(['adb','version'],3,4096).decode())
-            script=("mkdir -p "+ROOT+"\nprintf 'SPOOL_STDIN_OK\\n'\nbase64 -d > "+path+" <<'PNG'\n"+base64.b64encode(fixture).decode()+"\nPNG\n").encode()
-            response=bounded(ADB+['shell','-T','run-as','app.spool.music.dev','sh'],10,4096,script)
-            note('marker stdout '+repr(response))
-            if response!=b'SPOOL_STDIN_OK\n':raise ValueError('fixed marker mismatch')
-            data=bounded(ADB+['exec-out','run-as','app.spool.music.dev','cat',path],6,4096)
-            retention.validate(data)
-            if data!=fixture:raise ValueError('known binary differs')
-            digest=hashlib.sha256(data).hexdigest()
-            manifest=bounded(ADB+['shell','-T','run-as','app.spool.music.dev','sh'],10,4096,('cd '+ROOT+' || exit 1\nsha256sum '+name+'\n').encode())
-            note('known-file manifest stdout '+repr(manifest))
-            if manifest.decode().strip()!=digest+'  '+name:raise ValueError('known manifest/hash mismatch')
-            remaining=retention.drain()
-            assert remaining==0 and retention.pending==[] and retention.queued==set()
-            assert retention.seen=={name:digest} and retention.latest=={name:digest}
-            assert (OUT/name).read_bytes()==fixture
-            assert list(OUT.glob('*.png'))==[OUT/name] and not list(OUT.glob('*.part'))
-            note('TRANSPORT PASS exact drain, marker, PNG integrity, exact bytes, SHA256, parsed manifest, FIFO and atomic promotion '+digest)
-        except BaseException as e:
-            note('TRANSPORT FAIL '+repr(e));raise
+            diagnostic('adb-version',['adb','version'])
+            for identity,prefix_args in [('shell',[]),('run-as',['run-as','app.spool.music.dev'])]:
+                diagnostic(identity+' id',ADB+['shell','-T']+prefix_args+['id'])
+                for path in ['/sdcard/Android/data/app.spool.music.dev/files','/storage/emulated/0/Android/data/app.spool.music.dev/files']:
+                    diagnostic(identity+' ls '+path,ADB+['shell','-T']+prefix_args+['ls','-ld',path])
+                    diagnostic(identity+' stat '+path,ADB+['shell','-T']+prefix_args+['stat','-c','%u:%g:%a:%s:%n',path+'/06-replay-light.png'])
+                    diagnostic(identity+' hash '+path,ADB+['shell','-T']+prefix_args+['sha256sum',path+'/06-replay-light.png'])
+                    data=diagnostic(identity+' binary '+path,ADB+['exec-out']+prefix_args+['cat',path+'/06-replay-light.png'],6,retention.MAX_FILE)
+                    if data is not None:
+                        try:
+                            retention.validate(data)
+                            note(identity+' binary validated '+path+' sha256='+hashlib.sha256(data).hexdigest())
+                        except Exception as e:note(identity+' binary invalid '+path+' '+repr(e))
+            # Same manifest program and identity as the candidate's actual drain.
+            manifest_program=(b'cd /sdcard/Android/data/app.spool.music.dev/files || exit 1\n'
+                b'for f in *.png; do [ -f "$f" ] && [ ! -L "$f" ] && sha256sum "$f"; done\n')
+            marker=bounded(ADB+['shell','-T','sh'],4,4096,b"printf 'SPOOL_STDIN_OK\\n'\n")
+            assert marker==b'SPOOL_STDIN_OK\n';note('fixed marker stdout '+repr(marker))
+            manifest=bounded(ADB+['shell','-T','sh'],10,256*1024,manifest_program)
+            note('actual SHOT manifest stdout '+repr(manifest))
+            hashes={}
+            for line in manifest.decode().splitlines():
+                m=re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.png)',line)
+                assert m is not None;digest,name=m.groups();assert '..' not in name;hashes[name]=digest
+            assert set(hashes)==expected,hashes
+            assert retention.drain()==0
+            assert retention.seen==hashes and retention.latest==hashes
+            assert retention.pending==[] and retention.queued==set()
+            assert {f.name for f in OUT.glob('*.png')}==expected and not list(OUT.glob('*.part'))
+            for name,digest in hashes.items():
+                data=(OUT/name).read_bytes();retention.validate(data)
+                assert hashlib.sha256(data).hexdigest()==digest
+                width,height=struct.unpack('>II',data[16:24]);assert width>1 and height>1
+                note('ACTUAL SHOT RETAINED '+name+' size='+str(len(data))+' dimensions='+str((width,height))+' SHA256='+digest)
+            note('TRANSPORT PASS actual app-owned SHOT, exact drain/FIFO/parser/hash/fullPNG/atomicpromotion')
+        except BaseException as e:note('TRANSPORT FAIL '+repr(e));raise
+        SPOOL_PROBE
+        cat > /tmp/run-onecase-transport.py <<'SPOOL_RUNNER'
+        #!/usr/bin/env python3
+        """Exactly one existing Android case, followed by one bounded transport probe."""
+        import json,os,signal,subprocess,sys
+        from pathlib import Path
+        current=None;cancelled=None
+        
+        def terminate(sig,frame):
+            global cancelled
+            cancelled=sig
+            if current is not None and current.poll() is None:
+                try:os.killpg(current.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+        for sig in (signal.SIGTERM,signal.SIGINT):signal.signal(sig,terminate)
+        
+        def once(args,timeout):
+            global current
+            current=subprocess.Popen(args,start_new_session=True)
+            try:return current.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                os.killpg(current.pid,signal.SIGKILL);current.wait();return 124
+            finally:
+                if current.poll() is None:
+                    try:os.killpg(current.pid,signal.SIGKILL)
+                    except ProcessLookupError:pass
+                current=None
+        
+        def exit_status(value):return 128-value if value<0 else value
+        status=1;probe=None
+        try:
+            status=once(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest#replaySpacingIndependentlyVerified','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],1800)
+            if cancelled is None:probe=once(['python3','/tmp/actual-shot-transport-probe.py'],180)
         finally:
-            try:bounded(ADB+['shell','-T','run-as','app.spool.music.dev','rm',path],3,4096)
-            except Exception as e:note('probe cleanup '+str(e))
-        SPOOL_SMOKE
-    - name: Install existing debug app and probe transport only
+            try:
+                Path('emulator-diagnostics').mkdir(exist_ok=True)
+                Path('emulator-diagnostics/one-case-status.json').write_text(json.dumps(dict(test_status=status,probe_status=probe,cancelled=cancelled)))
+            except Exception:pass
+        sys.exit(128+cancelled if cancelled is not None else exit_status(status) if status!=0 else exit_status(probe if probe is not None else 1))
+        SPOOL_RUNNER
+    - name: One Replay case then actual SHOT transport probe
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 34
         arch: x86_64
         profile: pixel_6
-        script: |
-          ./gradlew --init-script /tmp/platform.gradle :app:installDevDebug --no-daemon
-          python3 /tmp/retention-transport-smoke.py
+        script: python3 /tmp/run-onecase-transport.py
     - name: Upload screenshots
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: retention-transport-smoke
+        name: actual-shot-transport-probe
         path: |
           emulator-screens/**
           emulator-diagnostics/**
+          **/build/outputs/androidTest-results/**
         if-no-files-found: warn
