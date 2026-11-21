@@ -1,0 +1,53 @@
+name: Unit tests on a Spool branch (no APK, no release)
+# Test-only verification for the taste-aware moods branch. Builds nothing
+# shippable: no assemble*, no signing, no release upload. Compares the branch
+# against its base so failures that predate the change are visible as such.
+on:
+  push:
+    branches: [taste-aware-moods]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or tag under test
+        required: true
+        default: taste-aware-moods
+      base:
+        description: Base ref for the comparison run
+        required: true
+        default: v2.1.1
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [branch, base]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ matrix.target == 'branch' && inputs.ref || inputs.base }}
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+    - name: Android platform for compileSdk 37 (runner SDK, no setup-android action)
+      run: |
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        yes | "$SM" "platforms;android-37" >/dev/null
+        ls "$ANDROID_HOME/platforms"
+    - name: Unit tests (shared JVM + app debug unit tests)
+      run: ./gradlew :shared:jvmTest :app:testDebugUnitTest --no-daemon
+    - name: Upload test reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-tests-${{ matrix.target }}
+        path: |
+          **/build/test-results/**/TEST-*.xml
+          **/build/reports/tests/**
+          **/build/outputs/roborazzi/*.png
+        if-no-files-found: warn
