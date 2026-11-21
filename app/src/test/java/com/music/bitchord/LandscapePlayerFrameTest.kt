@@ -54,7 +54,7 @@ class LandscapePlayerFrameTest {
                     val bounds = compose.onNodeWithTag("landscape-root").fetchSemanticsNode().boundsInRoot
                     assertTrue("Fixture must be a real wide landscape root", bounds.width > bounds.height * 1.8f)
                 }
-                compose.onNodeWithTag("landscape-root").captureRoboImage("build/outputs/roborazzi/${name}_$at.png")
+                compose.onNodeWithTag("landscape-root").captureRoboImage("build/outputs/roborazzi/${name}_$at.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             }
             compose.onNodeWithText("Audio output").assertDoesNotExist()
             compose.onNodeWithText("Up next").assertDoesNotExist()
@@ -74,13 +74,13 @@ class LandscapePlayerFrameTest {
                         compose.onNodeWithText("Track 1").assertDoesNotExist()
                     }
                 }
-                compose.onNodeWithTag("landscape-root").captureRoboImage("build/outputs/roborazzi/${name}_section_$tab.png")
+                compose.onNodeWithTag("landscape-root").captureRoboImage("build/outputs/roborazzi/${name}_section_$tab.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             }
             compose.onNodeWithContentDescription("Back to player").performClick()
             repeat(8) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
             compose.onNodeWithTag("player-section-header").assertDoesNotExist()
             compose.onNodeWithText("Midnight Rain").assertIsDisplayed()
-            compose.onNodeWithTag("landscape-root").captureRoboImage("build/outputs/roborazzi/${name}_return_main.png")
+            compose.onNodeWithTag("landscape-root").captureRoboImage("build/outputs/roborazzi/${name}_return_main.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setSyncedLyrics(oldSyncedLyrics)
             AppSettings.setThemeMode(oldTheme)
