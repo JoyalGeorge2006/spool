@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">无法播放此曲目</string>
     <string name="tap_to_retry">点按重试</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">重试</string>
+    <string name="find_your_mood">寻找你的心情</string>
+    <string name="home_history">历史记录</string>
+    <string name="mood_focus">专注工作</string>
+    <string name="mood_party">聚会狂欢</string>
+    <string name="mood_relax">放松身心</string>
+    <string name="mood_sleep">伴你入眠</string>
+    <string name="remove">移除</string>
+    <string name="sign_in_with_google">使用 Google 登录</string>
+    <string name="spool_related_add_to_queue">添加到播放队列</string>
+    <string name="spool_related_retry">重试</string>
 </resources>
