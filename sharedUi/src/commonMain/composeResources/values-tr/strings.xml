@@ -204,4 +204,18 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">Bu parça çalınamadı</string>
     <string name="tap_to_retry">Yeniden denemek için dokunun</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">Tekrar dene</string>
+    <string name="find_your_mood">Ruh Halini Bul</string>
+    <string name="home_history">Geçmiş</string>
+    <string name="home_recent">Son dinlenenler</string>
+    <string name="mood_focus">Odaklanma</string>
+    <string name="mood_party">Parti</string>
+    <string name="mood_relax">Rahatlama</string>
+    <string name="mood_sleep">Uyku</string>
+    <string name="remove">Kaldır</string>
+    <string name="sign_in_with_google">Google ile giriş yap</string>
+    <string name="spool_related_add_to_queue">Sıraya ekle</string>
+    <string name="spool_related_retry">Tekrar dene</string>
 </resources>
