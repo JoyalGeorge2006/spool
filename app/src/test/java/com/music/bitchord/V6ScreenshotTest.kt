@@ -915,7 +915,14 @@ class V6ScreenshotTest {
         } catch (_: IllegalStateException) {
             null
         }
-        com.music.bitchord.ui.player.PlayerPlatform.install(real)
+        // Every fixture related request is deterministic and offline. Dedicated
+        // RelatedPageScreenshotTest variants still override this with empty/error states.
+        com.music.bitchord.ui.player.PlayerPlatform.install(
+            object : com.music.bitchord.ui.player.PlayerHost by real {
+                override suspend fun relatedSongs(song: com.music.bitchord.data.model.Song) =
+                    Result.success(detailSongs(6).drop(4))
+            },
+        )
         return previous ?: real
     }
 
