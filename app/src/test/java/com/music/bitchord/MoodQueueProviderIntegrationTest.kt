@@ -20,6 +20,12 @@ import java.util.Collections
  * Only HTTP responses are fixtures. Does not claim live provider availability,
  * MainActivity callback dispatch or actual decoder/playback execution. */
 class MoodQueueProviderIntegrationTest {
+    // Same scoped transport seam as instrumentation, accessed reflectively
+    // because the provider lives in the separate shared module.
+    private val transportField = Innertube::class.java.getDeclaredField("activeTransportForTests").apply { isAccessible=true }
+    private var testTransport: HttpClient?
+        get() = transportField.get(Innertube) as HttpClient?
+        set(value) { transportField.set(Innertube,value) }
     private val json = Json { ignoreUnknownKeys = true }
     private fun text(value: String) = buildJsonObject {
         putJsonArray("runs") { add(buildJsonObject { put("text", value) }) }
@@ -82,7 +88,7 @@ class MoodQueueProviderIntegrationTest {
     )
 
     @Test fun allTwentyEightMoodsUseProductionProviderParsingAndPersonalization() = runBlocking<Unit> {
-        val oldTransport = Innertube.activeTransportForTests
+        val oldTransport = testTransport
         val tasteField=TopPicks::class.java.getDeclaredField("taste").apply { isAccessible=true }
         val oldTaste=tasteField.get(TopPicks) as Taste.Snapshot?
         // Cache ownership stays local to this test and is restored afterwards.
@@ -112,7 +118,7 @@ class MoodQueueProviderIntegrationTest {
             respond(response.toString(),headers=headersOf(HttpHeaders.ContentType,"application/json"))
         }) { install(ContentNegotiation) { json(this@MoodQueueProviderIntegrationTest.json) } }
         try {
-            Innertube.activeTransportForTests=client
+            testTransport=client
             TopPicks.updateTaste(profile)
             for(mood in TopPickMood.entries) {
                 cache.clear()
@@ -137,7 +143,7 @@ class MoodQueueProviderIntegrationTest {
             assertEquals(84,playlistIds.size)
             assertEquals(TopPickMood.entries.map { it.params },browseParams)
         } finally {
-            Innertube.activeTransportForTests=oldTransport
+            testTransport=oldTransport
             TopPicks.updateTaste(oldTaste)
             cache.clear();cache.putAll(savedCache)
             client.close()
@@ -147,7 +153,7 @@ class MoodQueueProviderIntegrationTest {
         handler: (String, JsonObject) -> JsonObject,
         block: suspend () -> T,
     ): T {
-        val oldTransport = Innertube.activeTransportForTests
+        val oldTransport = testTransport
         val tasteField = TopPicks::class.java.getDeclaredField("taste").apply { isAccessible = true }
         val oldTaste = tasteField.get(TopPicks) as Taste.Snapshot?
         val cacheField = YtMusicRepository::class.java.getDeclaredField("moodGenreShelfCache").apply { isAccessible = true }
@@ -161,10 +167,10 @@ class MoodQueueProviderIntegrationTest {
         return try {
             TopPicks.updateTaste(null)
             cache.clear()
-            Innertube.activeTransportForTests = client
+            testTransport = client
             block()
         } finally {
-            Innertube.activeTransportForTests = oldTransport
+            testTransport = oldTransport
             TopPicks.updateTaste(oldTaste)
             cache.clear(); cache.putAll(oldCache)
             client.close()
