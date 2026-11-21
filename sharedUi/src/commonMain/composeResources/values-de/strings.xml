@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">Dieser Titel konnte nicht abgespielt werden</string>
     <string name="tap_to_retry">Zum Wiederholen tippen</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">Erneut versuchen</string>
+    <string name="find_your_mood">Finde deine Stimmung</string>
+    <string name="home_history">Verlauf</string>
+    <string name="mood_focus">Fokus</string>
+    <string name="mood_party">Party</string>
+    <string name="mood_relax">Entspannung</string>
+    <string name="mood_sleep">Schlafen</string>
+    <string name="remove">Entfernen</string>
+    <string name="sign_in_with_google">Mit Google anmelden</string>
+    <string name="spool_related_add_to_queue">Zur Warteschlange hinzufügen</string>
+    <string name="spool_related_retry">Erneut versuchen</string>
 </resources>
