@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.music.bitchord.data.model.*
 import com.music.bitchord.ui.components.*
 import com.music.bitchord.ui.screens.*
@@ -89,7 +91,7 @@ abstract class IntegratedRootHeaderScreenshotTestBase {
    compose.runOnIdle { assertEquals(prepared.first().preparedSongs,taps.single().preparedSongs) }
   }
   repeat(4) { org.robolectric.shadows.ShadowLooper.idleMainLooper(300L,java.util.concurrent.TimeUnit.MILLISECONDS);compose.mainClock.advanceTimeBy(300L);compose.waitForIdle()
-   if(page=="Listen"&&art) compose.onNodeWithTag("integrated-root").captureRoboImage("build/outputs/roborazzi/readiness_${width}_${scale}_${dark}.png")
+   if(page=="Listen"&&art) compose.onNodeWithTag("integrated-root").captureRoboImage("build/outputs/roborazzi/readiness_${width}_${scale}_${dark}.png", roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
   }
   assertTrue(measured>32)
   compose.onNodeWithText(page).assertExists()
@@ -97,7 +99,7 @@ abstract class IntegratedRootHeaderScreenshotTestBase {
   val bounds=first.fetchSemanticsNode().boundsInRoot
   assertTrue("first content below measured header",bounds.top>=measured)
   assertTrue("no extra toolbar-sized gap",bounds.top-measured<55)
-  compose.onNodeWithTag("integrated-root").captureRoboImage("build/outputs/roborazzi/integrated_${page}_${width}_${scale}_${if(art)"loaded" else "fallback"}_${if(dark)"dark" else "light"}.png")
+  compose.onNodeWithTag("integrated-root").captureRoboImage("build/outputs/roborazzi/integrated_${page}_${width}_${scale}_${if(art)"loaded" else "fallback"}_${if(dark)"dark" else "light"}.png", roborazziOptions=RoborazziOptions(taskType=RoborazziTaskType.Record))
  }
 }
 class IntegratedRootHeaderScreenshotTest_listenDark:IntegratedRootHeaderScreenshotTestBase(){@Test fun verify()=shot("Listen",true)}
