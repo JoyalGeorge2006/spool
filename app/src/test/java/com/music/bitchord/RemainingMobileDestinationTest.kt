@@ -86,6 +86,12 @@ class RemainingMobileDestinationTest {
                 "ADDON_EDITOR" -> context.getString(R.string.add_addon)
                 else -> error("Missing destination identity: $page")
             }
+            // Preserve the rendered foreground and tree even if identity
+            // fails, so a hidden sticky title cannot drive a selector guess.
+            if (page == "LOCAL_FOLDER") {
+                compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_identity_diagnostic.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
+                println("LOCAL-FOLDER-IDENTITY\n" + compose.onRoot(useUnmergedTree = true).printToString())
+            }
             compose.onAllNodesWithText(identity).onFirst().assertIsDisplayed()
             compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_top.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             val lists = compose.onAllNodes(hasScrollAction())
