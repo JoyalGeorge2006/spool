@@ -79,31 +79,32 @@ abstract class StationArtworkScreenshotTestBase {
             // captureRoboImage is a no-op and the read-back below fails. Force Record.
             // Coil's 200ms crossfade runs on the Robolectric main looper, not the
             // compose clock, so pump BOTH (the idiom the green
-            // IntegratedRootHeaderScreenshotTest uses) until the artwork has
-            // fully faded in; only then are the pixels the intended final state.
-            var hasArt = false
-            var waitedMs = 0L
-            while (waitedMs < 4_000L && !hasArt) {
+            // IntegratedRootHeaderScreenshotTest uses). A pixel-sniff early exit
+            // races the fade: partial-alpha gold trips the detector while the
+            // edge pixels the assertions read are still mid-fade. Pump a fixed
+            // budget well past the 200ms crossfade (16 x 64ms = 1024ms),
+            // then capture once; the gold check below stays as the fade guard.
+            repeat(16) {
                 org.robolectric.shadows.ShadowLooper.idleMainLooper(64L, java.util.concurrent.TimeUnit.MILLISECONDS)
                 compose.mainClock.advanceTimeBy(64L)
                 compose.waitForIdle()
+            }
+            run {
                 val out = File(frameCapture)
                 out.parentFile?.mkdirs()
                 compose.onNodeWithTag("station-frame").captureRoboImage(out.absolutePath,
                     RoborazziOptions(taskType = RoborazziTaskType.Record))
-                frame?.recycle()
                 frame=android.graphics.BitmapFactory.decodeFile(out.absolutePath)
-                hasArt=frame?.let { f ->
-                    var count=0
-                    for(y in 0 until f.height step 4) for(x in 0 until f.width step 4) {
-                        val c=f.getPixel(x,y)
-                        if(android.graphics.Color.red(c)>200 && android.graphics.Color.green(c)>150 && android.graphics.Color.blue(c)<140) count++
-                    }
-                    count>10
-                } ?: false
-                waitedMs += 64L
             }
-            assertTrue("station artwork never faded in after pumping ${'$'}waitedMs ms of both clocks", hasArt)
+            val hasArt=frame?.let { f ->
+                var count=0
+                for(y in 0 until f.height step 4) for(x in 0 until f.width step 4) {
+                    val c=f.getPixel(x,y)
+                    if(android.graphics.Color.red(c)>200 && android.graphics.Color.green(c)>150 && android.graphics.Color.blue(c)<140) count++
+                }
+                count>10
+            } ?: false
+            assertTrue("station artwork never faded in after pumping both clocks past the crossfade", hasArt)
             val rendered=requireNotNull(frame) { "Actual full-frame PNG" }
             val frameBounds=compose.onNodeWithTag("station-frame").fetchSemanticsNode().boundsInRoot
             val artBounds=compose.onAllNodesWithTag("station-art-loaded",useUnmergedTree=true).onFirst().fetchSemanticsNode().boundsInRoot
