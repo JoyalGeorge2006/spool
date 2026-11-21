@@ -37,10 +37,10 @@ class UpdateOneTapAndroidFixtureTest {
   println("SHOT-SAVED ${f.absolutePath} bytes=${f.length()}")
  }
  private val fixtureLabel get()=requireNotNull(InstrumentationRegistry.getArguments().getString("fixtureLabel"))
- private fun nodes(): List<AccessibilityNodeInfo> {
+ private fun nodes(root: AccessibilityNodeInfo?=ui.rootInActiveWindow): List<AccessibilityNodeInfo> {
   val out=mutableListOf<AccessibilityNodeInfo>()
   fun walk(n: AccessibilityNodeInfo?) { if(n==null)return;out.add(n);for(i in 0 until n.childCount)walk(n.getChild(i)) }
-  walk(ui.rootInActiveWindow);return out
+  walk(root);return out
  }
  private fun bounds(n: AccessibilityNodeInfo)=android.graphics.Rect().also { n.getBoundsInScreen(it) }
  private fun assertWindow(pkg: String, label: String) {
@@ -114,11 +114,30 @@ class UpdateOneTapAndroidFixtureTest {
   runCatching { shot(name) }.onFailure { println("FIXTURE-EVIDENCE-ERROR screenshot ${it.javaClass.name}") }
   runCatching {
    val state=nodes().joinToString("\n") { n ->
-    "package=${n.packageName} id=${n.viewIdResourceName} text=${n.text} visible=${n.isVisibleToUser} enabled=${n.isEnabled} clickable=${n.isClickable} bounds=${bounds(n)}"
+    "package=${n.packageName} id=${n.viewIdResourceName} class=${n.className} checkable=${n.isCheckable} checked=${n.isChecked} text=${n.text} visible=${n.isVisibleToUser} enabled=${n.isEnabled} clickable=${n.isClickable} bounds=${bounds(n)}"
    }
    File(context.getExternalFilesDir(null),"$name.txt").writeText(state)
    println("FIXTURE-WINDOW-EVIDENCE $name root=${ui.rootInActiveWindow?.packageName}")
   }.onFailure { println("FIXTURE-EVIDENCE-ERROR window ${it.javaClass.name}") }
+ }
+ private fun settingsPermissionToggle(): AccessibilityNodeInfo? {
+  val root=ui.rootInActiveWindow ?: return null
+  if(root.packageName?.toString()!="com.android.settings")return null
+  val tree=nodes(root)
+  fun visibleText(n: AccessibilityNodeInfo, text: String)=n.packageName?.toString()=="com.android.settings" && n.isVisibleToUser && n.text?.toString()==text
+  if(tree.count { visibleText(it,fixtureLabel) }!=1 || tree.count { visibleText(it,"Install unknown apps") }!=1 ||
+     tree.count { visibleText(it,"Allow from this source") }!=1)return null
+  fun descendantTitleCount(n: AccessibilityNodeInfo): Int {
+   var count=if(visibleText(n,"Allow from this source"))1 else 0
+   for(i in 0 until n.childCount)n.getChild(i)?.let { count+=descendantTitleCount(it) }
+   return count
+  }
+  // Android14 Spa SwitchPreference puts Role.Switch/toggleable semantics and
+  // ACTION_CLICK on the entire labeled row. The visual switch has no own click
+  // handler or stable resource ID. Require that exact labeled checkable control.
+  val matches=tree.filter { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.isEnabled &&
+   it.isClickable && it.isCheckable && !bounds(it).isEmpty && descendantTitleCount(it)==1 }
+  return matches.singleOrNull()
  }
  private suspend fun awaitPermission() {
   try {
@@ -127,12 +146,7 @@ class UpdateOneTapAndroidFixtureTest {
    withTimeout(45000) {
     until("real Settings launch recorded") { UpdateDownloads.snapshot()?.let { it.phase=="permission" && it.permissionHandoffLaunched }==true }
     until("exact Settings permission window ready") {
-     val tree=nodes()
-     val exactLabel=tree.filter { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.text?.toString()==fixtureLabel }
-     val switches=tree.filter { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.isEnabled && it.isClickable && !bounds(it).isEmpty &&
-      (it.viewIdResourceName=="android:id/switch_widget" || it.viewIdResourceName=="com.android.settings:id/switch_widget") }
-     ui.rootInActiveWindow?.packageName?.toString()=="com.android.settings" && exactLabel.size==1 && switches.size==1 &&
-      tree.any { it.packageName?.toString()=="com.android.settings" && it.isVisibleToUser && it.text?.toString()?.equals("Allow from this source",true)==true }
+     settingsPermissionToggle()!=null
     }
    }
    assertFalse(context.packageManager.canRequestPackageInstalls());assertSettings();shot("updater-real-settings")
@@ -142,7 +156,15 @@ class UpdateOneTapAndroidFixtureTest {
   }
  }
  private suspend fun grantAndReturn() {
-  assertSettings();exactClick("com.android.settings",{ it.viewIdResourceName=="android:id/switch_widget" || it.viewIdResourceName=="com.android.settings:id/switch_widget" },unchecked=true)
+  assertSettings()
+  val toggle=requireNotNull(settingsPermissionToggle()) { "Missing or ambiguous labeled Settings permission toggle" }
+  val before=bounds(toggle)
+  assertTrue(toggle.isCheckable);assertFalse(toggle.isChecked)
+  assertTrue("Retained Settings toggle changed before click",toggle.refresh());assertEquals(before,bounds(toggle))
+  assertEquals("com.android.settings",ui.rootInActiveWindow?.packageName?.toString())
+  assertTrue(toggle.packageName?.toString()=="com.android.settings" && toggle.isVisibleToUser && toggle.isEnabled && toggle.isClickable && toggle.isCheckable)
+  assertEquals("Exact labeled Settings toggle changed before click",toggle,settingsPermissionToggle());assertFalse(toggle.isChecked)
+  assertTrue("System rejected exact retained Settings toggle action",toggle.performAction(AccessibilityNodeInfo.ACTION_CLICK))
   until("real package-install permission granted") { context.packageManager.canRequestPackageInstalls() }
   shot("updater-real-settings-granted");shell("input keyevent KEYCODE_BACK")
   until("real PackageInstaller pending user action") { UpdateDownloads.snapshot()?.phase=="confirmation" }
