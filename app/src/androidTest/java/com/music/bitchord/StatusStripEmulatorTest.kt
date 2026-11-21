@@ -460,9 +460,11 @@ class StatusStripEmulatorTest {
         // The real Settings page is a ScrollState Column, not a LazyColumn.
         // Bind to the label's own ancestor rather than another tab's lazy list.
         val initial = compose.onAllNodes(text, useUnmergedTree = true).fetchSemanticsNodes()
-        val target = initial.filter { it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f }
-            .minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
-            ?: error("No positive-size target label for $label")
+        // Clipped descendants still identify their owning vertical container.
+        // Positive bounds are required before clicking, not before scrolling.
+        val target = initial.firstOrNull { node -> generateSequence(node.parent) { it.parent }.any {
+            it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null
+        } } ?: initial.firstOrNull() ?: error("No target label for $label")
         val ancestors = generateSequence(target.parent) { it.parent }.toList()
         val scroll = ancestors.firstOrNull {
             it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) != null &&
@@ -482,23 +484,34 @@ class StatusStripEmulatorTest {
                 }.minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }?.boundsInRoot?.top
         }.minOrNull()
         val clearBottom = (navTop ?: (viewport.top + viewport.height * .90f)) - 24f
-        println("TARGET-SAFE-BAND $label navTop=$navTop clearBottom=$clearBottom")
+        val headerBottom = compose.onAllNodesWithTag("header-profile-surface", useUnmergedTree = true)
+            .fetchSemanticsNodes().filter { it.boundsInRoot.height > 0f }
+            .maxOfOrNull { it.boundsInRoot.bottom } ?: 0f
+        val clearTop = maxOf((stripBounds()?.bottom ?: viewport.top) + 8f,
+            scroll?.boundsInRoot?.top ?: viewport.top, headerBottom + 8f)
+        // Begin the target-owned search at its actual origin, including when
+        // the desired label has completely clipped bounds at the current offset.
+        scrollNode?.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f, -100000f) }
+        compose.waitForIdle()
+        println("TARGET-SAFE-BAND $label clearTop=$clearTop navTop=$navTop clearBottom=$clearBottom")
         fun safeRow() = compose.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes()
             .filter {
                 val b = it.boundsInRoot
                 b.width > 0f && b.height > 0f && b.left >= viewport.left && b.right <= viewport.right &&
-                    b.top >= viewport.top + viewport.height * .18f && b.bottom <= clearBottom
+                    b.top >= clearTop && b.bottom <= clearBottom
             }.minByOrNull { it.boundsInRoot.width * it.boundsInRoot.height }
         var attempts = 0
         while (safeRow() == null && attempts < 30) {
             val current = compose.onAllNodes(text, useUnmergedTree = true).fetchSemanticsNodes()
                 .firstOrNull { it.id == target.id } ?: error("Target label changed before click: $label")
-            val direction = if (current.boundsInRoot.center.y > viewport.center.y) 1f else -1f
+            val currentBounds = current.boundsInRoot
+            val direction = if (currentBounds.height <= 0f || currentBounds.top >= clearBottom) 1f
+                else if (currentBounds.top < clearTop) -1f else 1f
             val container = requireNotNull(scrollNode) { "No target-owned scroll container for offscreen row $label" }
             val before = container.fetchSemanticsNode().config[
                 androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
             container.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {
-                it(0f, direction * viewport.height * .30f)
+                it(0f, direction * viewport.height * .15f)
             }
             compose.waitForIdle()
             val after = container.fetchSemanticsNode().config[
