@@ -17,7 +17,7 @@ jobs:
           path: product
       - uses: actions/checkout@v4
         with:
-          ref: 6b5b21546d56b5bb8c1f2ad827015007771b0f45
+          ref: cfee28eddb49d1dc070bdb146cd36ef8a7895749
           path: fixture-source
       - name: Select exact reviewed fixture source
         shell: bash
