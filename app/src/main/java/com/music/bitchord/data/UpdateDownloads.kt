@@ -68,14 +68,24 @@ internal object UpdateDownloads {
         }
         AppUpdateChecker.transferState(a.info,state,pinned=a.phase !in setOf("cancelled","failed","installed"))
     }
-    internal suspend fun change(a: UpdateAttempt, phase: String, message: String="", session: Int=a.session, installToken: String=a.installToken): UpdateAttempt? = lock.withLock {
+    internal suspend fun change(a: UpdateAttempt, phase: String, message: String="", session: Int=a.session, installToken: String=a.installToken, autoInstallPending: Boolean=if(phase in setOf("ready","permission","failed","fallback","cancelled","installed")) false else a.autoInstallPending, permissionHandoffLaunched: Boolean=false): UpdateAttempt? {
+        val next=lock.withLock {
         val old=current
         if(old!=a)return@withLock null
-        val next=old.copy(phase=phase,message=message,session=session,installToken=installToken)
+        val next=old.copy(phase=phase,message=message,session=session,installToken=installToken,autoInstallPending=autoInstallPending,permissionHandoffLaunched=permissionHandoffLaunched)
         UpdateStore.write(requireNotNull(app),next);current=next;publish(next)
         if(phase in setOf("ready","failed","fallback","waiting","applying","verifying"))
-            UpdateNavigation.show(requireNotNull(app),when(phase) { "ready" -> "Spool update is ready";"failed","fallback" -> "Spool update needs attention";else -> "Spool update" },when(phase) { "ready" -> "Tap to review and install";"applying" -> "Preparing update";"verifying" -> "Checking update";else -> message })
+            UpdateNavigation.show(requireNotNull(app),when(phase) { "ready" -> "Spool update is ready";"failed","fallback" -> "Spool update needs attention";else -> "Spool update" },when(phase) { "ready" -> if(next.autoInstallPending) "Open Spool to continue Android installation" else "Tap to review and install";"applying" -> "Preparing update";"verifying" -> "Checking update";else -> message })
         next
+        }
+        if(next?.autoInstallPending==true && (phase=="ready" || (phase=="permission" && next.permissionHandoffLaunched)))UpdateAutoInstall.request()
+        return next
+    }
+    /** Claim the exact user-authorized attempt once, never adopt a later attempt. */
+    internal suspend fun claimAutoInstall(a: UpdateAttempt, automatic: Boolean=true): UpdateAttempt? = lock.withLock {
+        if(current!=a || (automatic && !a.autoInstallPending) || a.phase !in setOf("ready","permission"))return@withLock null
+        val next=a.copy(autoInstallPending=false,permissionHandoffLaunched=false)
+        UpdateStore.write(requireNotNull(app),next);current=next;publish(next);next
     }
     internal suspend fun commitIfCurrent(a: UpdateAttempt, commit: () -> Unit): Boolean = lock.withLock {
         if(current!=a || a.phase!="installing")return@withLock false
@@ -106,6 +116,7 @@ internal object UpdateDownloads {
     }
     fun initialize(context: Context) {
         app=context.applicationContext
+        UpdateAutoInstall.initialize(context.applicationContext)
         if(!monitorEnabled || monitor?.isActive==true)return
         monitor=scope.launch {
             try {
@@ -139,7 +150,7 @@ internal object UpdateDownloads {
             val offered=_offer.value?.takeIf { it.first==update.version }?.second
             val offerChanged=!forceFull && offered!=null && offered<requireNotNull(update.sizeBytes) && delta?.size!=offered
             UpdateAttempt(UUID.randomUUID().toString(),update,phase=if(offerChanged)"fallback" else "preparing",delta=delta,
-                message=if(offerChanged)"The installed version changed. Review the full download size before continuing." else "").also {
+                message=if(offerChanged)"The installed version changed. Review the full download size before continuing." else "", autoInstallPending=!offerChanged).also {
                 require(context.noBackupFilesDir.usableSpace>requireNotNull(update.sizeBytes)*2+16*1024*1024) { "Not enough free space to prepare this update" }
                 UpdateStore.write(context,it);current=it;publish(it)
             }
@@ -157,7 +168,7 @@ internal object UpdateDownloads {
         val file=a.transfer(c);require(file.parentFile?.mkdirs()==true || file.parentFile?.isDirectory==true)
         require(!file.exists()) { "Download destination already exists" }
         val request=DownloadManager.Request(Uri.parse(a.transferUrl)).setTitle("Spool update ${a.info.version}")
-            .setDescription("Continues in the background. Open Spool to check and install.")
+            .setDescription("After verification, Android installation opens when Spool is in use.")
             .setMimeType("application/octet-stream")
             .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
             .setAllowedOverMetered(true).setAllowedOverRoaming(false)
@@ -191,7 +202,7 @@ internal object UpdateDownloads {
         val a=lock.withLock {
             val old=current
             if(old!=null) {
-                val next=old.copy(phase="cancelled",message="Update stopped")
+                val next=old.copy(phase="cancelled",message="Update stopped",autoInstallPending=false,permissionHandoffLaunched=false)
                 UpdateStore.write(c,next);current=next;publish(next)
             } else {
                 // Explicit Stop recovers a corrupt record without trusting its paths or IDs.
@@ -294,7 +305,7 @@ internal object UpdateDownloads {
                 AppUpdateChecker.verifyDownloadedApk(context,temporary,a.info,a.delta?.targetCode,a.delta?.minSdk,a.delta?.abi)
                 checkpoint(a)
                 require(temporary.renameTo(a.candidate(context))) { "Could not save verified update" }
-                if(change(a,"ready") == null)a.candidate(context).delete()
+                if(change(a,"ready",autoInstallPending=a.autoInstallPending) == null)a.candidate(context).delete()
                 // Candidate is now private; no installer reads DownloadManager's external file.
                 manager(context).remove(a.id);input.delete()
             } catch(e: Exception) {
