@@ -64,7 +64,7 @@ class PlayerGestureRegressionTest {
                 visibleText("Queue").performClick()
                 compose.waitForIdle()
                 val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
-                val visibleList = hasScrollToNodeAction() and SemanticsMatcher("visible queue list") {
+                val visibleList = hasScrollToNodeAction() and SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) and SemanticsMatcher("visible queue list") {
                     val b = it.boundsInRoot
                     b.width > 0f && b.height > 0f && root.contains(b.center)
                 }
