@@ -64,12 +64,41 @@ object TopPicks {
      * mood queue built without it behaves exactly as it always has, steered
      * by region alone.
      */
+    private data class BoundTaste(val generation: Long, val snapshot: Taste.Snapshot?)
     @Volatile
-    private var taste: Taste.Snapshot? = null
+    private var boundTaste: BoundTaste? = null
 
-    /** The latest profile. Null or empty returns mood steering to [regionHints]. */
-    fun updateTaste(snapshot: Taste.Snapshot?) {
-        taste = snapshot?.takeUnless { it.isEmpty }
+    /** Every reader, including mood steering, checks the immutable binding. */
+    fun currentTaste(): Taste.Snapshot? {
+        val bound = boundTaste ?: return null
+        return bound.snapshot.takeIf { bound.generation == com.music.bitchord.data.innertube.Innertube.listenerGeneration }
+    }
+    private val taste: Taste.Snapshot? get() = currentTaste()
+
+    fun updateTaste(snapshot: Taste.Snapshot?) = updateTaste(snapshot, com.music.bitchord.data.innertube.Innertube.listenerGeneration)
+
+    fun updateTaste(snapshot: Taste.Snapshot?, generation: Long) {
+        com.music.bitchord.data.innertube.Innertube.ifCurrentListener(generation) {
+            boundTaste = BoundTaste(generation, snapshot?.takeUnless { it.isEmpty })
+        }
+    }
+
+    /** Exact track exclusions for local AutoPlay carrying a mood's provenance.
+     * Session ratings override the cached profile, including an undone dislike.
+     * Parties keep their shared policy; other Home stations and explicit radio
+     * without inherited mood provenance are unchanged. No small-batch fallback.
+     */
+    fun moodAutoplayDislikedIds(seed: Song, inParty: Boolean): Set<String> {
+        if (inParty || seed.playbackSourceType != com.music.bitchord.data.model.PlaybackSourceType.HOME ||
+            TopPickMood.entries.none { it.name == seed.playbackSourceId }) return emptySet()
+        val bound = boundTaste
+        if (bound != null && bound.generation != com.music.bitchord.data.innertube.Innertube.listenerGeneration) return emptySet()
+        val excluded = bound?.snapshot?.dislikedIds.orEmpty().toMutableSet()
+        LikeState.overrides.value.forEach { (id, rating) ->
+            if (rating == com.music.bitchord.data.model.LikeStatus.DISLIKE) excluded += id
+            else excluded -= id
+        }
+        return excluded
     }
 
     /**
@@ -616,6 +645,18 @@ object TopPicks {
         /** [AppleArtistPhotos]' answers, misses included, so the next build doesn't ask again. */
         val photos: Map<String, String> = emptyMap(),
     )
+
+    /** A naked legacy snapshot cannot prove which listener it belongs to. */
+    @Serializable
+    data class StoredTaste(val listener: String?, val snapshot: Taste.Snapshot)
+
+    fun encodeTaste(listener: String?, snapshot: Taste.Snapshot): String =
+        json.encodeToString(StoredTaste.serializer(), StoredTaste(listener, snapshot))
+
+    fun decodeTaste(text: String, listener: String?): Taste.Snapshot? = runCatching {
+        json.decodeFromString(StoredTaste.serializer(), text)
+            .takeIf { it.listener == listener }?.snapshot
+    }.getOrNull()
 
     private val json = Json { ignoreUnknownKeys = true }
 
