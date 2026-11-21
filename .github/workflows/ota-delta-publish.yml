@@ -10,8 +10,10 @@ name: OTA delta patch publisher
 #
 # To publish patches for a NEW release: update BASES below with the previous
 # releases' APKs (asset name on its own release, versionCode, size, sha256)
-# and dispatch with the new release_tag. The target is always the release's
-# preferred spool.apk, matching the app's apkAssetUrl selection.
+# and dispatch with the new release_tag (it also runs automatically when a
+# release is published; bases for the new predecessor must be added first).
+# The target is always the release's preferred spool.apk, matching the app's
+# apkAssetUrl selection.
 
 on:
   workflow_dispatch:
@@ -20,6 +22,8 @@ on:
         description: 'Existing published release tag to attach delta patches to'
         required: true
         default: 'v2.1.1'
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -36,8 +40,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ota && cd ota
-          curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag }}/tools/ota/make_delta.py" -o make_delta.py
-          curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag }}/app/src/main/java/com/music/bitchord/data/SpoolDelta.java" -o SpoolDelta.java
+          curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag || github.event.release.tag_name }}/tools/ota/make_delta.py" -o make_delta.py
+          curl -fsSL "https://raw.githubusercontent.com/$REPO/${{ inputs.release_tag || github.event.release.tag_name }}/app/src/main/java/com/music/bitchord/data/SpoolDelta.java" -o SpoolDelta.java
           python3 -c "import ast; ast.parse(open('make_delta.py').read())"
           grep -q 'MAGIC' SpoolDelta.java
 
@@ -63,7 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
           # name|release tag holding the base asset|asset name on that release|versionCode|size|sha256
           cat > bases.tsv <<'BASES_EOF'
           spool-55-to-58.spdelta	v1.9.17	spool.apk	55	153714152	79ac9cd96a2a4ca10475b37b28ba42c3121552b80e04103b5734aaceb2778aa7
@@ -86,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
           thash=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .digest' | sed 's/sha256://')
           tsize=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .size')
           actual=$(sha256sum target.apk | cut -d' ' -f1)
@@ -125,16 +129,15 @@ jobs:
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
           thash=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .digest' | sed 's/sha256://')
           tsize=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name=="spool.apk") | .size')
-          tcode=$(python3 - "$TAG" <<'PY_EOF'
-          import sys
-          # versionCode of the target release; keep in sync with the release notes (2.1.1 = 58)
-          print({'v2.1.1': '58'}.get(sys.argv[1], ''))
-          PY_EOF
-          )
-          [ -n "$tcode" ] || { echo "Unknown target versionCode for $TAG - add it to the map"; exit 1; }
+          # Read the target versionCode straight from the published APK manifest
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt 2>/dev/null | sort -V | tail -1)
+          [ -n "$AAPT" ] || { echo "aapt not found on runner"; exit 1; }
+          tcode=$("$AAPT" dump badging target.apk | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
+          [ -n "$tcode" ] || { echo "Could not read versionCode from target.apk"; exit 1; }
+          echo "target versionCode from APK manifest: $tcode"
           python3 - "$thash" "$tsize" "$tcode" "$TAG" <<'PY_EOF'
           import json, subprocess, sys
           thash, tsize, tcode, tag = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
@@ -164,7 +167,7 @@ jobs:
         run: |
           set -euo pipefail
           cd ota
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
           gh release download "$TAG" --repo "$REPO" --pattern 'SHA256SUMS.txt' --output sums.txt --clobber
           grep -v -e '\.spdelta$' -e 'spool-ota-v1\.json$' sums.txt > sums.new || true
           while IFS=$'\t' read -r name code size hash psize phash; do
@@ -182,7 +185,7 @@ jobs:
         run: |
           set -euo pipefail
           cd ota && mkdir -p pub && cd pub
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || github.event.release.tag_name }}"
           base="https://github.com/$REPO/releases/download/$TAG"
           curl -fsSL "$base/spool-ota-v1.json" -o cat.json
           gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | [.name, .size, (.digest | sub("sha256:";""))] | @tsv' > remote.tsv
