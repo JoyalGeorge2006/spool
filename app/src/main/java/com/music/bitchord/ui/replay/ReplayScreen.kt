@@ -248,7 +248,9 @@ private fun Heading(state: ReplayState, onPeriodChange: (ReplayPeriod) -> Unit, 
     val context = LocalContext.current
     val textColor = if (dark) Color.White else Color.Black
     Column(Modifier.padding(horizontal = PAGE_GUTTER + 4.dp)) {
-        Spacer(Modifier.height(48.dp))
+        // The list's contentPadding already clears the floating page controls;
+        // keep only a small breath between them and the title.
+        Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.replay),
             style = MaterialTheme.typography.displayLarge,
