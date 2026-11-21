@@ -100,8 +100,20 @@ elif sys.argv[1]=='device':
  independent_patch(out/'fixture58.apk',out/'fixture.spdelta',out/'fixture59.apk')
  cls='com.music.bitchord.UpdateOneTapAndroidFixtureTest';runner=PKG+'.test/androidx.test.runner.AndroidJUnitRunner'
  def adbtext(args,timeout=120):return run(adb+args,timeout).stdout.decode(errors='replace')
+ def package_present(package):
+  assert package in (PKG,PKG+'.test'),'unexpected package probe'
+  assert adbtext(['get-state'],10).strip()=='device','emulator not online before package probe'
+  result=run(adb+['shell','pm','path',package],30,check=False)
+  output=result.stdout.decode(errors='strict')
+  assert adbtext(['get-state'],10).strip()=='device','emulator lost during package probe'
+  paths=output.splitlines()
+  present=result.returncode==0 and bool(paths) and all(re.fullmatch(r'package:/[^\r\n]+',line) for line in paths)
+  absent=result.returncode==1 and output==''
+  (out/('package-probe-'+str(time.time_ns())+'.json')).write_text(json.dumps(dict(serial=serial,package=package,status=result.returncode,output=output,present=present,absent=absent)))
+  assert present or absent,'unexpected package probe status/output'
+  return present
  def install_current():
-  adbtext(['uninstall',PKG],30) if adbtext(['shell','pm','path',PKG],30).strip() else None
+  if package_present(PKG):adbtext(['uninstall',PKG],30)
   adbtext(['install','-r',out/'fixture58.apk'],120);adbtext(['install','-r',out/'fixture-test.apk'],120)
   adbtext(['shell','mkdir','-p',f'/sdcard/Android/data/{PKG}/files'],30)
   for file in ['fixture59.apk','fixture.spdelta']:adbtext(['push',out/file,f'/sdcard/Android/data/{PKG}/files/{file}'],120)
@@ -138,11 +150,11 @@ elif sys.argv[1]=='device':
    # Self-update can detach instrumentation registration. Recovery reinstalls
    # only the exact already-built test APK, never current58 or app data.
    assert sha(out/'fixture-test.apk')==manifest['testApkSha256']
-   testpath=adbtext(['shell','pm','path',PKG+'.test'],30)
+   test_present=package_present(PKG+'.test')
    runners=adbtext(['shell','pm','list','instrumentation'],30)
-   if not testpath.strip() or runner not in runners:
+   if not test_present or runner not in runners:
     recovery=adbtext(['install','-r',out/'fixture-test.apk'],120);(out/'test-runner-recovery.txt').write_text(recovery)
-   assert adbtext(['shell','pm','path',PKG+'.test'],30).strip()
+   assert package_present(PKG+'.test')
    assert runner in adbtext(['shell','pm','list','instrumentation'],30)
    after=adbtext(['shell','dumpsys','package',PKG],30);assert re.search(r'\bversionCode=59\b',after)
    (out/'package59-after-runner-check.txt').write_text(after)
