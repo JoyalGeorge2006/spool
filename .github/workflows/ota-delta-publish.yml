@@ -92,6 +92,11 @@ jobs:
           actual=$(sha256sum target.apk | cut -d' ' -f1)
           [ "$actual" = "$thash" ] && [ "$(stat -c%s target.apk)" = "$tsize" ] || { echo "TARGET MISMATCH"; exit 1; }
           echo "target.apk matches release metadata: $thash ($tsize bytes)"
+          # Remove mis-named leftovers from earlier broken runs of this workflow (never the release's own assets)
+          for a in $(gh api "repos/$REPO/releases/tags/$TAG" --jq '.assets[] | select(.name | startswith("gen-")) | .id'); do
+            echo "Removing mis-named leftover asset $a"
+            gh api -X DELETE "repos/$REPO/releases/assets/$a"
+          done
           : > used.tsv
           while IFS=$'\t' read -r name btag asset code size hash; do
             base="base-$code-$name.apk"
@@ -101,7 +106,8 @@ jobs:
               gh release download "$TAG" --repo "$REPO" --pattern "$name" --output "use-$name" --clobber
             else
               python3 make_delta.py "$base" target.apk "gen-$name" > "gen-$name.json"
-              gh release upload "$TAG" "gen-$name#$name" --repo "$REPO"
+              cp "gen-$name" "$name"
+              gh release upload "$TAG" "$name" --repo "$REPO"
               gh release download "$TAG" --repo "$REPO" --pattern "$name" --output "use-$name" --clobber
             fi
             meta=$(gh api "repos/$REPO/releases/tags/$TAG" --jq ".assets[] | select(.name==\"$name\") | [.id, .size, (.digest | sub(\"sha256:\";\"\"))] | @tsv")
