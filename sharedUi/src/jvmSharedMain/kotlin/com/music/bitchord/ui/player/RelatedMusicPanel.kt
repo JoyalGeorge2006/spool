@@ -149,7 +149,7 @@ internal fun RelatedMusicPanel(
             HorizontalDivider(Modifier.padding(top = 24.dp, bottom = 16.dp), color = androidx.compose.ui.graphics.Color.Transparent)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                    Text(stringResource(Res.string.spool_related_autoplay), color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.autoplay), color = chromeWhite(1f), fontWeight = FontWeight.SemiBold)
                     Text(stringResource(Res.string.spool_related_autoplay_description), color = chromeWhite(0.65f), fontSize = 12.sp)
                 }
                 Switch(checked = autoplayEnabled, onCheckedChange = { onToggleAutoplay() }, enabled = !controlsLocked,
