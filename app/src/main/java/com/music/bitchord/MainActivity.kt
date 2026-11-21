@@ -189,6 +189,7 @@ import com.music.bitchord.ui.screens.AboutDeveloperPage
 import com.music.bitchord.ui.screens.CreditsLicensesPage
 import com.music.bitchord.ui.screens.LicenseNoticePage
 import com.music.bitchord.ui.screens.SettingsChoicePage
+import com.music.bitchord.ui.screens.settingsRootColorScheme
 import com.music.bitchord.ui.components.SpotifyImportAlert
 import com.music.bitchord.ui.screens.WearOsScreen
 import com.music.bitchord.ui.screens.AccountAndScrobblingScreen
@@ -2385,7 +2386,10 @@ private fun BitChordApp(
     val floatingRootHeader = route == null && topDetail == null && selectedMoodGenre == null
     val headerDownloadSession by DownloadSession.state.collectAsStateWithLifecycle()
     val rootHasExtraHeaderActions = headerDownloadSession.visible || (selectedTab == TAB_HOME && updateNotice != null)
-    // Settings and every Settings subpage retain their existing header and Back controls.
+    // Settings and every Settings subpage run headerless, as approved on 21 Nov:
+    // no pinned bar and no Back circle — the system Back gesture returns, and the
+    // page's own large title (already in the scrolling content) rides away with it.
+    // Any live page controls (downloads, account) still float as circles.
     val settingsChromeException = route != null && (route.keepsSettingsChrome() || AppRoute.Settings in navigator)
     val floatingPageChrome = !settingsChromeException
     val compactRootHeader = !floatingPageChrome && route == null && topDetail == null && selectedMoodGenre == null && selectedTab != TAB_SEARCH
@@ -2398,6 +2402,9 @@ private fun BitChordApp(
             floatingRootHeader && rootHasExtraHeaderActions -> if (rootHeaderHeightPx > 0) compactRootPadding else topBarContentPadding()
             floatingRootHeader -> topBarHeight() - 52.dp
             floatingPageChrome && rootHeaderHeightPx > 0 -> compactRootPadding
+            // Headerless Settings pages: clear the status strip and any floating
+            // controls, nothing more — no bar height is reserved any more.
+            settingsChromeException && rootHeaderHeightPx > 0 -> compactRootPadding
             compactRootHeader && rootHeaderHeightPx > 0 -> compactRootPadding
             else -> topBarContentPadding()
         },
@@ -3796,10 +3803,14 @@ private fun BitChordApp(
                         detail.type == BrowseType.PLAYLIST ||
                         detail.type == BrowseType.ARTIST) &&
                     !isLocalDetail
-                val chromePageColor = if (route == AppRoute.Settings) {
-                    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color.Black else Color(0xFFF7F6F4)
-                } else if (isDetailVisible) {
+                // Settings pages: the fades match what the page itself paints —
+                // neutral tokens under Astryx, the dynamic scheme under Material
+                // You. The hardcoded warm grey that fought Material You is gone.
+                val chromePaletteMode by AppSettings.paletteMode.collectAsStateWithLifecycle()
+                val chromePageColor = if (isDetailVisible) {
                     detailPalette.background
+                } else if (settingsChromeException) {
+                    settingsRootColorScheme(chromePaletteMode, MaterialTheme.colorScheme).background
                 } else {
                     MaterialTheme.colorScheme.background
                 }
@@ -3846,7 +3857,9 @@ private fun BitChordApp(
                 )
 
                 FrostedTopBar(
-                    controlsOnly = floatingPageChrome,
+                    // Every page floats its controls now: Settings routes take this
+                    // branch too, with no Back circle (see onBack below).
+                    controlsOnly = true,
                     rootTitle = if (compactRootHeader) tabs[selectedTab].let {
                         if (it.label == "Play") stringResource(R.string.listen_now) else it.label
                     } else null,
@@ -3889,7 +3902,6 @@ private fun BitChordApp(
                     // circles over the shared gradient — no full-width pane.
                     transparentBackdrop = true,
                     artworkPageChrome = true,
-                    settingsHomeChrome = route == AppRoute.AppUpdates || route == AppRoute.Profile || route == AppRoute.SwitchProfile || route == AppRoute.ManageAccounts || route == AppRoute.AboutDeveloper || route == AppRoute.CreditsLicenses || route is AppRoute.LicenseNotice || route == AppRoute.Settings || route is AppRoute.SettingsSection || route is AppRoute.SettingsChoice || route == AppRoute.AccountScrobbling || route == AppRoute.Sources || route == AppRoute.ListenTogether || route == AppRoute.WearOs,
                     // Artwork detail pages: the approved bare header glyphs.
                     bareDetailChrome = detail != null,
                     backButtonHazeState = hazeState,
@@ -3912,6 +3924,9 @@ private fun BitChordApp(
                     // The same step the back gesture takes — see [goBack] —
                     // offered on anything pushed over a tab.
                     onBack = when {
+                        // Approved 21 Nov: Settings pages carry no Back circle at
+                        // all — the Android system Back gesture does the same step.
+                        settingsChromeException -> null
                         route != null || detail != null || selectedMoodGenre != null -> goBack
                         else -> null
                     },

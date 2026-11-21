@@ -2401,8 +2401,7 @@ internal fun SpoolSettingsSurface(content: @Composable () -> Unit) {
     // Match SettingsScreen: neutral settings colors belong only to Astryx.
     // About, updates and bundled notices must retain the selected Material You scheme.
     val palette by AppSettings.paletteMode.collectAsStateWithLifecycle()
-    val rootColors = if (palette == PaletteMode.ASTRYX) approvedSettingsColorScheme(MaterialTheme.colorScheme)
-        else MaterialTheme.colorScheme
+    val rootColors = settingsRootColorScheme(palette, MaterialTheme.colorScheme)
     CompositionLocalProvider(
         LocalApprovedSettingsDetail provides true,
         com.music.bitchord.ui.components.LocalNeutralSwitchMetrics provides true,
@@ -2960,6 +2959,17 @@ enum class SettingsCategory(@param:StringRes val title: Int) {
         }
 }
 
+/**
+ * The colour scheme a settings-family page runs in: the approved opaque tokens
+ * under Astryx, the selected dynamic scheme under Material You — so option pages
+ * follow the wallpaper exactly like every other settings page. Approved 21 Nov.
+ */
+internal fun settingsRootColorScheme(
+    palette: PaletteMode,
+    base: androidx.compose.material3.ColorScheme,
+): androidx.compose.material3.ColorScheme =
+    if (palette == PaletteMode.ASTRYX) approvedSettingsColorScheme(base) else base
+
 /** The settings whose options are a page of their own — see [SettingsChoicePage]. */
 enum class SettingsChoiceKind(@param:StringRes val title: Int) {
     AUDIO_QUALITY_WIFI(R.string.on_wifi),
@@ -3023,7 +3033,8 @@ fun SettingsChoicePage(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
-    MaterialTheme(colorScheme = approvedSettingsColorScheme(MaterialTheme.colorScheme)) {
+    val palette by AppSettings.paletteMode.collectAsStateWithLifecycle()
+    MaterialTheme(colorScheme = settingsRootColorScheme(palette, MaterialTheme.colorScheme)) {
     Column(
         modifier
             .fillMaxSize()
