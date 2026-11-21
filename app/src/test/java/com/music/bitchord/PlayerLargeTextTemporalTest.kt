@@ -9,6 +9,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.music.bitchord.ui.player.PlayerPlatform
 import com.music.bitchord.ui.theme.BitChordTheme
@@ -42,7 +44,10 @@ class PlayerLargeTextTemporalTest {
     compose.waitForIdle()
     Assert.assertTrue("Full title retained in text semantics", compose.onAllNodesWithText("Midnight Rain",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())
     val file=java.io.File("build/outputs/roborazzi/title_temporal_${dark}_${step}.png")
-    compose.onRoot().captureRoboImage(file.absolutePath)
+    file.parentFile?.mkdirs()
+    // Under the plain unit-test task the roborazzi default task type is None and a
+    // bare captureRoboImage is a no-op; force Record so the read-back works.
+    compose.onRoot().captureRoboImage(file.absolutePath, RoborazziOptions(taskType = RoborazziTaskType.Record))
     val bitmap=BitmapFactory.decodeFile(file.absolutePath)
     Assert.assertEquals(320,bitmap.width)
     Assert.assertEquals(600,bitmap.height)
