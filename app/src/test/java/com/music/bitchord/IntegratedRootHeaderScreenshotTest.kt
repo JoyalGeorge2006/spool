@@ -143,7 +143,7 @@ abstract class IntegratedRootHeaderScreenshotTestBase {
    for(attempt in 0 until 8) {
     val card = full(actual)
     val label = full(labelTarget)
-    check(card.height <= safeBottom-safeTop && card.width <= root.width.value) { "Sign-in target is oversized: $card" }
+    check(card.height <= safeBottom-safeTop && card.width <= (root.right.value-root.left.value)) { "Sign-in target is oversized: $card" }
     if(inside(card) && inside(label)) break
     val delta = if(card.bottom > safeBottom) card.bottom-safeBottom else card.top-safeTop
     check(kotlin.math.abs(delta) > 0.5f) { "No useful scroll delta for hidden sign-in target" }
