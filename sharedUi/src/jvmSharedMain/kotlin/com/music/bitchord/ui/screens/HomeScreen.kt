@@ -10,6 +10,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -632,7 +633,7 @@ private fun MoodChipRow(
     onForYouClick: ((String) -> Unit)?,
 ) {
     Row(
-        modifier = Modifier
+        modifier = Modifier.testTag("home-mood-chip-row")
             .padding(horizontal = PAGE_GUTTER)
             .padding(bottom = 14.dp)
             .horizontalScroll(rememberScrollState()),
