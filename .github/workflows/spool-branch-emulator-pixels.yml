@@ -51,20 +51,21 @@ jobs:
         arch: x86_64
         profile: pixel_6
         script: |
-          ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest --no-daemon
-          status=$?
-          # Pull pixels BEFORE the runner tears the emulator down; the
-          # post-step adb pull found no device on the failed run.
-          # Scoped storage hides /sdcard/Android/data/<pkg> from the shell
-          # (stat returns ENOENT), so read the files through the app's own
-          # identity with run-as; the dev build is debuggable.
+          # This runner hands EACH script line to its own sh -c and aborts the
+          # remaining lines on the first non-zero one: no multi-line constructs,
+          # and the test status must survive in a file so a red suite cannot
+          # skip the pixel pull (run 44870377319 died exactly that way).
+          ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest --no-daemon && echo 0 > /tmp/tstatus || echo 1 > /tmp/tstatus
           mkdir -p emulator-screens
+          # Scoped storage hides /sdcard/Android/data/<pkg> from the shell
+          # (stat returns ENOENT), so read through the app's own identity with
+          # run-as; stderr left VISIBLE on purpose — run 44871385332 swallowed
+          # it with 2>/dev/null and the listing came back silently empty.
           adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
-          # NOTE: this runner passes each script line to its own sh -c, so the
-          # loop must stay on ONE line (multi-line while/do broke run 44870377319).
-          adb shell run-as app.spool.music.dev ls /sdcard/Android/data/app.spool.music.dev/files/ 2>/dev/null | tr -d '\r' | while read f; do case "$f" in *.png) adb exec-out run-as app.spool.music.dev cat "/sdcard/Android/data/app.spool.music.dev/files/$f" > "emulator-screens/$f" || true ;; esac; done || true
+          adb shell run-as app.spool.music.dev ls -la /sdcard/Android/data/app.spool.music.dev/files/ || echo RUNAS_LIST_FAILED
+          adb shell run-as app.spool.music.dev ls /sdcard/Android/data/app.spool.music.dev/files/ | tr -d '\r' | while read f; do case "$f" in *.png) adb exec-out run-as app.spool.music.dev cat "/sdcard/Android/data/app.spool.music.dev/files/$f" > "emulator-screens/$f" || true ;; esac; done || true
           ls -la emulator-screens/ || true
-          exit $status
+          grep -q '^0$' /tmp/tstatus
     - name: Pull emulator screenshots
       if: always()
       run: |
