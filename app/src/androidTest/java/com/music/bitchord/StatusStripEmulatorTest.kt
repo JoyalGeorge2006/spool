@@ -293,20 +293,17 @@ class StatusStripEmulatorTest {
         // Settings, reached the way a person reaches it; identity asserted.
         openSettingsAndAssert("Settings", "Settings")
         fullScreenshot("04-settings-light", expectDark = false)
-        scrollPageAndAssertMoved("settings-light", "Audio quality")
+        scrollPageAndAssertMoved("settings-light", "Not signed in")
         fullScreenshot("05-settings-light-scrolled", expectDark = false)
         val stripInSettings = stripBounds()
         assertTrue("strip must exist on the Settings page too", stripInSettings != null)
         assertEquals(0f, stripInSettings!!.top, 1f)
 
-        // Replay, reached the way the user reached it (back to Home, then the
-        // Library tab): captured after the approved heading spacing fix
-        // (48dp -> 12dp) so the tightened top can be reviewed on real pixels.
-        // Identity is asserted - a wrong page cannot wear the Replay name.
-        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
-        compose.waitForIdle()
-        Thread.sleep(1200)
-        compose.waitForIdle()
+    }
+
+    @Test fun replaySpacingIndependentlyVerified() {
+        englishFixture()
+        // Independent setup: a Settings scroll failure cannot suppress Replay.
         val libraryTab = hasClickAction() and (
             hasContentDescription("Library") or hasAnyDescendant(hasContentDescription("Library"))
             )
@@ -573,6 +570,10 @@ class StatusStripEmulatorTest {
             }
             backToParent()
         }
+        val watch = compose.activity.getString(R.string.wear_os_section)
+        clickRow(watch)
+        inspectPage("wear-os-no-watch", compose.activity.getString(R.string.wear_os_page_title))
+        backToParent()
         println("UNAVAILABLE Wear OS connected-watch state: requires paired device; no device/account changes made")
     }
 
@@ -598,6 +599,12 @@ class StatusStripEmulatorTest {
         clickRow("Replay")
         inspectPage("library-replay", "Weekly")
         backToParent()
+        for (key in listOf(R.string.downloads, R.string.local_music)) {
+            val title = compose.activity.getString(key)
+            clickRow(title)
+            inspectPage("library-folder-$key", title)
+            backToParent()
+        }
         println("UNAVAILABLE authenticated library shelves/artist shelf content: signed-out fixture has no owner library; no fake populated-state claim")
     }
 
