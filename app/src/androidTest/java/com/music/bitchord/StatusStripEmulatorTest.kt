@@ -61,7 +61,12 @@ import org.junit.runners.JUnit4
 @RunWith(JUnit4::class)
 class StatusStripEmulatorTest {
 
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    // Default Compose testing uses UnconfinedTestDispatcher, which may resume
+    // rememberCoroutineScope on an IO worker after a real transport suspension.
+    // Queue effects and advance them through Compose's UI-thread test clock.
+    @get:Rule val compose = createAndroidComposeRule<MainActivity>(
+        effectContext = kotlinx.coroutines.test.StandardTestDispatcher(),
+    )
 
     private fun saveBitmap(name: String, bitmap: Bitmap) {
         val dir = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
@@ -818,7 +823,10 @@ class StatusStripEmulatorTest {
         for (key in listOf(R.string.downloads, R.string.local_music)) {
             val title = compose.activity.getString(key)
             clickRow(title)
-            inspectPage("library-folder-$key", title)
+            // Library entry and destination page intentionally use different
+            // names for Downloads. Keep the route identity exact.
+            val pageTitle = if (key == R.string.downloads) compose.activity.getString(R.string.downloaded_songs) else title
+            inspectPage("library-folder-$key", pageTitle)
             backToParent()
         }
         println("UNAVAILABLE authenticated library shelves/artist shelf content: signed-out fixture has no owner library; no fake populated-state claim")
@@ -975,7 +983,8 @@ class StatusStripEmulatorTest {
                 else -> "{}"
             }
             okhttp3.Response.Builder().request(request).protocol(okhttp3.Protocol.HTTP_1_1)
-                .code(200).message("fixture").body(payload.toResponseBody("application/json".toMediaType())).build()
+                .code(200).message("fixture").header("Content-Type", "application/json")
+                .body(payload.toResponseBody("application/json".toMediaType())).build()
         }.build()
         val transport = io.ktor.client.HttpClient(io.ktor.client.engine.okhttp.OkHttp) {
             engine { preconfigured = http }
