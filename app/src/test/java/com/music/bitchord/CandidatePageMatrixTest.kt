@@ -104,13 +104,41 @@ abstract class CandidatePageMatrixBase {
    } }
    compose.waitForIdle()
    compose.onNodeWithText("No fixed title").assertDoesNotExist()
+   val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+   val title = when {
+    page.startsWith("Settings_") -> context.getString(SettingsCategory.valueOf(page.removePrefix("Settings_")).title)
+    page.startsWith("Choice_") -> context.getString(SettingsChoiceKind.valueOf(page.removePrefix("Choice_")).title)
+    else -> when(page) {
+     "Listen" -> "Listen"; "Explore" -> "Explore"; "Library" -> "Library"
+     "Search" -> "Songs, artists, albums"; "Album" -> "Afterglow"; "Playlist" -> "Rainy Day Drive"
+     "Artist" -> "Nova Rae"; "ArtistShelf" -> "Albums"; "LocalMusic" -> "Local Music"
+     "MoodCategory" -> "Focus"; "LibraryGrid" -> "Playlists"; "License" -> "GNU GPL v3"
+     else -> context.getString(when(page) {
+      "Settings" -> R.string.settings; "Profile" -> R.string.acct_profile_header
+      "SwitchProfile" -> R.string.acct_switch_profile; "ManageAccounts" -> R.string.manage_accounts
+      "AboutDeveloper" -> R.string.about_developer_title; "Credits" -> R.string.about_credits
+      "WearOs" -> R.string.wear_os_page_title; "Sources" -> R.string.source
+      "ListenTogether" -> R.string.listen_together; "AppUpdates" -> R.string.app_updates
+      "AccountScrobbling" -> R.string.account_integrations; "Replay" -> R.string.replay
+      "History" -> R.string.history; "Downloads" -> R.string.downloads
+      "Moods" -> R.string.find_your_mood; "Spotify" -> R.string.spotify; "Discord" -> R.string.discord
+      "Equalizer" -> R.string.equalizer; "Presets" -> R.string.equalizer_preset
+      else -> error("No identity assertion for $page")
+     })
+    }
+   }
+   val identities = compose.onAllNodesWithText(title).fetchSemanticsNodes()
+   assertTrue("$page must render its own identity '$title'", identities.isNotEmpty())
+   assertTrue("$page identity must clear the fixture status inset",
+    identities.any { it.boundsInRoot.top >= 31f && it.boundsInRoot.height > 0f })
+
    val name="candidate_${page}_${palette.name}_${if(dark)"dark" else "light"}_${if(narrow)"narrow" else "normal"}"
-   compose.onNodeWithTag("candidate-page").captureRoboImage("build/outputs/roborazzi/$name.png")
+   compose.onNodeWithTag("candidate-page").captureRoboImage("build/outputs/roborazzi/$name.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
    if(page in listOf("Listen","Explore","Library","Search","History")) {
     compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
     compose.waitForIdle()
     compose.onNodeWithTag("floating-history-profile").assertIsDisplayed()
-    compose.onNodeWithTag("candidate-page").captureRoboImage("build/outputs/roborazzi/${name}_scrolled.png")
+    compose.onNodeWithTag("candidate-page").captureRoboImage("build/outputs/roborazzi/${name}_scrolled.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
    }
   } finally {
    AppSettings.setPaletteMode(oldPalette);AppSettings.setThemeMode(oldTheme)
