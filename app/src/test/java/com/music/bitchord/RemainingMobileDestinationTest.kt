@@ -82,9 +82,11 @@ class RemainingMobileDestinationTest {
                 "WEBDAV_EDITOR" -> context.getString(R.string.webdav)
                 "SMB_EDITOR" -> context.getString(R.string.smb)
                 "SOURCE_QUALITY" -> context.getString(R.string.audio_quality)
-                else -> null
+                "SIGNATURE_EDITOR" -> context.getString(R.string.artist_signatures_url)
+                "ADDON_EDITOR" -> context.getString(R.string.add_addon)
+                else -> error("Missing destination identity: $page")
             }
-            if(identity != null) compose.onAllNodesWithText(identity).onFirst().assertExists()
+            compose.onAllNodesWithText(identity).onFirst().assertIsDisplayed()
             compose.onRoot().captureRoboImage("build/outputs/roborazzi/${name}_top.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             val lists = compose.onAllNodes(hasScrollAction())
             if (lists.fetchSemanticsNodes().isNotEmpty()) {
