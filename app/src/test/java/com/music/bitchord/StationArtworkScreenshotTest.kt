@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.music.bitchord.data.model.*
 import com.music.bitchord.ui.screens.TopPicksShelf
@@ -75,9 +77,17 @@ abstract class StationArtworkScreenshotTestBase {
             repeat(4) {
                 compose.mainClock.advanceTimeBy(64L)
                 compose.waitForIdle()
-                compose.onNodeWithTag("station-frame").captureRoboImage(frameCapture)
+                run {
+                // Same runner rule as PlayerDrawerFrostShotTest.captureAndStore: under the
+                // plain unit-test task the roborazzi default task type is None, so a bare
+                // captureRoboImage is a no-op and the read-back below fails. Force Record.
+                val out = File(frameCapture)
+                out.parentFile?.mkdirs()
+                compose.onNodeWithTag("station-frame").captureRoboImage(out.absolutePath,
+                    RoborazziOptions(taskType = RoborazziTaskType.Record))
+            }
                 frame?.recycle()
-                frame=android.graphics.BitmapFactory.decodeFile(frameCapture)
+                frame=android.graphics.BitmapFactory.decodeFile(File(frameCapture).absolutePath)
                 val hasArt=frame?.let { f ->
                     var count=0
                     for(y in 0 until f.height step 4) for(x in 0 until f.width step 4) {
@@ -110,7 +120,12 @@ abstract class StationArtworkScreenshotTestBase {
         }
         compose.onNodeWithText("Your Station").performClick()
         compose.runOnIdle { assertEquals(picks.first().watch,taps.single().watch);assertEquals(picks.first().preparedSongs,taps.single().preparedSongs) }
-        compose.onNodeWithTag("station-frame").captureRoboImage("build/outputs/roborazzi/station_${state}_${width}_${if(large)"2x" else "1x"}_${if(dark)"dark" else "light"}.png")
+        run {
+            val out = File("build/outputs/roborazzi/station_${state}_${width}_${if(large)"2x" else "1x"}_${if(dark)"dark" else "light"}.png")
+            out.parentFile?.mkdirs()
+            compose.onNodeWithTag("station-frame").captureRoboImage(out.absolutePath,
+                RoborazziOptions(taskType = RoborazziTaskType.Record))
+        }
     }
 }
 
