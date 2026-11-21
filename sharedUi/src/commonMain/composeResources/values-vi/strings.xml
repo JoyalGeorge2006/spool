@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">Không thể phát bản nhạc này</string>
     <string name="tap_to_retry">Nhấn để thử lại</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">Thử lại</string>
+    <string name="find_your_mood">Tìm tâm trạng của bạn</string>
+    <string name="home_history">Lịch sử</string>
+    <string name="mood_focus">Tập trung</string>
+    <string name="mood_party">Tiệc tùng</string>
+    <string name="mood_relax">Thư giãn</string>
+    <string name="mood_sleep">Giấc ngủ</string>
+    <string name="remove">Xóa</string>
+    <string name="sign_in_with_google">Đăng nhập bằng Google</string>
+    <string name="spool_related_add_to_queue">Thêm vào hàng đợi</string>
+    <string name="spool_related_retry">Thử lại</string>
 </resources>
