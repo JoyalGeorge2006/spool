@@ -1,0 +1,63 @@
+name: Emulator pixel verification (branch, no release)
+# Real-device visual proof for the status-bar strip and page behaviour on the
+# taste-aware-moods branch: boots an API 34 emulator, runs the instrumentation
+# test against the real app, and uploads full-screen screenshots as artifacts.
+# Fires only when the instrumentation tests or this workflow change, so normal
+# branch pushes stay cheap. Public repo: GitHub-hosted minutes are free.
+on:
+  push:
+    branches: [taste-aware-moods]
+    paths:
+      - 'app/src/androidTest/**'
+      - '.github/workflows/spool-branch-emulator-pixels.yml'
+
+jobs:
+  emulator-pixels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+    - name: Android platform, NDK and compileSdk remap (same as the 2.1.1 build)
+      shell: bash
+      run: |
+        set -euo pipefail
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Strip verification on a real emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        profile: pixel_6
+        script: ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest --no-daemon
+    - name: Pull emulator screenshots
+      if: always()
+      run: |
+        mkdir -p emulator-screens
+        adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
+        ls -la emulator-screens/ || true
+    - name: Upload screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: emulator-strip-pixels
+        path: emulator-screens/**
+        if-no-files-found: warn
