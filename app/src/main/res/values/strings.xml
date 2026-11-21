@@ -252,6 +252,7 @@
     <string name="turkish">Turkish</string>
     <string name="thai">Thai</string>
     <string name="korean">Korean</string>
+    <string name="malayalam">Malayalam</string>
     <string name="show_all">Show all</string>
     <string name="grid_view">Grid</string>
     <string name="list_view">List</string>
@@ -842,6 +843,7 @@
         <item quantity="one">%1$s minute</item>
         <item quantity="other">%1$s minutes</item>
     </plurals>
+    <string name="replay_minutes_mostly_around">, mostly around %1$s.</string>
     <string name="replay_mostly_around">%1$s</string>
     <string name="replay_private_counting">Built privately from your listening history on this device.</string>
     <string name="replay_share_card_description">A polished card with your main listening highlights.</string>
@@ -851,6 +853,7 @@
     <string name="replay_songs_start">In total, </string>
     <string name="replay_summary_start">Your </string>
     <string name="replay_summary_end_week">week</string>
+    <string name="replay_summary_end"> in music.</string>
     <string name="saved">Saved</string>
     <string name="saved_bang">Saved!</string>
     <string name="share_my_replay">Share my Replay</string>
