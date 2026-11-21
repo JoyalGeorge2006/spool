@@ -39,7 +39,7 @@ class PlayerGestureRegressionTest {
             bounds.width > 0f && bounds.height > 0f && root.contains(bounds.center)
         })
     }
-    private fun probe(dark: Boolean, queuePane: Boolean) {
+    private fun probe(dark: Boolean, queuePane: Boolean, playing: Boolean = false) {
         val fixture = V6ScreenshotTest().also { it.installUiHost() }
         val previousHost = fixture.installVideoStubHost()
         val oldPane = AppSettings.lastPlayerScreen.value
@@ -52,17 +52,22 @@ class PlayerGestureRegressionTest {
         AppSettings.playerTheme.value = PlayerTheme.FLAT
         AppSettings.lastPlayerScreen.value = if (queuePane) LastPlayerScreen.QUEUE else LastPlayerScreen.MAIN
         AppSettings.setThemeMode(if (dark) ThemeMode.DARK else ThemeMode.LIGHT)
+        if (playing) compose.mainClock.autoAdvance = false
+        fun settle() {
+            if (playing) repeat(12) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
+            else compose.waitForIdle()
+        }
         try {
             compose.setContent { BitChordTheme(darkTheme = dark) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    fixture.PlayerShot(playing = false, nextRequest = { next++ }, previousRequest = { previous++ },
+                    fixture.PlayerShot(playing = playing, nextRequest = { next++ }, previousRequest = { previous++ },
                         removeRequest = { removed += it }, collapseRequest = { collapsed++ })
                 }
             } }
-            compose.waitForIdle()
+            settle()
             if (queuePane) {
                 visibleText("Queue").performClick()
-                compose.waitForIdle()
+                settle()
                 val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
                 val visibleList = hasScrollToNodeAction() and SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange) and SemanticsMatcher("visible queue list") {
                     val b = it.boundsInRoot
@@ -76,21 +81,21 @@ class PlayerGestureRegressionTest {
                 println("QUEUE_TOUCH_GEOMETRY row=$rowBefore root=$rootBefore")
                 compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_before_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 compose.onNodeWithText("Track 3").performTouchInput { swipeLeft() }
-                compose.waitForIdle()
+                settle()
                 compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_after_left_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 compose.mainClock.advanceTimeBy(1200L)
-                compose.waitForIdle()
+                settle()
                 visibleText("Lyrics").assertIsSelected()
                 assertTrue("page swipe must never remove queue entries", removed.isEmpty())
                 compose.onNodeWithTag("player-section-pager").performTouchInput { swipeRight() }
                 compose.mainClock.advanceTimeBy(1200L)
-                compose.waitForIdle()
+                settle()
                 visibleText("Queue").assertIsSelected()
                 assertTrue("reverse page swipe must never remove queue entries", removed.isEmpty())
                 lazy.performTouchInput { swipeUp() }
-                compose.waitForIdle()
+                settle()
                 lazy.performTouchInput { swipeDown() }
-                compose.waitForIdle()
+                settle()
                 assertEquals("row swipes must not skip the playing track", 0, next)
                 assertEquals(0, previous)
                 assertEquals("queue vertical scrolling must not collapse the player", 0, collapsed)
@@ -100,12 +105,12 @@ class PlayerGestureRegressionTest {
                 visibleText("Lyrics").assertIsDisplayed().assertIsEnabled().performClick()
                 // Pump layout between small frame advances: a page selection
                 // launches its scroll after recomposition, not before it.
-                repeat(30) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
+                repeat(30) { compose.mainClock.advanceTimeBy(100L); settle() }
                 compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_lyrics_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 visibleText("First line of the song").assertIsDisplayed()
                 visibleText("Queue").assertIsDisplayed().assertIsEnabled().performClick()
-                repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
-                compose.mainClock.autoAdvance = true
+                repeat(10) { compose.mainClock.advanceTimeBy(100L); settle() }
+                compose.mainClock.autoAdvance = !playing
                 compose.onNode(visibleList).performScrollToNode(hasText("Track 6"))
                 compose.onNodeWithText("Track 6").assertIsDisplayed()
             } else {
@@ -113,11 +118,11 @@ class PlayerGestureRegressionTest {
                 val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
                 val y = title.center.y - root.top
                 compose.onRoot().performTouchInput { swipe(Offset(width.toFloat() * .85f, y), Offset(width.toFloat() * .15f, y), 300) }
-                compose.waitForIdle()
+                settle()
                 assertEquals(1, next)
                 assertEquals(0, previous)
                 compose.onRoot().performTouchInput { swipe(Offset(width.toFloat() * .15f, y), Offset(width.toFloat() * .85f, y), 300) }
-                compose.waitForIdle()
+                settle()
                 assertEquals(1, previous)
                 assertEquals(1, next)
                 assertTrue(removed.isEmpty())
@@ -168,4 +173,11 @@ class PlayerGestureRegressionTest {
     @Test fun queue_four_directions_dark() = probe(true, true)
     @Test fun player_skip_both_directions_light() = probe(false, false)
     @Test fun player_skip_both_directions_dark() = probe(true, false)
+    // Active playback keeps Lyrics' frame loop running. Use bounded manual
+    // clock pumping, never require that real playing content becomes idle.
+    @Test fun playing_queue_four_directions_light() = probe(false, true, playing = true)
+    @Test fun playing_queue_four_directions_dark() = probe(true, true, playing = true)
+    @Test fun playing_player_skip_both_directions_light() = probe(false, false, playing = true)
+    @Test fun playing_player_skip_both_directions_dark() = probe(true, false, playing = true)
+
 }
