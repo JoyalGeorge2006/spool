@@ -14,13 +14,42 @@ import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 
-/** Only an explicit Install command enters this owner. Ordinary Android confirmation remains mandatory. */
+/** An explicit Install or claimed download continuation enters this owner. Android confirmation remains mandatory. */
 internal object UpdateInstaller {
+    /** Internal deterministic test backend. Null in the app. Never bypasses
+     * automatic attempt claiming, foreground guards or lifecycle policy. */
+    internal interface TestBackend {
+        suspend fun verify(context: Context, attempt: UpdateAttempt)
+        fun canInstall(context: Context): Boolean
+        fun openPermission(context: Context)
+        suspend fun stage(context: Context, attempt: UpdateAttempt)
+        suspend fun permissionLaunchedBeforePersist() = Unit
+    }
+    @Volatile internal var testBackend: TestBackend?=null
+    internal val backendForTests get()=if(com.music.bitchord.BuildConfig.DEBUG)testBackend else null
     private val mutex=Mutex()
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
     private var foreground=WeakReference<Activity>(null)
     @Volatile private var committedOperation:Pair<String,Long>?=null
     @Volatile private var pendingConfirmation: Pair<String,Intent>?=null
+    @Volatile private var shownConfirmation: String?=null
+    internal fun activityResumed(activity: Activity) {
+        foreground=WeakReference(activity)
+        scope.launch {
+            val a=UpdateDownloads.snapshot() ?: return@launch
+            val pending=pendingConfirmation?.takeIf { it.first==a.installToken } ?: return@launch
+            if(a.phase!="confirmation")return@launch
+            withContext(Dispatchers.Main) {
+                if(UpdateAutoInstall.isResumed(activity) && UpdateDownloads.snapshot()==a && shownConfirmation!=a.installToken) {
+                    // Claim once before the external launch. Rotation/resume never
+                    // duplicates an already displayed Android prompt.
+                    shownConfirmation=a.installToken
+                    try { activity.startActivity(Intent(pending.second).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    catch(_: Exception) { UpdateNavigation.show(activity,"Spool update is ready","Open App updates to continue Android confirmation") }
+                }
+            }
+        }
+    }
     suspend fun continueConfirmation(context: Context) = withContext(Dispatchers.IO) {
         if(!mutex.tryLock())return@withContext
         try {
@@ -45,18 +74,50 @@ internal object UpdateInstaller {
             }
         } finally { mutex.unlock() }
     }
-    suspend fun install(context: Context)=withContext(Dispatchers.IO) {
-        if(AppUpdateChecker.externallyProvided || !mutex.tryLock())return@withContext
+    suspend fun install(context: Context, automaticAttempt: UpdateAttempt? = null)=withContext(Dispatchers.IO) {
+        if(AppUpdateChecker.externallyProvided)return@withContext
+        mutex.lock()
+        var ownedToken: String?=null
         try {
             var a=UpdateDownloads.snapshot() ?: return@withContext
             if(a.phase !in setOf("ready","permission"))return@withContext
-            AppUpdateChecker.verifyDownloadedApk(context,a.candidate(context),a.info,a.delta?.targetCode,a.delta?.minSdk,a.delta?.abi)
-            if(Build.VERSION.SDK_INT>=26 && !context.packageManager.canRequestPackageInstalls()) {
-                a=UpdateDownloads.change(a,"permission","Allow updates from Spool in Android settings, then return and tap Install.") ?: return@withContext
-                withContext(Dispatchers.Main) { context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            ownedToken=a.token
+            if(automaticAttempt!=null) {
+                if(a!=automaticAttempt || !UpdateAutoInstall.isResumed(context))return@withContext
+            }
+            a=UpdateDownloads.claimAutoInstall(a,automatic=automaticAttempt!=null) ?: return@withContext
+            val backend=backendForTests
+            if(backend!=null)backend.verify(context,a)
+            else AppUpdateChecker.verifyDownloadedApk(context,a.candidate(context),a.info,a.delta?.targetCode,a.delta?.minSdk,a.delta?.abi)
+            if(UpdateDownloads.snapshot()!=a)return@withContext
+            suspend fun stillForeground(): Boolean {
+                if(automaticAttempt==null)return true
+                val active=withContext(Dispatchers.Main) { UpdateAutoInstall.isResumed(context) }
+                if(!active)UpdateDownloads.change(a,"ready",autoInstallPending=true)
+                return active
+            }
+            if(!stillForeground())return@withContext
+            if(Build.VERSION.SDK_INT>=26 && !(backend?.canInstall(context) ?: context.packageManager.canRequestPackageInstalls())) {
+                a=UpdateDownloads.change(a,"permission",if(automaticAttempt!=null) "Allow updates from Spool in Android settings, then return to continue." else "Allow updates from Spool in Android settings, then return and tap Install.", autoInstallPending=automaticAttempt!=null) ?: return@withContext
+                val launched=withContext(Dispatchers.Main) {
+                    if(automaticAttempt!=null && (!UpdateAutoInstall.isResumed(context) || UpdateDownloads.snapshot()!=a))false
+                    else {
+                        if(automaticAttempt!=null)UpdateAutoInstall.expectPermissionReturn(context,a.token)
+                        if(backend!=null)backend.openPermission(context)
+                        else context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        true
+                    }
+                }
+                if(automaticAttempt!=null) {
+                    if(launched)backend?.permissionLaunchedBeforePersist()
+                    if(launched)UpdateDownloads.change(a,"permission",a.message,autoInstallPending=true,permissionHandoffLaunched=true)
+                    else UpdateDownloads.change(a,"ready",autoInstallPending=true)
+                }
                 return@withContext
             }
+            if(!stillForeground())return@withContext
             foreground=WeakReference(findActivity(context))
+            if(backend!=null) { backend.stage(context,a);return@withContext }
             val pi=context.packageManager.packageInstaller
             val params=PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
                 setAppPackageName(context.packageName);setSize(requireNotNull(a.info.sizeBytes))
@@ -93,8 +154,14 @@ internal object UpdateInstaller {
                 if(now?.token==a.token && now.phase!="cancelled")UpdateDownloads.change(now,"ready","Android installer could not finish. Tap Install to retry.",session=-1,installToken="")
             }
         } catch(e: Exception) {
-            UpdateDownloads.snapshot()?.let { if(it.phase in setOf("ready","permission"))UpdateDownloads.change(it,"failed",e.message ?: "Update could not be verified") }
-        } finally { mutex.unlock() }
+            UpdateDownloads.snapshot()?.takeIf { it.token==ownedToken }?.let { if(it.phase in setOf("ready","permission"))UpdateDownloads.change(it,"failed",e.message ?: "Update could not be verified") }
+        } finally {
+            mutex.unlock()
+            // A foreground return while verification held the mutex must not
+            // lose its wake. Only deferred Ready intent is reevaluated here.
+            val pending=UpdateDownloads.snapshot()
+            if(pending?.autoInstallPending==true && pending.phase=="ready")UpdateAutoInstall.request()
+        }
     }
     private fun findActivity(context: Context): Activity? = when(context) {
         is Activity -> context
@@ -125,8 +192,8 @@ internal object UpdateInstaller {
                         a=UpdateDownloads.change(a,"confirmation","Confirm installation in Android. If the prompt is hidden, open the update notification.") ?: return@launch
                         pendingConfirmation=a.installToken to confirmation
                         val activity=foreground.get()
-                        if(activity!=null && !activity.isFinishing && activity.hasWindowFocus()) {
-                            withContext(Dispatchers.Main) { activity.startActivity(confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        if(activity!=null && UpdateAutoInstall.isResumed(activity)) {
+                            activityResumed(activity)
                         } else {
                             UpdateNavigation.show(context,"Spool update is ready","Tap to review and continue Android confirmation")
                         }
