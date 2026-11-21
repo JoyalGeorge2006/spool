@@ -300,4 +300,21 @@
     <string name="explore_empty_title">No moods available</string>
     <string name="explore_empty_description">Try loading this section again.</string>
     <string name="explore_empty_retry">Try again</string>
+
+    <string name="spool_related_heading">Related music</string>
+    <string name="spool_related_based_on">Based on %1$s</string>
+    <string name="spool_related_loading">Finding related music...</string>
+    <string name="spool_related_load_failed">Couldn\'t load related music</string>
+    <string name="spool_related_queue_unchanged">Your queue is unchanged.</string>
+    <string name="spool_related_retry">Try again</string>
+    <string name="spool_related_empty">No related tracks found</string>
+    <string name="spool_related_empty_hint">Try again or choose another song.</string>
+    <string name="spool_related_autoplay">Autoplay</string>
+    <string name="spool_related_autoplay_description">Keep similar music playing after your queue.</string>
+    <string name="spool_related_host_only">Only the host can change playback or the queue.</string>
+    <string name="spool_related_play_song">Play %1$s</string>
+    <string name="spool_related_song_actions">Song actions</string>
+    <string name="spool_related_add_song">Add %1$s to queue</string>
+    <string name="spool_related_play_now">Play now</string>
+    <string name="spool_related_add_to_queue">Add to queue</string>
 </resources>
