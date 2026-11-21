@@ -47,10 +47,10 @@ class PlayerSectionViewportTest {
                 }
             }
             repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
-            compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_main_${dark}_${font}.png")
+            compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_main_${dark}_${font}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             compose.onNodeWithText("Lyrics").assertIsDisplayed().performClick()
             repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
-            compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_section_${dark}_${font}.png")
+            compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_section_${dark}_${font}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
             compose.onNodeWithText(longTitle).assertIsDisplayed()
             compose.onNodeWithText("Playing from Queue").assertDoesNotExist()
             compose.onNodeWithText("First line of the song").assertIsDisplayed()
@@ -58,7 +58,7 @@ class PlayerSectionViewportTest {
             repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
             compose.onNodeWithText("Track 5").assertIsDisplayed()
             compose.onNodeWithText("Track 1").assertDoesNotExist()
-            compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_related_${dark}_${font}.png")
+            compose.onNodeWithTag("viewport").captureRoboImage("build/outputs/roborazzi/viewport_related_${dark}_${font}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.setThemeMode(oldTheme)
             PlayerPlatform.install(host)
