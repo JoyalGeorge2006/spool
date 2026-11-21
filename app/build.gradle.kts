@@ -18,6 +18,16 @@ tasks.withType<Test>().configureEach {
     // in StaticLaunchTest (ShadowArscApkAssets9/FileMap). Recycle sooner,
     // without reducing the test set or increasing the worker heap.
     forkEvery = 20L
+    // Diagnose native JNI buffer-class aborts without replacing the real
+    // loader, native graphics, SDK34 tests, heap, or complete test inventory.
+    jvmArgs("-Xcheck:jni", "-XX:ErrorFile=hs_err_pid%p.log")
+    testLogging {
+        events("started", "passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = true
+    }
     // Measured facts for sizing, printed before any test executes.
     doFirst {
         println(
