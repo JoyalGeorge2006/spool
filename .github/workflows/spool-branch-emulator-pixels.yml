@@ -55,12 +55,15 @@ jobs:
           # remaining lines on the first non-zero one: no multi-line constructs,
           # and the test status must survive in a file so a red suite cannot
           # skip the pixel pull (run 44870377319 died exactly that way).
-          ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest --no-daemon && echo 0 > /tmp/tstatus || echo 1 > /tmp/tstatus
+          ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --no-daemon && echo 0 > /tmp/tstatus || echo 1 > /tmp/tstatus
           mkdir -p emulator-screens
           # Scoped storage hides /sdcard/Android/data/<pkg> from the shell
           # (stat returns ENOENT), so read through the app's own identity with
           # run-as; stderr left VISIBLE on purpose — run 44871385332 swallowed
           # it with 2>/dev/null and the listing came back silently empty.
+          # Install-state + debuggable truth after the test task; the leaveApks flag is EXPECTED to keep the APKs installed past task end (effect under validation by this very run):
+          adb shell pm list packages | grep -i spool || true
+          adb shell dumpsys package app.spool.music.dev | grep -iE 'flags=|DEBUGGABLE' | head -5 || true
           adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
           adb shell run-as app.spool.music.dev ls -la /sdcard/Android/data/app.spool.music.dev/files/ || echo RUNAS_LIST_FAILED
           adb shell run-as app.spool.music.dev ls /sdcard/Android/data/app.spool.music.dev/files/ | tr -d '\r' | while read f; do case "$f" in *.png) adb exec-out run-as app.spool.music.dev cat "/sdcard/Android/data/app.spool.music.dev/files/$f" > "emulator-screens/$f" || true ;; esac; done || true
@@ -77,5 +80,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: emulator-strip-pixels
-        path: emulator-screens/**
+        path: |
+          emulator-screens/**
+          **/build/outputs/androidTest-results/**
         if-no-files-found: warn
