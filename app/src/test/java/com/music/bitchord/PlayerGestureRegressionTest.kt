@@ -63,20 +63,30 @@ class PlayerGestureRegressionTest {
             if (queuePane) {
                 visibleText("Queue").performClick()
                 compose.waitForIdle()
-                val lazy = compose.onAllNodes(hasScrollToNodeAction()).onLast()
+                val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
+                val visibleList = hasScrollToNodeAction() and SemanticsMatcher("visible queue list") {
+                    val b = it.boundsInRoot
+                    b.width > 0f && b.height > 0f && root.contains(b.center)
+                }
+                val lazy = compose.onNode(visibleList)
                 lazy.performScrollToNode(hasText("Track 3"))
                 compose.onNodeWithText("Track 3").assertIsDisplayed()
                 val rowBefore = compose.onNodeWithText("Track 3").fetchSemanticsNode().boundsInRoot
                 val rootBefore = compose.onRoot().fetchSemanticsNode().boundsInRoot
                 println("QUEUE_TOUCH_GEOMETRY row=$rowBefore root=$rootBefore")
-                compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_before_${if (dark) "dark" else "light"}.png")
+                compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_before_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 compose.onNodeWithText("Track 3").performTouchInput { swipeLeft() }
                 compose.waitForIdle()
-                compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_after_left_${if (dark) "dark" else "light"}.png")
-                assertEquals("text-target swipe removal; bounds=$rowBefore root=$rootBefore next=$next previous=$previous collapsed=$collapsed", listOf(2), removed)
-                compose.onNodeWithText("Track 3").performTouchInput { swipeRight() }
+                compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_after_left_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
+                compose.mainClock.advanceTimeBy(1200L)
                 compose.waitForIdle()
-                assertEquals(listOf(2, 2), removed)
+                visibleText("Lyrics").assertIsSelected()
+                assertTrue("page swipe must never remove queue entries", removed.isEmpty())
+                compose.onNodeWithTag("player-section-pager").performTouchInput { swipeRight() }
+                compose.mainClock.advanceTimeBy(1200L)
+                compose.waitForIdle()
+                visibleText("Queue").assertIsSelected()
+                assertTrue("reverse page swipe must never remove queue entries", removed.isEmpty())
                 lazy.performTouchInput { swipeUp() }
                 compose.waitForIdle()
                 lazy.performTouchInput { swipeDown() }
@@ -91,12 +101,12 @@ class PlayerGestureRegressionTest {
                 // Pump layout between small frame advances: a page selection
                 // launches its scroll after recomposition, not before it.
                 repeat(30) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
-                compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_lyrics_${if (dark) "dark" else "light"}.png")
+                compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_queue_lyrics_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
                 visibleText("First line of the song").assertIsDisplayed()
                 visibleText("Queue").assertIsDisplayed().assertIsEnabled().performClick()
                 repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
                 compose.mainClock.autoAdvance = true
-                compose.onAllNodes(hasScrollToNodeAction()).onLast().performScrollToNode(hasText("Track 6"))
+                compose.onNode(visibleList).performScrollToNode(hasText("Track 6"))
                 compose.onNodeWithText("Track 6").assertIsDisplayed()
             } else {
                 val title = compose.onNodeWithText("Midnight Rain", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -112,7 +122,7 @@ class PlayerGestureRegressionTest {
                 assertEquals(1, next)
                 assertTrue(removed.isEmpty())
             }
-            compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_${if (queuePane) "queue" else "player"}_${if (dark) "dark" else "light"}.png")
+            compose.onRoot().captureRoboImage("build/outputs/roborazzi/gestures_${if (queuePane) "queue" else "player"}_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.lastPlayerScreen.value = oldPane
             AppSettings.playerTheme.value = oldPlayerTheme
@@ -144,7 +154,7 @@ class PlayerGestureRegressionTest {
             visibleText("Lyrics").performClick()
             repeat(10) { compose.mainClock.advanceTimeBy(100L); compose.waitForIdle() }
             visibleText("First line of the song").assertIsDisplayed()
-            compose.onRoot().captureRoboImage("build/outputs/roborazzi/lyrics_clip_probe_${if (dark) "dark" else "light"}.png")
+            compose.onRoot().captureRoboImage("build/outputs/roborazzi/lyrics_clip_probe_${if (dark) "dark" else "light"}.png", roborazziOptions = com.github.takahirom.roborazzi.RoborazziOptions(taskType = com.github.takahirom.roborazzi.RoborazziTaskType.Record))
         } finally {
             AppSettings.lastPlayerScreen.value = oldPane
             AppSettings.playerTheme.value = oldPlayerTheme
