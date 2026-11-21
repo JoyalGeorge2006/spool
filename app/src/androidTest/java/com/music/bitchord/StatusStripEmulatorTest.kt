@@ -1,6 +1,11 @@
 package com.music.bitchord
 
 import android.graphics.Bitmap
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.semantics.getOrNull
@@ -682,6 +687,71 @@ class StatusStripEmulatorTest {
             fullScreenshot("mood-grid-${index.toString().padStart(2, '0')}", false)
         }
         println("GRID-VISUALS 28 identities asserted; callback/personalization tested separately, no live playback claim")
+    }
+
+    /** Same production station painter and app loader, with REAL Android
+     * crossfade clocks. Isolated component proof, not Home/provider navigation. */
+    @Test fun stationArtworkProductionCrossfadeOnRealAndroid() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cover = File(context.cacheDir, "station-emulator-1200.png")
+        val bitmap = Bitmap.createBitmap(1200, 1200, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint().apply { isAntiAlias = true }
+        canvas.drawColor(android.graphics.Color.MAGENTA)
+        paint.color = android.graphics.Color.rgb(42, 72, 92)
+        canvas.drawRect(24f, 24f, 1176f, 1176f, paint)
+        paint.color = android.graphics.Color.rgb(238, 191, 105)
+        canvas.drawCircle(600f, 530f, 260f, paint)
+        paint.color = android.graphics.Color.rgb(42, 72, 92)
+        canvas.drawCircle(600f, 530f, 75f, paint)
+        cover.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+        val uri = cover.toURI().toString()
+        val picks = listOf(com.music.bitchord.data.model.TopPickKind.PERSONAL_STATION,
+            com.music.bitchord.data.model.TopPickKind.DISCOVERY_STATION).map { kind ->
+            val songs = listOf(com.music.bitchord.data.model.Song("emulator:${kind.name}", "Fixture song", "Fixture artist", uri))
+            com.music.bitchord.data.model.TopPick(kind, images = listOf(uri),
+                watch = com.music.bitchord.data.model.WatchTarget("queue:${kind.name}"), preparedSongs = songs)
+        }
+        val tapped = mutableListOf<com.music.bitchord.data.model.TopPick>()
+        for (dark in listOf(false, true)) {
+            theme(dark)
+            compose.runOnUiThread {
+                compose.activity.setContent {
+                    com.music.bitchord.ui.theme.BitChordTheme(darkTheme = dark) {
+                        Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)
+                            .windowInsetsPadding(WindowInsets.safeDrawing)) {
+                            com.music.bitchord.ui.screens.TopPicksShelf(picks, null, { pick, _ -> tapped += pick }, null)
+                        }
+                    }
+                }
+            }
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("station-art-loaded", useUnmergedTree = true).fetchSemanticsNodes().size == 2
+            }
+            // Do NOT replace/clone the application loader or turn crossfade off.
+            // Wait past its production 200ms transition on actual Android clocks.
+            Thread.sleep(1000)
+            compose.waitForIdle()
+            fullScreenshot("station-emulator-production-fade-${if (dark) "dark" else "light"}")
+            for (index in 0..1) {
+                val image = compose.onAllNodesWithTag("station-art-loaded", useUnmergedTree = true)[index]
+                    .captureToImage().asAndroidBitmap()
+                saveBitmap("station-emulator-production-art-${dark}-$index", image)
+                val edge = image.getPixel(2, image.height / 2)
+                assertTrue("real production crop edge must paint blue artwork, not blank/magenta",
+                    kotlin.math.abs(android.graphics.Color.red(edge) - 42) < 8 &&
+                    kotlin.math.abs(android.graphics.Color.green(edge) - 72) < 8 &&
+                    kotlin.math.abs(android.graphics.Color.blue(edge) - 92) < 8)
+                val gold = image.getPixel(image.width / 2, image.height / 4)
+                assertTrue("real production crossfade must reveal known gold record",
+                    android.graphics.Color.red(gold) > 200 && android.graphics.Color.green(gold) > 150 && android.graphics.Color.blue(gold) < 140)
+                image.recycle()
+            }
+            compose.onNodeWithText("Your Station").performClick()
+            assertEquals(picks.first().watch, tapped.last().watch)
+            assertEquals(picks.first().preparedSongs, tapped.last().preparedSongs)
+        }
     }
 
 }
