@@ -6226,11 +6226,11 @@ internal fun StatusBarStrip(modifier: Modifier = Modifier) {
     var stripHeight by remember { mutableStateOf(0.dp) }
     DisposableEffect(view) {
         val root = view.rootView ?: view
-        val listener = View.OnApplyWindowInsetsListener { v, insets ->
+        val listener = androidx.core.view.OnApplyWindowInsetsListener { v, insets ->
             stripHeight = with(density) {
-                insets.getInsets(android.view.WindowInsets.Type.statusBars()).top.toDp()
+                insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top.toDp()
             }
-            v.onApplyWindowInsets(insets)
+            androidx.core.view.ViewCompat.onApplyWindowInsets(v, insets)
         }
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, listener)
         androidx.core.view.ViewCompat.requestApplyInsets(root)
