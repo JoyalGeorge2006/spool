@@ -520,20 +520,20 @@ fun SettingsScreen(
             SearchableSettingsGroup(search, shape = HomeGroupShape, dividerInset = BARE_TEXT_INSET) {
                 row("Account", "profile", "youtube", "signed in") {
                     SettingsRow(iconTile = false, monochromeBadge = true, icon = SfIcons.Person,
-                        title = currentProfileName?.takeIf { signedIn && it.isNotBlank() } ?: account?.name?.takeIf { signedIn && it.isNotBlank() } ?: "Not signed in",
-                        subtitle = account?.email?.takeIf { signedIn && it.isNotBlank() } ?: if (signedIn) "YouTube Music account" else "Add an account to listen with your profile",
+                        title = currentProfileName?.takeIf { signedIn && it.isNotBlank() } ?: account?.name?.takeIf { signedIn && it.isNotBlank() } ?: stringResource(R.string.not_signed_in),
+                        subtitle = account?.email?.takeIf { signedIn && it.isNotBlank() } ?: stringResource(if (signedIn) R.string.youtube_music_account else R.string.acct_add_account_subtitle),
                         onClick = onProfile)
                 }
                 // Keep direct action matches discoverable in search, not on the home page.
                 if (searching) {
                     row("Switch profile", "account", "channel", "listen as") {
-                        SettingsRow(title = "Switch profile", enabled = signedIn, onClick = onSwitchProfile)
+                        SettingsRow(title = stringResource(R.string.acct_switch_profile), enabled = signedIn, onClick = onSwitchProfile)
                     }
                     row("Add account", "google", "sign in") {
-                        SettingsRow(title = "Add account", onClick = onSignIn)
+                        SettingsRow(title = stringResource(R.string.add_account), onClick = onSignIn)
                     }
                     row("Manage accounts", "remove", "sign out") {
-                        SettingsRow(title = "Manage accounts", enabled = signedIn, onClick = onManageAccounts)
+                        SettingsRow(title = stringResource(R.string.manage_accounts), enabled = signedIn, onClick = onManageAccounts)
                     }
                 }
             }
