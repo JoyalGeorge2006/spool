@@ -1,11 +1,11 @@
-name: Spool stable58 local-preservation rehearsal only
+name: Spool stable58 replay-only rehearsal only
 on:
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: spool-stable58-local-preservation-inspection
+  group: spool-stable58-replay-only-inspection
   cancel-in-progress: false
 jobs:
   inspect:
@@ -14,21 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 2ee1e7f6b3c223196d9d15ae60a4d99767454928
+          ref: 2b90ead908ef544382a1b212374463dcafd6982c
           persist-credentials: false
           path: proposal
       - name: Bind immutable source commit, raw JSON and exact six files
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C proposal rev-parse HEAD)" = 2ee1e7f6b3c223196d9d15ae60a4d99767454928
-          test "$(git -C proposal rev-parse HEAD^{tree})" = e498dc7eefe32a1fe7ecccc99f0b4bdc0743c2e5
+          test "$(git -C proposal rev-parse HEAD)" = 2b90ead908ef544382a1b212374463dcafd6982c
+          test "$(git -C proposal rev-parse HEAD^{tree})" = 5d6379609e2dfed8bbdbc9730d1d596bf222fde1
           python3 - <<'PYBIND'
           import json,pathlib,hashlib,os
           root=pathlib.Path('proposal')
           p=root/'release-prep/spool-2.1.2/inspection-source.json'
           raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='17371514a8db783a86807c3850b5f7eb531ca9eebd0fb64152dba0feb4b6fa26'
+          assert hashlib.sha256(raw).hexdigest()=='b14c3a4a806d8a83adabe9ad7d8975341f79ba3f66b8e9c75b49e2e4c39590a1'
           def unique(pairs):
               result={}
               for k,v in pairs:
@@ -37,7 +37,7 @@ jobs:
               return result
           j=json.loads(raw,object_pairs_hook=unique)
           assert set(j)=={'schema','purpose','files','sha256'} and j['schema']==1
-          expected={'inspect-stable.py': '32d51c79c1ada2917a625e4e5c3b5f5b84af27d766b72135f34b47a4866a2941', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': '1ad3c60ec440f877f9909ca3dc6e297e9b7b00864420decc9b0f16027b59d1db', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '13aeb7fba340dbf0292e366db449e798ea1e086ad80d171ae0078b557ed633c7', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
+          expected={'inspect-stable.py': '102355f180be635975569fff14d969fab056ad3f5cf201b35520c28c81687e00', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': '1ad3c60ec440f877f9909ca3dc6e297e9b7b00864420decc9b0f16027b59d1db', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '13aeb7fba340dbf0292e366db449e798ea1e086ad80d171ae0078b557ed633c7', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
           assert set(j['files'])==set(expected) and j['sha256']==expected
           # Validate every file before writing any. Only known plain basenames.
           for name,digest in expected.items():
@@ -49,7 +49,7 @@ jobs:
               with path.open('xb') as f:f.write(j['files'][name].encode('utf-8'))
               assert hashlib.sha256(path.read_bytes()).hexdigest()==expected[name]
           out=pathlib.Path('source-binding');out.mkdir(exist_ok=True)
-          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='2ee1e7f6b3c223196d9d15ae60a4d99767454928',source_tree='e498dc7eefe32a1fe7ecccc99f0b4bdc0743c2e5',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='2b90ead908ef544382a1b212374463dcafd6982c',source_tree='5d6379609e2dfed8bbdbc9730d1d596bf222fde1',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
           PYBIND
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
@@ -70,7 +70,7 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: One bounded local-preservation rehearsal
+      - name: One bounded replay-only rehearsal
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: 34
@@ -96,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: spool-stable58-local-preservation-${{ github.run_id }}-${{ github.run_attempt }}
+          name: spool-stable58-replay-only-${{ github.run_id }}-${{ github.run_attempt }}
           path: inspection-upload/
           if-no-files-found: warn
           retention-days: 14
