@@ -9,6 +9,8 @@ on:
     branches: [taste-aware-moods]
     paths:
       - 'app/src/androidTest/**'
+      # The strip under verification lives in MainActivity.
+      - 'app/src/main/java/com/music/bitchord/MainActivity.kt'
       - 'app/build.gradle.kts'
       - '.github/workflows/spool-branch-emulator-pixels.yml'
 
@@ -48,7 +50,15 @@ jobs:
         api-level: 34
         arch: x86_64
         profile: pixel_6
-        script: ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest --no-daemon
+        script: |
+          ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest --no-daemon
+          status=$?
+          # Pull pixels BEFORE the runner tears the emulator down; the
+          # post-step adb pull found no device on the failed run.
+          mkdir -p emulator-screens
+          adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
+          ls -la emulator-screens/ || true
+          exit $status
     - name: Pull emulator screenshots
       if: always()
       run: |
