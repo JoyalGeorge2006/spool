@@ -14,21 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 01f067464da36be8001418d457f47bc3cfd7f6ce
+          ref: 9c19581135806c4155e7295a2666e73d93d80946
           persist-credentials: false
           path: proposal
       - name: Bind immutable source commit, raw JSON and exact six files
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C proposal rev-parse HEAD)" = 01f067464da36be8001418d457f47bc3cfd7f6ce
-          test "$(git -C proposal rev-parse HEAD^{tree})" = c35027bb5aabffef0854289f068397d2be7d42cd
+          test "$(git -C proposal rev-parse HEAD)" = 9c19581135806c4155e7295a2666e73d93d80946
+          test "$(git -C proposal rev-parse HEAD^{tree})" = 8fc125bda968b94f141fef00e29704cff896fb35
           python3 - <<'PYBIND'
           import json,pathlib,hashlib,os
           root=pathlib.Path('proposal')
           p=root/'release-prep/spool-2.1.2/inspection-source.json'
           raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='7ef785e12ed05aba729c0a73114e7c47d98740cc541987242bff2618cf3369ed'
+          assert hashlib.sha256(raw).hexdigest()=='843aff7f0b520a887f67228dc5e226fc82613d8feefa296b306b25a303aec927'
           def unique(pairs):
               result={}
               for k,v in pairs:
@@ -37,7 +37,7 @@ jobs:
               return result
           j=json.loads(raw,object_pairs_hook=unique)
           assert set(j)=={'schema','purpose','files','sha256'} and j['schema']==1
-          expected={'inspect-stable.py': 'a7e775f815ef186a016dc324c52fcc945800a1e21c7d73bcc1d57292e647e76c', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': 'f163e06d40e96ddac64ac722b92550b5805cd166d1d8a871fa137da35a386100', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '0d27f66fae6fbf245b62b676755df575d3e6d812509d7f685686808323bfed5f', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
+          expected={'inspect-stable.py': '1fbf01b9d8ff2b06e18bec148596ae8b7f032227eb42061c8e7ce9c171edbe20', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': 'ece97bfffed8fd4f3306f6b9ca63b8d547ee91c12e7da7f34d25aa052b0af073', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '9f737fec399258d4007e9e28d897a040bec60bc447f0a4865f30188a4369a9b0', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
           assert set(j['files'])==set(expected) and j['sha256']==expected
           # Validate every file before writing any. Only known plain basenames.
           for name,digest in expected.items():
@@ -49,7 +49,7 @@ jobs:
               with path.open('xb') as f:f.write(j['files'][name].encode('utf-8'))
               assert hashlib.sha256(path.read_bytes()).hexdigest()==expected[name]
           out=pathlib.Path('source-binding');out.mkdir(exist_ok=True)
-          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='01f067464da36be8001418d457f47bc3cfd7f6ce',source_tree='c35027bb5aabffef0854289f068397d2be7d42cd',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='9c19581135806c4155e7295a2666e73d93d80946',source_tree='8fc125bda968b94f141fef00e29704cff896fb35',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
           PYBIND
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
