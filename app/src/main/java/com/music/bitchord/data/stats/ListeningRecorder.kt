@@ -44,6 +44,7 @@ import kotlin.math.min
 object ListeningRecorder {
 
     private var currentId: String? = null
+    private var currentSong: Song? = null
     private var lastSampleAt: Long = 0L
     private var playedThisTrack: Long = 0L
     private var playCounted = false
@@ -63,6 +64,7 @@ object ListeningRecorder {
             // A new track anchors the clock and contributes nothing yet — see
             // the class note on undercounting.
             currentId = song.videoId
+            currentSong = song
             lastSampleAt = now
             playedThisTrack = 0L
             playCounted = false
@@ -91,6 +93,27 @@ object ListeningRecorder {
     }
 
     /**
+     * The listener chose to leave the current track — the player's own
+     * transition callback fires this, and only for a deliberate move
+     * (next, previous, a tap on another queued track): the queue advancing
+     * by itself at a natural end, a failed stream, a station changing under
+     * the track, or a pause never arrives here, so none of them can be
+     * misread as dislike.
+     *
+     * Even then, a skip needs some of the track actually heard — one
+     * contributing tick — so a mistap corrected in the first seconds leaves
+     * nothing behind. A track already counted as a play is never also a
+     * skip, however it ends.
+     */
+    @Synchronized
+    fun onUserSkip() {
+        val previous = currentSong ?: return
+        if (!playCounted && playedThisTrack > 0) {
+            ListeningStats.recordSkip(previous)
+        }
+    }
+
+    /**
      * Playback stopped, paused, or moved on.
      *
      * Forgetting the current track is what makes the *next* tick anchor rather
@@ -100,6 +123,7 @@ object ListeningRecorder {
     @Synchronized
     fun onStopped() {
         currentId = null
+        currentSong = null
         playedThisTrack = 0L
         playCounted = false
         samplesSinceFlush = 0

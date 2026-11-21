@@ -1167,6 +1167,15 @@ class PlaybackService : MediaLibraryService() {
             // catching up, which [CastPlayback] tells apart by track.
             speakers.onLocalTransition(mediaItem, reason)
 
+            // A SEEK transition with a track playing is the one shape a
+            // deliberate leave takes — next, previous, a tap on another
+            // queued row. AUTO is the queue advancing by itself, a playlist
+            // change is the station changing under the track, and neither
+            // says anything about the song left behind. Only the deliberate
+            // kind teaches the taste profile a skip.
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
+                ListeningRecorder.onUserSkip()
+            }
             // No crossfade case to allow for here any more. A blended advance
             // never reaches this callback — the incoming track starts as the
             // *first* item of the other player — so it is booked by

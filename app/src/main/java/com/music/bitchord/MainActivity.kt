@@ -1708,11 +1708,29 @@ private fun BitChordApp(
      * built with.
      */
     val playMood: (TopPickMood, String) -> Unit = { mood, title ->
-        val hints = topPicks?.firstOrNull { it.kind == TopPickKind.MOOD }?.hints
+        val hints = topPicks?.firstOrNull { it.kind == TopPickKind.MOOD }?.hints ?: TopPicks.tasteHints()
         openTopPick(
             if (hints != null) TopPicks.moodStation(mood, hints) else TopPicks.moodStation(mood),
             title,
         )
+    }
+    /**
+     * The For you chip: the listener's own station on tap, not a Home
+     * refresh. The Top Picks row's Personal Station card when it is up —
+     * the Supermix when the account offers one, a radio off their own
+     * listening otherwise; with no row at all, that radio is built here.
+     */
+    val playForYou: (String) -> Unit = { label ->
+        val station = topPicks?.firstOrNull { it.kind == TopPickKind.PERSONAL_STATION }
+            ?.takeIf { it.watch != null || it.preparedSongs.isNotEmpty() }
+        if (station != null) {
+            openTopPick(station, label)
+        } else if (controller != null && !refusedByHost()) {
+            scope.launch {
+                TopPicks.forYouStation()?.let { openTopPick(it, label) }
+                    ?: Toast.makeText(context, R.string.couldnt_load_tracks, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     val addToQueue: (Song) -> Unit = { song ->
         scope.launch {
@@ -3458,6 +3476,7 @@ private fun BitChordApp(
                                 // Neither shelf is drawn without its callback.
                                 onTopPickClick = openTopPick.takeUnless { hideTopPicks },
                                 onMoodClick = playMood.takeUnless { hideHomeMoods },
+                                onForYouClick = playForYou.takeUnless { hideHomeMoods },
                                 onMoodsShowAll = { navigator.push(AppRoute.Moods) },
                                 // Nothing on Home is seen while the greeting covers it.
                                 artworkMotion = artworkMotion && !showDiwali,

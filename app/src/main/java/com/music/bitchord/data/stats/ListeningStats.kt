@@ -241,6 +241,53 @@ object ListeningStats {
     }
 
     /**
+     * Counts a deliberate skip: [song] was heard for a moment and the
+     * listener chose to move on before it added up to a play. Minutes and
+     * plays are untouched — a skip is not listening, it is the answer to a
+     * different question, asked by the taste profile when it shapes a queue.
+     */
+    fun recordSkip(song: Song) {
+        if (!ready) return
+        if (song.videoId.isBlank()) return
+        synchronized(lock) {
+            val bucket = bucketFor(YearMonth.now())
+            val track = bucket.tracks.getOrPut(song.videoId) {
+                TrackEntry(
+                    id = song.videoId,
+                    title = song.title,
+                    artist = song.artist,
+                    album = song.albumName,
+                    albumId = song.albumId,
+                    artistId = song.artistId,
+                    art = song.thumbnailUrl,
+                )
+            }
+            track.skips++
+            if (track.album == null) track.album = song.albumName
+            if (track.albumId == null) track.albumId = song.albumId
+            if (track.artistId == null) track.artistId = song.artistId
+            if (track.art == null) track.art = song.thumbnailUrl
+            dirty = true
+        }
+    }
+
+    /**
+     * Track id to times skipped, over [period]. Read back the way [summary]
+     * reads, so a skip recorded a second ago is already in the answer.
+     */
+    suspend fun skips(period: ReplayPeriod): Map<String, Int> = withContext(Dispatchers.IO) {
+        flushAndAwait()
+        val today = LocalDate.now()
+        val byId = HashMap<String, Int>()
+        months().filter { period.covers(it, today) }.forEach { month ->
+            read(month.toString())?.tracks?.forEach { entry ->
+                if (entry.skips > 0) byId.merge(entry.id, entry.skips, Int::plus)
+            }
+        }
+        byId
+    }
+
+    /**
      * Writes the open month out, if anything has changed.
      *
      * Called on a cadence rather than on every sample: the numbers are worth
@@ -893,6 +940,11 @@ data class TrackEntry(
     var art: String? = null,
     var ms: Long = 0L,
     var plays: Int = 0,
+    /**
+     * Times the track was deliberately skipped before it counted as a play.
+     * The negative signal the taste profile reads; never on the Replay page.
+     */
+    var skips: Int = 0,
     var last: Long = 0L,
     /** Per-day breakdown for weekly queries. Key: "YYYY-MM-DD". */
     var days: MutableMap<String, DayStats> = mutableMapOf(),
@@ -900,6 +952,7 @@ data class TrackEntry(
     fun absorb(other: TrackEntry) {
         ms += other.ms
         plays += other.plays
+        skips += other.skips
         last = maxOf(last, other.last)
         if (album == null) album = other.album
         if (albumId == null) albumId = other.albumId

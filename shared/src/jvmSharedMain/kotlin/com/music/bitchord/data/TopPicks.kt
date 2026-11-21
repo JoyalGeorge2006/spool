@@ -59,6 +59,42 @@ object TopPicks {
     private const val MIN_FILTERED_QUEUE = 12
 
     /**
+     * The listener's taste profile, handed over by the app when the Top Picks
+     * row is built or the stored one is read back. Null until then — and a
+     * mood queue built without it behaves exactly as it always has, steered
+     * by region alone.
+     */
+    @Volatile
+    private var taste: Taste.Snapshot? = null
+
+    /** The latest profile. Null or empty returns mood steering to [regionHints]. */
+    fun updateTaste(snapshot: Taste.Snapshot?) {
+        taste = snapshot?.takeUnless { it.isEmpty }
+    }
+
+    /**
+     * The steering words a mood station built right now should carry — the
+     * profile's scenes and genres when one is learned, null otherwise, so
+     * the caller can fall back to [regionHints].
+     */
+    fun tasteHints(): List<String>? = taste?.hintWords()
+
+    /**
+     * The station behind the For you chip when the row has no Personal
+     * Station card to offer — a radio off the track the listener's own
+     * record says the most about, which is the same idea the card's fallback
+     * builds. Null only when there is nothing at all to seed from.
+     */
+    suspend fun forYouStation(): TopPick? {
+        val seed = taste?.topSongs?.firstOrNull()?.let { song ->
+            WatchTarget(playlistId = "RDAMVM${song.videoId}", videoId = song.videoId)
+        } ?: YtMusicRepository.recentHistory().getOrNull().orEmpty().firstOrNull()?.let { song ->
+            WatchTarget(playlistId = "RDAMVM${song.videoId}", videoId = song.videoId)
+        } ?: return null
+        return TopPick(kind = TopPickKind.PERSONAL_STATION, watch = seed)
+    }
+
+    /**
      * What this app knows about the listener's taste without asking YouTube:
      * its own Replay chart. Second to the account's history when signed in,
      * and all there is when signed out.
@@ -328,8 +364,17 @@ object TopPicks {
         TopPick(
             kind = TopPickKind.MOOD,
             mood = moodFor(now),
-            hints = (local.genres.map { it.lowercase(Locale.ROOT) } + regionHints()).distinct(),
+            hints = moodHints(local),
         )
+
+    /**
+     * What steers a mood shelf toward the listener: their own profile's
+     * scenes and genres when one has been learned, the month's Replay genres
+     * and the phone's region when it hasn't.
+     */
+    private fun moodHints(local: LocalTaste): List<String> =
+        taste?.hintWords()
+            ?: (local.genres.map { it.lowercase(Locale.ROOT) } + regionHints()).distinct()
 
     private fun andSimilar(artist: ArtistCard, photos: Map<String, String>): TopPick? {
         val radio = artist.page.radio ?: return null
@@ -488,16 +533,13 @@ object TopPicks {
             .getOrElse { return@coroutineScope Result.failure(it) }
         val playlists = { shelf: HomeShelf -> shelf.items.filter { it.browseId?.startsWith("VL") == true } }
         val candidates = shelves.filter { playlists(it).isNotEmpty() }
-        val score = { shelf: HomeShelf ->
-            val title = shelf.title.lowercase(Locale.ROOT)
-            2 * mood.shelfWords.count { it in title } + pick.hints.count { it.isNotBlank() && it in title }
-        }
+        val score = { shelf: HomeShelf -> Taste.shelfScore(shelf.title, mood, pick.hints) }
         val best = candidates.maxOfOrNull(score)
             ?: return@coroutineScope Result.failure(IllegalStateException("no playlists for $mood"))
         // With no scene in common, any shelf of the mood will do.
         val shelf = candidates.filter { score(it) == best }.random()
         val chosen = playlists(shelf).take(6).shuffled().take(MOOD_PLAYLISTS)
-        val songs = chosen.map { item ->
+        val fetched = chosen.map { item ->
             async {
                 val playlistId = item.browseId!!.removePrefix("VL")
                 // As a watch queue, so YouTube hands over each official video's
@@ -511,8 +553,12 @@ object TopPicks {
             .distinctBy { it.videoId }
             .shuffled()
             .take(MOOD_QUEUE)
-        if (songs.isEmpty()) Result.failure(IllegalStateException("$mood playlists were empty"))
-        else Result.success(songs)
+        if (fetched.isEmpty()) return@coroutineScope Result.failure(IllegalStateException("$mood playlists were empty"))
+        // The mood picked; now make it theirs. Blend in a few of their own
+        // chart toppers the mood already carries, open on their artists and
+        // likes, and sink what they keep skipping — all of it fail-closed
+        // back to the queue as fetched.
+        Result.success(Taste.personalize(fetched, taste))
     }
 
     private const val MOOD_PLAYLISTS = 3
@@ -537,7 +583,13 @@ object TopPicks {
         TopPick(kind = TopPickKind.MOOD, mood = mood, hints = hints)
 
     fun regionHints(): List<String> = when (Locale.getDefault().country) {
-        "IN" -> listOf("bollywood", "indian", "hindi", "punjabi", "desi")
+        // The south-Indian scenes are here too: an Indian phone is as often a
+        // Malayalam or Tamil listener as a Bollywood one. This is the fallback
+        // for a listener with no profile yet, never a claim about their taste.
+        "IN" -> listOf(
+            "bollywood", "indian", "hindi", "punjabi", "desi",
+            "malayalam", "tamil", "telugu", "kannada",
+        )
         "PK" -> listOf("pakistani", "urdu", "punjabi")
         "KR" -> listOf("k-pop", "korean")
         "JP" -> listOf("j-pop", "japanese")

@@ -173,6 +173,8 @@ fun HomeScreen(
     onTopPickLongPress: ((TopPick) -> Unit)? = null,
     /** A Find Your Mood tile, and its name. The shelf is only drawn when this is set. */
     onMoodClick: ((TopPickMood, String) -> Unit)? = null,
+    /** The For you chip: plays the listener's own station, with the chip's label. */
+    onForYouClick: ((String) -> Unit)? = null,
     /** Find Your Mood's Show all: every mood and activity. */
     onMoodsShowAll: () -> Unit = {},
     /** Whether the Top Picks and mood artwork may animate — see [LocalArtworkMotion]. */
@@ -233,7 +235,7 @@ fun HomeScreen(
                 }
             }
             if (onMoodClick != null) {
-                item(key = "mood-chips") { MoodChipRow(onMoodClick, onMoodsShowAll) }
+                item(key = "mood-chips") { MoodChipRow(onMoodClick, onMoodsShowAll, onForYouClick) }
             }
             if (onTopPickClick != null) {
                 when {
@@ -620,10 +622,15 @@ private fun HomeTitle(
 /**
  * The quick mood launchers under the search field: For you, then three
  * stations, then Show all - the chips replaced the mood tiles, and without
- * the last one the full moods page would have no way in.
+ * the last one the full moods page would have no way in. For you plays the
+ * listener's own station rather than refreshing the feed under them.
  */
 @Composable
-private fun MoodChipRow(onMoodClick: (TopPickMood, String) -> Unit, onShowAll: () -> Unit) {
+private fun MoodChipRow(
+    onMoodClick: (TopPickMood, String) -> Unit,
+    onShowAll: () -> Unit,
+    onForYouClick: ((String) -> Unit)?,
+) {
     Row(
         modifier = Modifier
             .padding(horizontal = PAGE_GUTTER)
@@ -631,7 +638,8 @@ private fun MoodChipRow(onMoodClick: (TopPickMood, String) -> Unit, onShowAll: (
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        V6Chip(label = stringResource(Res.string.shelf_for_you), selected = true, onClick = {})
+        val forYou = stringResource(Res.string.shelf_for_you)
+        V6Chip(label = forYou, selected = true, onClick = { onForYouClick?.invoke(forYou) })
         listOf(TopPickMood.CHILL, TopPickMood.FOCUS, TopPickMood.PARTY).forEach { mood ->
             val label = stringResource(mood.titleRes())
             V6Chip(label = label, selected = false, onClick = { onMoodClick(mood, label) })

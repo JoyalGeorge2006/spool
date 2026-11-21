@@ -16,11 +16,13 @@ import com.music.bitchord.data.LocalMediaRepository
 import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.TopPicks
+import com.music.bitchord.data.Taste
 import com.music.bitchord.data.AppleArtistPhotos
 import com.music.bitchord.data.model.ArtistRef
 import com.music.bitchord.data.model.TopPick
 import com.music.bitchord.data.stats.ListeningStats
 import com.music.bitchord.data.stats.ReplayPeriod
+import com.music.bitchord.data.stats.TasteProfile
 import android.util.Log
 import java.io.File
 import java.time.LocalDate
@@ -1925,6 +1927,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 runCatching { file.takeIf { it.exists() }?.readText() }.getOrNull()?.let(TopPicks::decode)
             }?.takeIf { it.listener == identity && it.picks.isNotEmpty() }
             if (!current()) return@launch
+            // The taste profile off disk, so a mood tapped before this hour's
+            // rebuild still steers by the listener rather than the region.
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    File(getApplication<Application>().filesDir, TASTE_FILE)
+                        .takeIf { it.exists() }?.readText()
+                }.getOrNull()?.let(Taste::decode)
+            }?.let(TopPicks::updateTaste)
             stored?.let { AppleArtistPhotos.seed(it.photos) }
             if (stored != null) {
                 _topPicks.value = stored.picks
@@ -1981,6 +1991,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // moment to land so the builder reads them off it instead of asking.
         val shelves = withTimeoutOrNull(8_000L) { _home.first { it !is UiState.Loading } }
             .let { (it as? UiState.Success)?.data.orEmpty() }
+        // The taste profile the mood stations steer by, rebuilt from this
+        // device's own record and kept on it — a failed build leaves
+        // whatever snapshot was already in force.
+        runCatching { TasteProfile.current() }.getOrNull()?.let { snapshot ->
+            TopPicks.updateTaste(snapshot)
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    File(getApplication<Application>().filesDir, TASTE_FILE).writeText(Taste.encode(snapshot))
+                }
+            }
+        }
         return try {
             TopPicks.build(shelves, localTaste())
         } catch (e: CancellationException) {
@@ -2763,6 +2784,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         /** Today's Top Picks row, kept so the next launch paints it before any request. */
         private const val TOP_PICKS_FILE = "top_picks_v4.json"
+        private const val TASTE_FILE = "taste_profile_v1.json"
 
         /** Per-addon budget for the Addons search tab; a slow addon is left out, not waited on. */
         private const val ADDON_SEARCH_TIMEOUT_MS = 12_000L
