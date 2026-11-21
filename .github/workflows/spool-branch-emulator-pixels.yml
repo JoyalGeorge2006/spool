@@ -1,9 +1,7 @@
-name: Emulator pixel verification (branch, no release)
-# Real-device visual proof for the status-bar strip and page behaviour on the
-# taste-aware-moods branch: boots an API 34 emulator, runs the instrumentation
-# test against the real app, and uploads full-screen screenshots as artifacts.
-# Fires only when the instrumentation tests or this workflow change, so normal
-# branch pushes stay cheap. Public repo: GitHub-hosted minutes are free.
+name: Temporary retention transport smoke (branch, no release)
+# Temporary transport-only probe. Installs the existing debug variant without
+# instrumentation, creates one known PNG, verifies exact candidate drain logic,
+# and uploads only the probe fixture and bounded diagnostics. Not app pixels.
 on:
   push:
     branches: [taste-aware-moods]
@@ -44,7 +42,7 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
-    - name: Prepare bounded incremental pixel retention
+    - name: Prepare exact retention candidate and transport probe
       shell: bash
       run: |
         cat > /tmp/spool-emulator-test.py <<'SPOOL_HELPER'
@@ -68,6 +66,7 @@ jobs:
         
         def bounded(args,seconds=8,cap=MAX_FILE,input_bytes=None):
             """Bound time and output, kill the whole diagnostic subprocess group."""
+            started=time.monotonic()
             p=subprocess.Popen(args,stdin=subprocess.PIPE if input_bytes is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
             with lock:active.add(p)
             if input_bytes is not None:
@@ -86,6 +85,7 @@ jobs:
             for t in readers:t.start()
             deadline=time.monotonic()+seconds
             while p.poll() is None and time.monotonic()<deadline and not overflow.is_set():time.sleep(.05)
+            timed_out=p.poll() is None and not overflow.is_set()
             if p.poll() is None:
                 try:os.killpg(p.pid,signal.SIGKILL)
                 except ProcessLookupError:pass
@@ -93,9 +93,10 @@ jobs:
             except subprocess.TimeoutExpired:pass
             for t in readers:t.join(timeout=1)
             with lock:active.discard(p)
-            if overflow.is_set():raise ValueError('diagnostic output cap exceeded')
-            if p.returncode!=0:raise RuntimeError('diagnostic failed '+str(args[:4])+' '+b''.join(errors).decode(errors='replace')[:500])
-            return b''.join(chunks)
+            output=b''.join(chunks);error=b''.join(errors)
+            if overflow.is_set() or timed_out or p.returncode!=0:
+                raise RuntimeError('diagnostic failed '+json.dumps(dict(args=args,rc=p.returncode,timeout=timed_out,overflow=overflow.is_set(),elapsed=round(time.monotonic()-started,3),stdout=repr(output[:1024]),stderr=repr(error[:1024]))))
+            return output
         
         def validate(data):
             if len(data)>MAX_FILE or data[:8]!=b'\x89PNG\r\n\x1a\n':raise ValueError('PNG size/signature')
@@ -127,14 +128,14 @@ jobs:
         def drain():
             # The app writes flat screenshot PNGs. No tar extraction, links or paths
             # supplied by the device are accepted. Hash manifest detects same-name edits.
-            manifest=bounded(ADB+['exec-out','run-as','app.spool.music.dev','sh'],
+            manifest=bounded(ADB+['shell','-T','run-as','app.spool.music.dev','sh'],
                 seconds=10,cap=256*1024,input_bytes=(
                     b'cd /sdcard/Android/data/app.spool.music.dev/files || exit 1\n'
                     b'for f in *.png; do [ -f "$f" ] && [ ! -L "$f" ] && sha256sum "$f"; done\n'
                 )).decode()
             for line in manifest.splitlines():
                 match=re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.png)',line)
-                if not match:note('invalid manifest record rejected');continue
+                if not match:note('invalid manifest record rejected '+repr(line[:300]));continue
                 digest,name=match.groups()
                 if '..' in name:note('invalid name rejected');continue
                 latest[name]=digest
@@ -224,20 +225,64 @@ jobs:
             except BaseException:pass
         raise SystemExit(128+cancelled[0] if cancelled[0] is not None else 128-status if status<0 else status)
         SPOOL_HELPER
-    - name: Strip verification on a real emulator
+        cat > /tmp/retention-transport-smoke.py <<'SPOOL_SMOKE'
+        #!/usr/bin/env python3
+        """Transport-only smoke. Not app-rendering or large-directory proof."""
+        import hashlib,base64,struct,zlib,types
+        from pathlib import Path
+        source=Path('/tmp/spool-emulator-test.py').read_bytes()
+        assert hashlib.sha256(source).hexdigest()=='91a01ee70b7cbe0d49128c069859dba6241a7824bfdb3b477ede2a9d51c8f400'
+        # Exact production-candidate definitions and globals, stopping before thread/Gradle launch.
+        prefix=source.decode().split('worker=threading.Thread',1)[0]
+        assert 'def drain():' in prefix
+        retention=types.ModuleType('retention')
+        exec(compile(prefix,'/tmp/spool-emulator-test.py','exec'),retention.__dict__)
+        bounded=retention.bounded;note=retention.note;ADB=retention.ADB;ROOT=retention.ROOT;OUT=retention.OUT
+        assert not list(OUT.glob('*.png')) and not list(OUT.glob('*.part'))
+        def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+        fixture=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(b'\0\xff\0\0\xff'))+chunk(b'IEND',b'')
+        name='retention_transport_probe.png';path=ROOT+name
+        try:
+            note('candidate SHA256 '+hashlib.sha256(source).hexdigest())
+            note('version '+bounded(['adb','version'],3,4096).decode())
+            script=("mkdir -p "+ROOT+"\nprintf 'SPOOL_STDIN_OK\\n'\nbase64 -d > "+path+" <<'PNG'\n"+base64.b64encode(fixture).decode()+"\nPNG\n").encode()
+            response=bounded(ADB+['shell','-T','run-as','app.spool.music.dev','sh'],10,4096,script)
+            note('marker stdout '+repr(response))
+            if response!=b'SPOOL_STDIN_OK\n':raise ValueError('fixed marker mismatch')
+            data=bounded(ADB+['exec-out','run-as','app.spool.music.dev','cat',path],6,4096)
+            retention.validate(data)
+            if data!=fixture:raise ValueError('known binary differs')
+            digest=hashlib.sha256(data).hexdigest()
+            manifest=bounded(ADB+['shell','-T','run-as','app.spool.music.dev','sh'],10,4096,('cd '+ROOT+' || exit 1\nsha256sum '+name+'\n').encode())
+            note('known-file manifest stdout '+repr(manifest))
+            if manifest.decode().strip()!=digest+'  '+name:raise ValueError('known manifest/hash mismatch')
+            remaining=retention.drain()
+            assert remaining==0 and retention.pending==[] and retention.queued==set()
+            assert retention.seen=={name:digest} and retention.latest=={name:digest}
+            assert (OUT/name).read_bytes()==fixture
+            assert list(OUT.glob('*.png'))==[OUT/name] and not list(OUT.glob('*.part'))
+            note('TRANSPORT PASS exact drain, marker, PNG integrity, exact bytes, SHA256, parsed manifest, FIFO and atomic promotion '+digest)
+        except BaseException as e:
+            note('TRANSPORT FAIL '+repr(e));raise
+        finally:
+            try:bounded(ADB+['shell','-T','run-as','app.spool.music.dev','rm',path],3,4096)
+            except Exception as e:note('probe cleanup '+str(e))
+        SPOOL_SMOKE
+    - name: Install existing debug app and probe transport only
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 34
         arch: x86_64
         profile: pixel_6
-        script: python3 /tmp/spool-emulator-test.py
+        script: |
+          ./gradlew --init-script /tmp/platform.gradle :app:installDevDebug --no-daemon
+          python3 /tmp/retention-transport-smoke.py
     - name: Upload screenshots
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: emulator-strip-pixels
+        name: retention-transport-smoke
         path: |
           emulator-screens/**
           emulator-diagnostics/**
-          **/build/outputs/androidTest-results/**
         if-no-files-found: warn
