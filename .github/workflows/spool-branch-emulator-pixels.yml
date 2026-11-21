@@ -44,37 +44,193 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
+    - name: Prepare bounded incremental pixel retention
+      shell: bash
+      run: |
+        cat > /tmp/spool-emulator-test.py <<'SPOOL_HELPER'
+        #!/usr/bin/env python3
+        """One test invocation with bounded, incremental, validated screenshot retention."""
+        import hashlib, json, os, re, signal, struct, subprocess, threading, time, zlib
+        from pathlib import Path
+        OUT=Path('emulator-screens'); DIAG=Path('emulator-diagnostics')
+        for directory in (OUT,DIAG):
+            try:directory.mkdir(exist_ok=True)
+            except Exception:pass
+        ADB=['adb','-s','emulator-5554']; ROOT='/sdcard/Android/data/app.spool.music.dev/files/'
+        stop=threading.Event(); seen={}; active=set(); lock=threading.Lock(); cancelled=[None]
+        pending=[]; queued=set(); latest={}
+        MAX_FILE=12*1024*1024; MAX_RAW=64*1024*1024
+        
+        def note(message):
+            try:
+                with (DIAG/'retention.log').open('a') as f:f.write(time.strftime('%FT%TZ',time.gmtime())+' '+message+'\n')
+            except Exception:pass
+        
+        def bounded(args,seconds=8,cap=MAX_FILE,input_bytes=None):
+            """Bound time and output, kill the whole diagnostic subprocess group."""
+            p=subprocess.Popen(args,stdin=subprocess.PIPE if input_bytes is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+            with lock:active.add(p)
+            if input_bytes is not None:
+                # Only the fixed short manifest program is written here, never file data.
+                try:p.stdin.write(input_bytes);p.stdin.close()
+                except BrokenPipeError:pass
+            chunks=[]; errors=[]; size=[0]; overflow=threading.Event()
+            def consume(pipe,target,limit):
+                while True:
+                    data=pipe.read(65536)
+                    if not data:break
+                    size[0]+=len(data)
+                    if size[0]>limit:overflow.set();break
+                    target.append(data)
+            readers=[threading.Thread(target=consume,args=(p.stdout,chunks,cap),daemon=True),threading.Thread(target=consume,args=(p.stderr,errors,cap),daemon=True)]
+            for t in readers:t.start()
+            deadline=time.monotonic()+seconds
+            while p.poll() is None and time.monotonic()<deadline and not overflow.is_set():time.sleep(.05)
+            if p.poll() is None:
+                try:os.killpg(p.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+            try:p.wait(timeout=2)
+            except subprocess.TimeoutExpired:pass
+            for t in readers:t.join(timeout=1)
+            with lock:active.discard(p)
+            if overflow.is_set():raise ValueError('diagnostic output cap exceeded')
+            if p.returncode!=0:raise RuntimeError('diagnostic failed '+str(args[:4])+' '+b''.join(errors).decode(errors='replace')[:500])
+            return b''.join(chunks)
+        
+        def validate(data):
+            if len(data)>MAX_FILE or data[:8]!=b'\x89PNG\r\n\x1a\n':raise ValueError('PNG size/signature')
+            at=8; ihdr=None; payload=[]; ended=False; has_idat=False
+            while at+12<=len(data):
+                n=struct.unpack('>I',data[at:at+4])[0];kind=data[at+4:at+8];end=at+8+n
+                if n>MAX_FILE or end+4>len(data):raise ValueError('truncated chunk')
+                body=data[at+8:end]
+                if zlib.crc32(kind+body)&0xffffffff!=struct.unpack('>I',data[end:end+4])[0]:raise ValueError('CRC')
+                if ihdr is None:
+                    if kind!=b'IHDR' or n!=13:raise ValueError('first chunk IHDR required')
+                    w,h,depth,color,comp,filt,inter=struct.unpack('>IIBBBBB',body)
+                    channels={0:1,2:3,3:1,4:2,6:4}.get(color)
+                    if not channels or depth!=8 or comp or filt or inter or not (1<=w<=4096 and 1<=h<=8192):raise ValueError('unsupported IHDR/dimensions')
+                    stride=w*channels+1;expected=stride*h
+                    if expected>MAX_RAW:raise ValueError('inflated cap')
+                    ihdr=(stride,expected)
+                elif kind==b'IHDR':raise ValueError('duplicate IHDR')
+                if kind==b'IDAT':payload.append(body);has_idat=True
+                if kind==b'IEND':
+                    if n or end+4!=len(data):raise ValueError('bad IEND/trailing bytes')
+                    ended=True;break
+                at=end+4
+            if not ended or not has_idat:raise ValueError('missing image/end')
+            dec=zlib.decompressobj();raw=dec.decompress(b''.join(payload),ihdr[1]+1)
+            if len(raw)!=ihdr[1] or not dec.eof or dec.unused_data or dec.unconsumed_tail:raise ValueError('scanline size/zlib integrity')
+            if any(raw[i]>4 for i in range(0,len(raw),ihdr[0])):raise ValueError('invalid scanline filter')
+        
+        def drain():
+            # The app writes flat screenshot PNGs. No tar extraction, links or paths
+            # supplied by the device are accepted. Hash manifest detects same-name edits.
+            manifest=bounded(ADB+['exec-out','run-as','app.spool.music.dev','sh'],
+                seconds=10,cap=256*1024,input_bytes=(
+                    b'cd /sdcard/Android/data/app.spool.music.dev/files || exit 1\n'
+                    b'for f in *.png; do [ -f "$f" ] && [ ! -L "$f" ] && sha256sum "$f"; done\n'
+                )).decode()
+            for line in manifest.splitlines():
+                match=re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.png)',line)
+                if not match:note('invalid manifest record rejected');continue
+                digest,name=match.groups()
+                if '..' in name:note('invalid name rejected');continue
+                latest[name]=digest
+                if seen.get(name)!=digest and name not in queued:pending.append(name);queued.add(name)
+            count=0;deadline=time.monotonic()+20;attempts=min(len(pending),20)
+            for _ in range(attempts):
+                if time.monotonic()>deadline:break
+                name=pending.pop(0);queued.discard(name);digest=latest[name]
+                if seen.get(name)==digest:continue
+                try:
+                    data=bounded(ADB+['exec-out','run-as','app.spool.music.dev','cat',ROOT+name],seconds=6)
+                    if hashlib.sha256(data).hexdigest()!=digest:raise ValueError('in-flight hash mismatch')
+                    validate(data)
+                    tmp=OUT/(name+'.part');tmp.write_bytes(data);os.replace(tmp,OUT/name);seen[name]=digest;count+=1
+                except Exception as e:
+                    note('unretained '+name+' '+str(e));pending.append(name);queued.add(name)
+            note('promoted '+str(count)+' unresolved '+str(len(pending))+' '+repr(pending))
+            return len(pending)
+        
+        def monitor():
+            while not stop.is_set():
+                try:
+                    note('host '+bounded(['free','-m'],3,4096).decode().replace('\n',' '))
+                    note('device '+bounded(ADB+['get-state'],3,4096).decode().strip())
+                    drain()
+                except Exception as e:note(str(e))
+                stop.wait(20)
+        
+        worker=threading.Thread(target=monitor,daemon=True)
+        gradle=None
+        
+        def on_signal(sig,frame):
+            cancelled[0]=sig;stop.set()
+            if gradle is not None and gradle.poll() is None:
+                try:os.killpg(gradle.pid,signal.SIGTERM)
+                except ProcessLookupError:pass
+        
+        for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,on_signal)
+        status=1
+        try:
+            gradle=subprocess.Popen(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],start_new_session=True)
+            try:worker.start()
+            except BaseException as e:note('mirror failed to start '+str(e))
+            cancel_deadline=None
+            while gradle.poll() is None:
+                if cancelled[0] is not None:
+                    cancel_deadline=cancel_deadline or time.monotonic()+8
+                    if time.monotonic()>cancel_deadline:
+                        try:os.killpg(gradle.pid,signal.SIGKILL)
+                        except ProcessLookupError:pass
+                time.sleep(.1)
+            status=gradle.returncode
+        finally:
+            try:
+                # Every cleanup operation is best-effort. None may replace the test status,
+                # even when diagnostics cannot write because disk is full.
+                try:stop.set()
+                except BaseException:pass
+                try:worker.join(timeout=28)
+                except BaseException:pass
+                try:
+                    with lock:children=list(active)
+                    for p in children:
+                        try:os.killpg(p.pid,signal.SIGKILL)
+                        except BaseException:pass
+                except BaseException:pass
+                try:worker.join(timeout=4)
+                except BaseException:pass
+                alive=True
+                try:alive=worker.is_alive()
+                except BaseException:pass
+                if alive:note('mirror worker did not stop; final drain skipped to avoid concurrent drains')
+                elif cancelled[0] is None:
+                    deadline=time.monotonic()+45
+                    while time.monotonic()<deadline:
+                        try:
+                            remaining=drain()
+                            if remaining==0:break
+                        except BaseException as e:
+                            note('final drain '+str(e));break
+                    note('final retention unresolved='+str(len(pending))+' budget_expired='+str(time.monotonic()>=deadline)+' names='+repr(pending))
+                for name,args in [('crash',ADB+['logcat','-b','crash','-d']),('devices',['adb','devices','-l']),('processes',['ps','-eo','pid,ppid,rss,%cpu,stat,comm'])]:
+                    try:(DIAG/(name+'.txt')).write_bytes(bounded(args,4,1024*1024))
+                    except BaseException as e:note(name+' '+str(e))
+                try:(DIAG/'test-exit.txt').write_text(str(status)+'\n')
+                except BaseException:pass
+            except BaseException:pass
+        raise SystemExit(128+cancelled[0] if cancelled[0] is not None else 128-status if status<0 else status)
+        SPOOL_HELPER
     - name: Strip verification on a real emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 34
         arch: x86_64
         profile: pixel_6
-        script: |
-          # This runner hands EACH script line to its own sh -c and aborts the
-          # remaining lines on the first non-zero one: no multi-line constructs,
-          # and the test status must survive in a file so a red suite cannot
-          # skip the pixel pull (run 44870377319 died exactly that way).
-          ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --no-daemon && echo 0 > /tmp/tstatus || echo 1 > /tmp/tstatus
-          mkdir -p emulator-screens
-          # Scoped storage hides /sdcard/Android/data/<pkg> from the shell
-          # (stat returns ENOENT), so read through the app's own identity with
-          # run-as; stderr left VISIBLE on purpose — run 44871385332 swallowed
-          # it with 2>/dev/null and the listing came back silently empty.
-          # Install-state + debuggable truth after the test task; the leaveApks flag is EXPECTED to keep the APKs installed past task end (effect under validation by this very run):
-          adb shell pm list packages | grep -i spool || true
-          adb shell dumpsys package app.spool.music.dev | grep -iE 'flags=|DEBUGGABLE' | head -5 || true
-          adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
-          adb shell run-as app.spool.music.dev ls -la /sdcard/Android/data/app.spool.music.dev/files/ || echo RUNAS_LIST_FAILED
-          adb shell run-as app.spool.music.dev ls /sdcard/Android/data/app.spool.music.dev/files/ | tr -d '\r' | while read f; do case "$f" in *.png) adb exec-out run-as app.spool.music.dev cat "/sdcard/Android/data/app.spool.music.dev/files/$f" > "emulator-screens/$f" || true ;; esac; done || true
-          ls -la emulator-screens/ || true
-          grep -q '^0$' /tmp/tstatus
-    - name: Pull emulator screenshots
-      if: always()
-      run: |
-        mkdir -p emulator-screens
-        adb pull /sdcard/Android/data/app.spool.music.dev/files/ emulator-screens/ || true
-        ls -la emulator-screens/ || true
+        script: python3 /tmp/spool-emulator-test.py
     - name: Upload screenshots
       if: always()
       uses: actions/upload-artifact@v4
@@ -82,5 +238,6 @@ jobs:
         name: emulator-strip-pixels
         path: |
           emulator-screens/**
+          emulator-diagnostics/**
           **/build/outputs/androidTest-results/**
         if-no-files-found: warn
