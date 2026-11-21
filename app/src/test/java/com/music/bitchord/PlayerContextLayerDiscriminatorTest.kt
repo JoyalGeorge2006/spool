@@ -27,7 +27,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Same complete production player and Related pager, changing ONLY an outer
+/** Artificial fixture-only diagnostic, not a production defect or fix claim.
+ * Same complete production player and Related pager, changing ONLY an outer
  * test-owned compositor boundary. Does not switch off internal production
  * layers or claim a cause/fix. Clean isolated tabs already narrowed the defect
  * to player context; this distinguishes parent-layer containment sensitivity. */
@@ -64,7 +65,7 @@ class PlayerContextLayerDiscriminatorTest {
         }
     }
     @get:Rule(order=2) val compose = createComposeRule()
-    private fun capture(offscreen: Boolean, directSemantics: Boolean = false) {
+    private fun capture(offscreen: Boolean, directSemantics: Boolean = false, exactVisibleTouch: Boolean = false) {
         val fixture = V6ScreenshotTest()
         fixture.installUiHost()
         val restore = fixture.installVideoStubHost()
@@ -105,7 +106,7 @@ class PlayerContextLayerDiscriminatorTest {
             }
             // Preserve evidence even if the specific cover request times out.
             val coverFailure = runCatching { compose.waitUntil(10_000) { loaded.get() } }.exceptionOrNull()
-            val mode = if(directSemantics) "offscreen_semantics" else if(offscreen) "offscreen" else "auto"
+            val mode = if(exactVisibleTouch) "offscreen_exact_touch" else if(directSemantics) "offscreen_semantics" else if(offscreen) "offscreen" else "auto"
             val artworkPath = "build/outputs/roborazzi/player_context_layer_${mode}_artwork.png"
             fun record(): Unit {
                 compose.onNodeWithTag("player-context-layer-control").captureRoboImage(
@@ -148,7 +149,24 @@ class PlayerContextLayerDiscriminatorTest {
             matches.forEach { node ->
                 println("PLAYER-RELATED-MATCH mode=$mode id=${node.id} bounds=${node.boundsInRoot} config=${node.config}")
             }
-            if (directSemantics) {
+            if (exactVisibleTouch) {
+                // Fresh composition in a fourth test. Keep the original touch
+                // mechanics, changing only ambiguous node selection. The
+                // original touch and direct-semantics arms remain unchanged.
+                val exactTab = visibleRelated and SemanticsMatcher("positive-size Related tab") {
+                    it.boundsInRoot.width > 0f && it.boundsInRoot.height > 0f
+                } and hasClickAction() and isEnabled() and
+                    SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role,
+                        androidx.compose.ui.semantics.Role.Tab)
+                val nodes = compose.onAllNodes(exactTab).fetchSemanticsNodes()
+                check(nodes.size == 1) { "Expected one visible enabled Related Tab, got ${nodes.size}" }
+                val id = nodes.single().id
+                println("PLAYER-RELATED-EXACT-TOUCH mode=$mode id=$id bounds=${nodes.single().boundsInRoot}")
+                // Re-resolve by captured identity AND the positive-area visible
+                // Tab predicate. Never select a hidden duplicate after layout.
+                compose.onNode(exactTab and SemanticsMatcher("exact captured Related Tab") { it.id == id })
+                    .assertIsDisplayed().performClick()
+            } else if (directSemantics) {
                 // Separate diagnostic condition: exact visible, enabled Tab
                 // with its own OnClick. Never a fallback that greens the
                 // unchanged original touch-path Offscreen control.
@@ -194,4 +212,5 @@ class PlayerContextLayerDiscriminatorTest {
     @Test fun unchangedAutoBoundary() = capture(false)
     @Test fun forcedParentOffscreenBoundary() = capture(true)
     @Test fun forcedParentOffscreenExactSemanticsDiagnostic() = capture(true, directSemantics = true)
+    @Test fun forcedParentOffscreenExactVisibleTouchDiagnostic() = capture(true, exactVisibleTouch = true)
 }
