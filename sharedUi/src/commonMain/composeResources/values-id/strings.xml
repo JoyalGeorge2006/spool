@@ -204,4 +204,17 @@
     <string name="spool_player_related">Related</string>
     <string name="couldnt_play_track">Lagu ini tidak dapat diputar</string>
     <string name="tap_to_retry">Ketuk untuk mencoba lagi</string>
+
+    <!-- Existing app translations reused for matching UI meanings. -->
+    <string name="explore_empty_retry">Coba lagi</string>
+    <string name="find_your_mood">Temukan Mood Anda</string>
+    <string name="home_history">Riwayat</string>
+    <string name="mood_focus">Fokus</string>
+    <string name="mood_party">Pesta</string>
+    <string name="mood_relax">Santai</string>
+    <string name="mood_sleep">Tidur</string>
+    <string name="remove">Hapus</string>
+    <string name="sign_in_with_google">Masuk dengan Google</string>
+    <string name="spool_related_add_to_queue">Tambahkan ke antrean</string>
+    <string name="spool_related_retry">Coba lagi</string>
 </resources>
