@@ -14,21 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: a2ae750b12b7f740401470d3901ab94178efc458
+          ref: 36f2429707a0addc5a559abe03d6807347632c0d
           persist-credentials: false
           path: proposal
       - name: Bind immutable source commit, raw JSON and exact six files
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C proposal rev-parse HEAD)" = a2ae750b12b7f740401470d3901ab94178efc458
-          test "$(git -C proposal rev-parse HEAD^{tree})" = 36a2422652a9191cb95838e9a27550ab4969212f
+          test "$(git -C proposal rev-parse HEAD)" = 36f2429707a0addc5a559abe03d6807347632c0d
+          test "$(git -C proposal rev-parse HEAD^{tree})" = 0b13b3d9767cd51a54dee6c29d9021fd02c3ab89
           python3 - <<'PYBIND'
           import json,pathlib,hashlib,os
           root=pathlib.Path('proposal')
           p=root/'release-prep/spool-2.1.2/inspection-source.json'
           raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='24d8d7d8c800ca5203e6004563c44450ad3ef35041ce783ea7e20f1333ece442'
+          assert hashlib.sha256(raw).hexdigest()=='fe652f1542cba062b87f489b6a35c8613401507911a008d2e779e068c27e52f4'
           def unique(pairs):
               result={}
               for k,v in pairs:
@@ -37,7 +37,7 @@ jobs:
               return result
           j=json.loads(raw,object_pairs_hook=unique)
           assert set(j)=={'schema','purpose','files','sha256'} and j['schema']==1
-          expected={'inspect-stable.py': '2d241b17916ef68f87bca6ada1aece07b7e55e0efd191184187f3eaa51efc331', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': '98aa79f69a2bfbb48d812fe4a9083c01cb1fbd86b46906a8d835eb00627d507e', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': 'cfcfb8e435d0e80a066bf9e9f01bff94e06cd3e0e73f7e077ad6d28e16e19271', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
+          expected={'inspect-stable.py': '7f17048e8db7755f12fb72d9545cf94ce2ca5dc8e95a2c513584c87e19f50aee', 'inspect-inputs.py': '648cb5494fffb54fcf525a02604e5e926ffe33c048994a9d32db3a1e5efcf08e', 'inspect-evidence.py': '3c9a36e97e551081bd95f8aafbc48c0371a52152f23881a765f1db3b1e8cbfc2', 'inspection-resources.json': '19e93683afce941a48c93dee2edf940cc6284b926184f67cd4f10393a1ad4cc5', 'navigator.py': '39d2be16c6e39f5398b8f2a13c2a1a53ba6fb2ba2b34e6a46f3e29616d6d7d01', 'verify.py': '250d7275f08dac7fbb5ddaee0f67ca1d0401a780046a8ce3a6bfe3badf8ae815'}
           assert set(j['files'])==set(expected) and j['sha256']==expected
           # Validate every file before writing any. Only known plain basenames.
           for name,digest in expected.items():
@@ -49,7 +49,7 @@ jobs:
               with path.open('xb') as f:f.write(j['files'][name].encode('utf-8'))
               assert hashlib.sha256(path.read_bytes()).hexdigest()==expected[name]
           out=pathlib.Path('source-binding');out.mkdir(exist_ok=True)
-          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='a2ae750b12b7f740401470d3901ab94178efc458',source_tree='36a2422652a9191cb95838e9a27550ab4969212f',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+          (out/'inspection-source-binding.json').write_text(json.dumps(dict(source_commit='36f2429707a0addc5a559abe03d6807347632c0d',source_tree='0b13b3d9767cd51a54dee6c29d9021fd02c3ab89',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
           PYBIND
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
@@ -70,7 +70,7 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: One bounded normal-launch transition and persistence inspection
+      - name: One bounded verified launcher-alias transition and persistence inspection
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: 34
