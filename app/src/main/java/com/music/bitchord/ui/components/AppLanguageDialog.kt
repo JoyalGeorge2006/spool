@@ -1,0 +1,244 @@
+package com.music.bitchord.ui.components
+
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.os.LocaleListCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.music.bitchord.R
+import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.sources.addon.AddonAuth
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
+import java.util.Locale
+
+/** Language tag paired with its display-name string.
+ *
+ * Tags carry a region (`zh-CN` / `zh-TW`, not bare `zh-Hans` / `zh-Hant`):
+ * Android Views understand script qualifiers (`values-b+zh+Hant`) but the
+ * shared Compose resources only match language + region, so a region-less
+ * script tag shows Traditional in Settings and Simplified on the player.
+ * [LocaleTags.normalizeAppTag] maps both forms to the same script downstream.
+ */
+data class AppLanguage(val tag: String, val nameRes: Int)
+
+val SUPPORTED_LANGUAGES = listOf(
+    AppLanguage("en", R.string.english),
+    AppLanguage("es", R.string.spanish),
+    AppLanguage("fr", R.string.french),
+    AppLanguage("de", R.string.german),
+    AppLanguage("pl", R.string.polish),
+    AppLanguage("pt", R.string.portuguese),
+    AppLanguage("id", R.string.indonesian),
+    AppLanguage("hi", R.string.hindi),
+    AppLanguage("ja", R.string.japanese),
+    AppLanguage("ru", R.string.russian),
+    AppLanguage("zh-CN", R.string.chinese_simplified),
+    AppLanguage("zh-TW", R.string.chinese_traditional),
+    AppLanguage("he", R.string.hebrew),
+    AppLanguage("it", R.string.italian),
+    AppLanguage("tr", R.string.turkish),
+    AppLanguage("th", R.string.thai),
+    AppLanguage("vi", R.string.vietnamese),
+    AppLanguage("ko", R.string.korean),
+    AppLanguage("ml", R.string.malayalam),
+)
+
+fun languageDisplayNameRes(languageTag: String): Int {
+    val norm = com.music.bitchord.data.LocaleTags.normalizeAppTag(languageTag)
+    return SUPPORTED_LANGUAGES.firstOrNull {
+        com.music.bitchord.data.LocaleTags.normalizeAppTag(it.tag) == norm
+    }?.nameRes ?: R.string.english
+}
+
+/** How much of the screen the list may take before it scrolls inside the card. */
+private val LANGUAGE_LIST_MAX_HEIGHT = 340.dp
+
+/** Taps on the title that open the hidden tester-code field. */
+private const val TESTER_TAPS = 10
+
+/** A pause longer than this between taps starts the count again. */
+private const val TESTER_TAP_GAP_MS = 2_000L
+
+/**
+ * Same frosted iOS alert as [LyricsSourcesDialog], but single-select rather
+ * than checkable — there's no order or multiple-participation question here,
+ * just one active language, so tapping a row applies it and closes the sheet
+ * immediately rather than waiting on a separate Done action.
+ */
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+fun AppLanguageDialog(
+    hazeState: HazeState,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+
+    // Ten quick taps on the title swap this dialog for the tester-code field.
+    // Hidden because it only matters to testers on phones the auth service
+    // would otherwise refuse (unlocked bootloader); see AddonAuth.setTesterCode.
+    var titleTaps by remember { mutableIntStateOf(0) }
+    var lastTapAt by remember { mutableLongStateOf(0L) }
+    var showTesterCode by remember { mutableStateOf(false) }
+    if (showTesterCode) {
+        TesterCodeAlert(hazeState = hazeState, onDismiss = onDismiss)
+        return
+    }
+
+    val shape = RoundedCornerShape(20.dp)
+    // Full script tag (zh-Hant / zh-Hans preserved); legacy bare "zh" reads as Simplified.
+    val currentLanguage = com.music.bitchord.data.LocaleTags.normalizeAppTag(
+        AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag()
+            ?: Locale.getDefault().toLanguageTag(),
+    )
+
+    com.music.bitchord.ui.screens.SpoolSettingsSurface {
+        ApprovedSettingsPanel(
+            hazeState = hazeState, title = stringResource(R.string.app_language),
+            subtitle = stringResource(R.string.app_language_description), onDismiss = onDismiss,
+            modifier = modifier, scrollBody = false,
+            titleModifier = Modifier.clickable(indication = null,
+                interactionSource = remember { MutableInteractionSource() }) {
+                val now = System.currentTimeMillis()
+                titleTaps = if (now - lastTapAt > TESTER_TAP_GAP_MS) 1 else titleTaps + 1
+                lastTapAt = now
+                if (titleTaps >= TESTER_TAPS) showTesterCode = true
+            },
+            footer = {
+                ApprovedPanelAction(stringResource(R.string.cancel), onDismiss,
+                    style = ApprovedActionStyle.SECONDARY)
+            },
+        ) {
+            LazyColumn(Modifier.weight(1f).fillMaxWidth().selectableGroup(),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
+                items(SUPPORTED_LANGUAGES, key = { it.tag }) { language ->
+                    LanguageRow(language = language,
+                        selected = com.music.bitchord.data.LocaleTags.normalizeAppTag(language.tag) == currentLanguage,
+                        onClick = {
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language.tag))
+                            onDismiss()
+                        })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageRow(language: AppLanguage, selected: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .background(
+                if (pressed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f) else Color.Transparent,
+            )
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                indication = null,
+                interactionSource = interactionSource,
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(language.nameRes),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(19.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The hidden field itself. The saved code is never shown back: the field
+ * starts empty, and the message says whether one is saved.
+ */
+@Composable
+private fun TesterCodeAlert(hazeState: HazeState, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val saved = remember { AddonAuth.hasTesterCode() }
+    var input by remember { mutableStateOf("") }
+    TextValueAlert(
+        hazeState = hazeState,
+        title = stringResource(R.string.tester_code_title),
+        message = stringResource(if (saved) R.string.tester_code_message_saved else R.string.tester_code_message),
+        placeholder = stringResource(R.string.tester_code_placeholder),
+        value = input,
+        onValueChange = { input = it },
+        saveEnabled = AddonAuth.normalizeTesterCode(input).isNotEmpty(),
+        onSave = {
+            if (AddonAuth.normalizeTesterCode(input).isNotEmpty()) {
+                AddonAuth.setTesterCode(input)
+                android.widget.Toast.makeText(context, R.string.tester_code_saved, android.widget.Toast.LENGTH_SHORT).show()
+                onDismiss()
+            }
+        },
+        onRemove = if (saved) {
+            {
+                AddonAuth.setTesterCode(null)
+                android.widget.Toast.makeText(context, R.string.tester_code_removed, android.widget.Toast.LENGTH_SHORT).show()
+                onDismiss()
+            }
+        } else {
+            null
+        },
+        onDismiss = onDismiss,
+    )
+}
