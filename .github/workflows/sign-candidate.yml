@@ -1,12 +1,12 @@
-name: Spool source75 corrected runtime diagnostics
-run-name: Source75 API34 full soak and both native paths, matched recording and pane hierarchy, no release
+name: Spool source75 API37 corrected lifecycle exercise
+run-name: Source75 API37 full thirty-minute corrected lifecycle soak, no native/focus repetition or release
 'on':
   workflow_dispatch: {}
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: spool-source75-runtime-diagnostics65-20261122
+  group: spool-source75-api37-soak66-20261122
   cancel-in-progress: false
 jobs:
   cumulative-soak:
@@ -63,33 +63,6 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
-    - name: Actual native Haze, Home/Settings and local-player checks before soak
-      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
-      with:
-        api-level: ${{ matrix.image }}
-        system-image-api-level: ${{ matrix.image }}
-        target: google_apis
-        arch: x86_64
-        profile: pixel_6
-        ram-size: 3072M
-        heap-size: 512M
-        disk-size: 4096M
-        disable-animations: false
-        force-avd-creation: true
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu lavapipe -camera-back none -no-snapshot -memory 3072 -cores
-          2
-        script: python3 /tmp/cumulative-ci/native_build.py device
-      if: always() && steps.native_build.outcome == 'success' && matrix.image == '37.0'
-      id: native_visuals
-      continue-on-error: true
-    - name: Retain native evidence before the long runtime exercise
-      if: always() && steps.native_build.outcome == 'success' && matrix.image == '37.0'
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: native-before-soak-api${{ matrix.image }}-${{ github.run_id }}-${{ github.run_attempt }}
-        path: evidence/
-        if-no-files-found: error
-        retention-days: 7
     - name: At least30minutes of real playback and repeated open/close exercise
       uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
       with:
@@ -106,41 +79,20 @@ jobs:
         emulator-options: -no-window -no-audio -no-boot-anim -gpu lavapipe -camera-back none -no-snapshot -memory 3072 -cores
           2
         script: python3 /tmp/cumulative-ci/native_soak.py device
-      if: always() && steps.native_build.outcome == 'success' && matrix.image == '34'
+      if: always() && steps.native_build.outcome == 'success' && matrix.image == '37.0'
       env:
         EXPECTED_EMULATOR_API: ${{ matrix.image == '34' && '34' || '37' }}
-    - name: Native visual checks after the prioritized API34 runtime exercise
-      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
-      with:
-        api-level: ${{ matrix.image }}
-        system-image-api-level: ${{ matrix.image }}
-        target: google_apis
-        arch: x86_64
-        profile: pixel_6
-        ram-size: 3072M
-        heap-size: 512M
-        disk-size: 4096M
-        disable-animations: false
-        force-avd-creation: true
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu lavapipe -camera-back none -no-snapshot -memory 3072 -cores
-          2
-        script: python3 /tmp/cumulative-ci/native_build.py device
-      if: always() && steps.native_build.outcome == 'success' && matrix.image == '34'
-      id: native_visuals_after_soak
-      continue-on-error: true
-    - name: Require native4tests on both APIs and full30minute exercise on API34
+    - name: Require actual thirty-minute and twenty-cycle lifecycle coverage
       if: always() && steps.native_build.outcome == 'success'
       run: |-
         python3 - <<'PY'
         from pathlib import Path
-        import json,re,os
-        p=Path('evidence');text=(p/'native-instrumentation.txt').read_bytes()
-        assert re.search(rb'OK \(4 tests\)',text)and b'FAILURES!!!'not in text,'Native verification failed independently of soak'
-        assert len(list((p/'native-status-frost').glob('*.png')))>=10
-        if os.environ['EXPECTED_SOAK_REQUIRED']=='true':assert json.loads((p/'independent-soak-check.json').read_text())['passed']
+        import json
+        p=Path('evidence')
+        s=json.loads((p/'independent-soak-check.json').read_text())
+        assert s['passed'] and s['app_exercise_elapsed_ms']>=1800000 and s['completed_cycles']>=20
+        assert s['api']=='37'
         PY
-      env:
-        EXPECTED_SOAK_REQUIRED: ${{ matrix.image == '34' && 'true' || 'false' }}
     - name: Remove ephemeral APKs and generated signing key, no APK publication
       if: always()
       run: |-
@@ -150,7 +102,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: source75-corrected-runtime-api${{ matrix.image }}-${{ github.run_id }}-${{ github.run_attempt }}
+        name: source75-api37-corrected-soak-${{ github.run_id }}-${{ github.run_attempt }}
         path: evidence/
         if-no-files-found: error
         retention-days: 7
@@ -158,88 +110,4 @@ jobs:
       fail-fast: false
       matrix:
         image:
-        - '34'
         - '37.0'
-  existing-focus:
-    if: github.ref == 'refs/heads/spool-ui-test-20261122'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-        - '34'
-        - '37.0'
-    env:
-      EXPECTED_ARTIFACT_ID: '14743033926'
-      EXPECTED_ARTIFACT_DIGEST: 262d19e105d963b458ff6514b45cefe4e6d87ed4baaa299e8ba6e42453f992cf
-    steps:
-    - name: Bind isolated no-build test harness
-      run: |-
-        python3 - <<'PY'
-        import base64,hashlib,io,tarfile,pathlib
-        raw=base64.b64decode('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')
-        assert hashlib.sha256(raw).hexdigest()=='9c3b2c14aa60e163ddeaaed0dcb0a89aab533dce901eafddfe033db7775d5a1f'
-        with tarfile.open(fileobj=io.BytesIO(raw),mode='r:gz')as a:
-         assert set(a.getnames())=={'artifact.py', 'version_labels.json', 'focus_device.py', 'focus_prepare.py', 'FocusProbe.java', 'verify.py', 'focus_ab.py', 'candidate_inputs.py'}
-         assert all(m.isfile()and '/'not in m.name for m in a.getmembers())
-         a.extractall(pathlib.Path.cwd())
-        PY
-    - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
-      with:
-        distribution: temurin
-        java-version: '17'
-    - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
-      with:
-        packages: platform-tools
-        log-accepted-android-sdk-licenses: false
-    - name: Prepare companion SDK and supported MP3 fixture encoder
-      run: |-
-        sdkmanager 'platforms;android-37.0' 'build-tools;35.0.0'
-        command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
-        ffmpeg -version | head -n 3
-    - name: Verify exact existing production APKs and build disposable focus companion only
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: python3 focus_prepare.py
-    - name: Enable disposable emulator acceleration
-      run: |-
-        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-        sudo udevadm control --reload-rules
-        sudo udevadm trigger --name-match=kvm
-    - name: One same-instance public58-to-delivered59 focus experiment
-      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
-      env:
-        EXPECTED_EMULATOR_API: ${{ matrix.image == '34' && '34' || '37' }}
-      with:
-        api-level: ${{ matrix.image }}
-        system-image-api-level: ${{ matrix.image }}
-        target: google_apis
-        arch: x86_64
-        profile: pixel_6
-        ram-size: 3072M
-        heap-size: 512M
-        disk-size: 4096M
-        disable-animations: false
-        force-avd-creation: true
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu lavapipe -camera-back none -no-snapshot -memory 3072 -cores
-          2
-        script: python3 focus_ab.py
-    - name: Remove disposable keys and input APKs, never publish a build
-      if: always()
-      run: |-
-        rm -f probe-debug.keystore FocusProbe.apk probe-unsigned.apk public211.apk bundle.zip SpoolFocusFixture.wav SpoolFocusFixture.mp3
-        rm -rf accepted-input candidate-tree probe-classes probe-dex
-        python3 - <<'PY'
-        from pathlib import Path
-        p=Path('evidence');p.mkdir(exist_ok=True)
-        assert all(f.is_file()and f.suffix in {'.txt','.json','.png','.xml'}for f in p.iterdir())
-        PY
-    - name: Upload test evidence only
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: existing-apk-focus-api${{ matrix.image }}-${{ github.run_id }}-${{ github.run_attempt }}
-        path: evidence/
-        if-no-files-found: error
-        retention-days: 7
