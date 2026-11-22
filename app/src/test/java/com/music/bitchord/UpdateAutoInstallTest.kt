@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.music.bitchord.data.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.test.*
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -13,12 +14,17 @@ import java.io.File
 import java.util.UUID
 
 /** State-owner tests, not evidence of a real Android installer confirmation. */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[34])
 class UpdateAutoInstallTest {
     private lateinit var context: Context
     private val info=AppUpdateChecker.UpdateInfo("99.0.0","https://github.com/JoyalGeorge2006/spool/releases/tag/v99.0.0","https://github.com/JoyalGeorge2006/spool/releases/download/v99.0.0/a.apk",null,"a".repeat(64),10000L)
     @Before fun setup()=runBlocking {
+        // Same harness contract as UpdateAutoInstallCoordinatorTest: UpdateAutoInstall.request()
+        // hops through Dispatchers.Main; without a test Main dispatcher that hop parks on the
+        // unpumped Robolectric main looper and awaitRequestsForTest times out.
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         context=ApplicationProvider.getApplicationContext()
         UpdateDownloads.monitorEnabled=false
         UpdateDownloads.resetMemoryForTest(context);UpdateStore.clear(context)
@@ -27,7 +33,7 @@ class UpdateAutoInstallTest {
     }
     @After fun cleanup()=runBlocking {
         UpdateDownloads.cancelAndAwait();UpdateStore.clear(context)
-        UpdateDownloads.resetMemoryForTest(context);UpdateDownloads.monitorEnabled=true
+        UpdateDownloads.resetMemoryForTest(context);UpdateDownloads.monitorEnabled=true;Dispatchers.resetMain()
     }
     private suspend fun attempt(phase: String="ready",pending: Boolean=true): UpdateAttempt {
         val a=UpdateAttempt(UUID.randomUUID().toString(),info,phase,autoInstallPending=pending)
