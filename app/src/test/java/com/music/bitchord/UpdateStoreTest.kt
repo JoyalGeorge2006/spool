@@ -26,6 +26,29 @@ class UpdateStoreTest {
    assertEquals(a,got)
   }
  }
+ @Test fun notesNullEmptyAndValueRoundTripExactly() {
+  for(notes in listOf<String?>(null,"","release notes")) {
+   val a=UpdateAttempt(UUID.randomUUID().toString(),info.copy(notes=notes),"ready",autoInstallPending=true)
+   UpdateStore.write(context,a)
+   val got=UpdateStore.read(context)!!
+   assertEquals("notes=<$notes> must round-trip with exact null/empty identity",a,got)
+   assertEquals(notes,got.info.notes)
+  }
+ }
+ @Test fun legacyRecordWithoutNotesKeyReadsNull() {
+  val a=UpdateAttempt(UUID.randomUUID().toString(),info,"ready")
+  UpdateStore.write(context,a)
+  val f=File(context.noBackupFilesDir,"spool-update-v1.json")
+  val j=org.json.JSONObject(f.readText());j.remove("notes");f.writeText(j.toString())
+  assertNull(UpdateStore.read(context)!!.info.notes)
+ }
+ @Test fun restoredNullNotesRecordKeepsClaimIdentity() {
+  // claimAutoInstall compares full UpdateAttempt equality: a restored record must equal
+  // the attempt that was written, or every post-restore claim is silently refused.
+  val a=UpdateAttempt(UUID.randomUUID().toString(),info.copy(notes=null),"ready",autoInstallPending=true)
+  UpdateStore.write(context,a)
+  assertEquals(a,UpdateStore.read(context))
+ }
  @Test fun rejectsPathTraversalToken() {
   val a=UpdateAttempt(UUID.randomUUID().toString(),info)
   UpdateStore.write(context,a)
