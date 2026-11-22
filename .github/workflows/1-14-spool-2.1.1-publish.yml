@@ -1,4 +1,4 @@
-name: Publish accepted Spool 2.1.1 and verify OTA discovery
+name: Publish accepted Spool 2.1.2 and verify OTA discovery
 on:
   workflow_dispatch:
 permissions:
@@ -11,10 +11,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: JoyalGeorge2006/spool
-      RUN: '44772488230'
-      ACCEPT: '44785254695'
-      AGGREGATE: '44782429801'
-      TESTS: '44770799997'
+      RUN: '44994216959'
+      DEVICE: '45014885640'
     steps:
     - name: Require successful pinned build and recover verified artifact
       run: |
@@ -23,57 +21,119 @@ jobs:
         python3 - <<'PY'
         import json
         r=json.load(open('/tmp/run.json'))
-        assert r['status']=='completed'
-        assert r['head_sha']=='7ca3eb95605e9ff4f6206dfbb4cbc06fba23e47f'
+        assert r['status']=='completed' and r['conclusion']=='success'
+        assert r['run_attempt']==1
+        assert r['head_sha']=='e4ab29b2a622cc192e80e1c13bb81ba129ee849d'
+        assert r['event']=='workflow_dispatch'
         PY
-        gh api repos/$REPO/actions/runs/$ACCEPT > /tmp/accept.json
-        python3 - <<'ACCEPT'
+        gh api repos/$REPO/actions/runs/$DEVICE > /tmp/device.json
+        python3 - <<'DEVICE'
         import json
-        a=json.load(open('/tmp/accept.json'))
-        assert a['status']=='completed' and a['conclusion']=='success'
-        assert a['head_sha']=='42f5e10ef5aa8a6c577013213efd160036894d9f'
-        ACCEPT
-        gh api repos/$REPO/actions/runs/$TESTS > /tmp/tests.json
-        gh api repos/$REPO/actions/runs/$AGGREGATE > /tmp/aggregate.json
-        python3 - <<'GATES'
-        import json
-        t=json.load(open('/tmp/tests.json'));assert t['status']=='completed' and t['conclusion']=='success'
-        assert t['head_sha']=='df2b7a2e6bc08f4504b705fc5a09c5e90f07b93f'
-        a=json.load(open('/tmp/aggregate.json'));assert a['status']=='completed' and a['conclusion']=='failure'
-        assert a['head_sha']=='f7144a9d49d6d3ff4927a92d7a6f022c789086fc'
-        GATES
-        mkdir /tmp/aggregate-evidence /tmp/player-evidence
-        gh run download "$AGGREGATE" --repo "$REPO" --name spool-2.1.1-device-evidence --dir /tmp/aggregate-evidence
-        gh run download "$ACCEPT" --repo "$REPO" --name spool-2.1.1-device-evidence --dir /tmp/player-evidence
-        python3 - <<'EVIDENCE'
-        import json
+        d=json.load(open('/tmp/device.json'))
+        assert d['status']=='completed' and d['conclusion']=='success'
+        assert d['run_attempt']==1
+        assert d['head_sha']=='00f022d5c58d06cc0729ded4ea905aff0f78bcda'
+        assert d['event']=='workflow_dispatch'
+        DEVICE
+        gh api repos/$REPO/actions/artifacts/14751899824 > /tmp/device-artifact.json
+        gh api repos/$REPO/actions/artifacts/14751899824/zip > /tmp/device-evidence.zip
+        python3 - <<'BIND_EVIDENCE'
+        import json,hashlib,zipfile
         from pathlib import Path
-        agg=Path('/tmp/aggregate-evidence');player=Path('/tmp/player-evidence')
-        problems=list(agg.rglob('category-problems.json'));assert len(problems)==1
-        assert json.loads(problems[0].read_text())==['local-player: Missing visible label SpoolSmoke']
-        # Aggregate failed only because WAV is excluded by the app's unchanged default music filter.
-        # Separate successful real-MP3 library/player/IME acceptance completes that coverage.
-        passed=list(player.rglob('PASS'));assert len(passed)==1 and 'Supported MP3 library listing' in passed[0].read_text()
-        for name in ['player-library-mp3','player-00-open-with-audio','player-02-queue','player-02-lyrics','player-02-related','player-03-closed','player-webdav-restored','player-webdav-cancelled']:
-            assert len(list(player.rglob(name+'.png')))==1,name
+        a=json.loads(Path('/tmp/device-artifact.json').read_text())
+        assert a['id']==14751899824 and a['name']=='spool-continuous58to59-evidence-45014885640-1' and a['expired'] is False
+        assert a['size_in_bytes']==8903996 and a['digest']=='sha256:2c185c8f050cb9a85cf7438b06366b96f1f0ad3280f5b79d198d27e57f328786'
+        assert a['workflow_run']['id']==45014885640 and a['workflow_run']['head_sha']=='00f022d5c58d06cc0729ded4ea905aff0f78bcda'
+        data=Path('/tmp/device-evidence.zip').read_bytes()
+        assert len(data)==8903996 and hashlib.sha256(data).hexdigest()=='2c185c8f050cb9a85cf7438b06366b96f1f0ad3280f5b79d198d27e57f328786'
+        with zipfile.ZipFile('/tmp/device-evidence.zip') as z:
+            assert len(z.namelist())==197 and z.testzip() is None
+            assert all('/' not in n and '\\' not in n and n not in ['.','..'] for n in z.namelist())
+            z.extractall('/tmp/device-evidence')
+        BIND_EVIDENCE
+        python3 - <<'EVIDENCE'
+        import json,hashlib,re
+        from pathlib import Path
+        ev=Path('/tmp/device-evidence')
+        def raw(name):
+            p=ev/name;assert p.is_file(),name;return p.read_bytes()
+        def doc(name):return json.loads(raw(name))
+        manifest_raw=raw('inspection-manifest.json')
+        assert hashlib.sha256(manifest_raw).hexdigest()=='8f28960fecc862d5a66893762f109ac84576508e6d83acbbd440ce1e0277d4ee'
+        manifest=json.loads(manifest_raw)
+        expected_names=['onboarding-initial', 'home-en', 'language-before-entry', 'language-dialog-en-before-selection', 'language-es-section', 'language-es-entry', 'language-dialog-es-selected', 'language-en-restored-section', 'language-after-entry', 'language-dialog-en-selected', 'appearance-before-dark', 'appearance-select-light', 'appearance-light-selected', 'appearance-select-dark', 'appearance-dark-selected', 'local-playlist-empty', 'local-playlist-create', 'local-playlist-created', 'cold-home-en', 'language-cold-entry', 'cold-english-selected', 'cold-dark-selected', 'cold-playlist-preserved', 'candidate-first-launch-home', 'after-upgrade-language-entry', 'after-upgrade-english-selected', 'after-upgrade-dark-selected', 'after-upgrade-playlist-preserved', 'candidate-cold-launch-home', 'candidate-cold-language-entry', 'candidate-cold-english-selected', 'candidate-cold-dark-selected', 'candidate-cold-playlist-preserved', 'candidate-ml-before-entry', 'candidate-ml-section', 'candidate-ml-reopen-entry', 'candidate-ml-selected', 'candidate-ml-home', 'candidate-en-restored-section', 'candidate-light-settings', 'candidate-dark-restored', 'candidate-updater-enabled', 'candidate-for-you-after-tap', 'candidate-mood-top', 'candidate-mood-bottom', 'candidate-replay-top']
+        assert [x['name'] for x in manifest]==expected_names and len(expected_names)==46
+        for x in manifest:
+            for key,ext in [('png','.png'),('xml','.raw.xml.txt'),('window','.window.txt')]:
+                b=raw(x['name']+ext);assert len(b)==x[key]['bytes'] and hashlib.sha256(b).hexdigest()==x[key]['sha256'],(x['name'],key)
+        v=doc('IMAGE-VALIDATION.json');assert v['valid'] is True and v['validation_errors']==[] and v['automated_continuous_complete'] is True
+        assert len(v['manifest'])==46 and all(x['dimensions']==[1080,2400] for x in v['manifest'])
+        done=doc('AUTOMATED-CONTINUOUS-COMPLETE.json');assert done['manifest_sha256']==hashlib.sha256(manifest_raw).hexdigest()
+        assert done['manual_pixel_acceptance'] is False and done['publication_authorized'] is False
+        c=doc('CONTINUOUS-DEVICE-COMPLETE.json')
+        assert c['one_live_process_device_data_context'] is True and c['preupgrade_cold']==1 and c['postupgrade_cold']==1 and c['records']==46
+        assert c['seed_classes']==['explicit-English','Dark','Inspect58Local/0songs'] and c['candidate_malayalam_is_new_selection_not_migration'] is True
+        assert not (ev/'inspection-stop.json').exists()
+        base=doc('BASELINE-READY.json');post=doc('installed59-bytes.json')
+        assert base['identity']['version_code']==58 and post['identity']['version_code']==59
+        assert {k:v for k,v in base['identity'].items() if k!='version_code'}=={k:v for k,v in post['identity'].items() if k!='version_code'}
+        assert base['explicit_english'] and base['dark'] and base['playlist']=='Inspect58Local' and base['zero_songs'] and base['one_preupgrade_cold']
+        assert post['sha256']=='e5715221264bb24e8bea3c1ab32fc352d725cf57ee7eee184ff210fe79125e9e' and post['bytes']==153900853
+        cleanup=doc('continuous-cleanup.json');assert cleanup['cleanup_complete'] is True and cleanup['errors']==[]
+        audio=doc('audio-cleanup-attempts.json');assert audio['errors']==[] and audio['checks']=={'delete-record':True,'remove-file':True,'file-absent':True,'record-absent':True}
+        for name,granted in [('media-permission-before.txt','false'),('media-permission-after.txt','true'),('media-permission-revoked.txt','false')]:
+            assert re.search(r'android\.permission\.READ_MEDIA_AUDIO: granted='+granted+r'\b',raw(name).decode()),name
+        g=doc('pre-input-geometry.json')
+        safe=[x for x in g if x.get('kind')=='candidate-mood-bottom' and x.get('safe') is True]
+        assert len(safe)==2 and any(x.get('kind')=='candidate-mood-bottom-pending' and x.get('safe') is False for x in g)
+        for x in safe:
+            a,b=x['viewport'],x['target'];assert a[0]<=b[0] and a[1]<=b[1] and a[2]>=b[2] and a[3]>=b[3]
+        assert not re.search(r'FATAL EXCEPTION|ANR in app\.spool\.music|am_anr.*app\.spool\.music|Fatal signal.*app\.spool\.music',raw('logcat.txt').decode())
+        assert not re.search(r'reason=.*(?:CRASH|ANR|CRASH_NATIVE)',raw('exit-info.txt').decode())
+        binding=doc('artifact-binding.json')
+        assert binding['artifact_id']=='14743033926' and binding['artifact_zip_sha256']=='262d19e105d963b458ff6514b45cefe4e6d87ed4baaa299e8ba6e42453f992cf'
+        assert binding['consumer_run_id']=='45014885640' and binding['consumer_run_attempt']=='1' and binding['consumer_workflow_sha']=='00f022d5c58d06cc0729ded4ea905aff0f78bcda'
+        source=doc('artifact-binding-source.json')
+        assert source['source_commit']=='5523bb4a235ddd754b031d453c83b02c2461b7fc' and source['source_tree']=='60bf1e752bbe4e3329246226ddabe887c3862011'
+        assert source['bundle_sha256']=='efdc171aa3a0645cb8a76d07959125897dd82c9f41c1d6581e2f4e9edca11385'
+        assert source['files']['continuous59.py']=='43b98abe0832a2afb1d41889ff27ee261f16c6119c30aa0e439ccfaecc840262'
+        assert doc('latest-after-device.json')['tag']=='v2.1.1'
         EVIDENCE
         mkdir /tmp/accepted
-        gh run download "$RUN" --repo "$REPO" --name spool-2.1.1-candidate-diagnostic-only --dir /tmp/accepted
+        gh run download "$RUN" --repo "$REPO" --name spool-2.1.2-reviewed-candidate-44994216959-1 --dir /tmp/accepted
+        gh api repos/$REPO/actions/artifacts/14743033926 > /tmp/artifact.json
+        python3 - <<'ART'
+        import json
+        a=json.load(open('/tmp/artifact.json'))
+        assert a['id']==14743033926 and a['name']=='spool-2.1.2-reviewed-candidate-44994216959-1'
+        assert a['size_in_bytes']==219359022 and a['expired'] is False
+        assert a['digest']=='sha256:262d19e105d963b458ff6514b45cefe4e6d87ed4baaa299e8ba6e42453f992cf'
+        ART
     - name: Independently verify hashes, app identity and signing certificate
       run: |
         set -euo pipefail
         mkdir /tmp/release
         python3 - <<'PY'
         from pathlib import Path
-        import hashlib,shutil
-        root=Path('/tmp/accepted');manifest=next(root.rglob('SHA256SUMS.txt'))
-        for line in manifest.read_text().splitlines():
-            digest,name=line.split(maxsplit=1);name=Path(name.strip()).name
+        import hashlib,shutil,json
+        root=Path('/tmp/accepted')
+        mfs=list(root.rglob('manifest.json'));assert len(mfs)==1
+        raw=mfs[0].read_bytes()
+        assert hashlib.sha256(raw).hexdigest()=='bb7346f566e5f2e57e3ea81488c51dc5a213419e50e4ae576dd3626cd78f9f24'
+        m=json.loads(raw)
+        assert m['schema']==1 and m['run_id']=='44994216959' and m['run_attempt']=='1'
+        assert m['workflow_sha']=='e4ab29b2a622cc192e80e1c13bb81ba129ee849d'
+        assert m['base_commit']=='497507fabd0930e2801413a28f82f06363ee954c' and m['base_tree']=='7e2b48c13cab38024abdc47febdb043a4fd0ea74'
+        assert m['candidate_tree']=='3ba8f88089123fb170fad3361d2753a25ba87199'
+        assert m['version_code']==59 and m['version_name']=='2.1.2' and m['phone_only'] is True and m['bundle_wear'] is False
+        assert m['certificate_sha256']=='a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+        expected={'Spool-2.1.2-universal.apk':('e5715221264bb24e8bea3c1ab32fc352d725cf57ee7eee184ff210fe79125e9e',153900853),'Spool-2.1.2-arm64-v8a.apk':('1126371f6446c2bc115c0311935f769ffe57c92e8eedaec1dba31c5da69f7046',84374401),'source.tar.gz':('7e73bc75d40cff6cb19a09a2b782b39759fde215c54c98bfd998dcb86d6bbfb4',70983434)}
+        assert set(m['files'])==set(expected)
+        for name,(digest,size) in expected.items():
+            assert m['files'][name]=={'sha256':digest,'size':size},name
             files=list(root.rglob(name));assert len(files)==1,(name,files)
-            assert hashlib.sha256(files[0].read_bytes()).hexdigest()==digest,name
-        universal=next(root.rglob('Spool-2.1.1-universal.apk'))
-        assert hashlib.sha256(universal.read_bytes()).hexdigest()=='a2049d0546bd17791014a59f84a40f258a214445d8b4aa6a32349335f1bb0ba1'
-        mapping={'Spool-2.1.1-universal.apk':'spool.apk','Spool-2.1.1-arm64-v8a.apk':'Spool-2.1.1-arm64-v8a.apk','spool-v2.1.1-source.tar.gz':'spool-v2.1.1-source.tar.gz'}
+            b=files[0].read_bytes();assert len(b)==size and hashlib.sha256(b).hexdigest()==digest,name
+        mapping={'Spool-2.1.2-universal.apk':'spool.apk','Spool-2.1.2-arm64-v8a.apk':'Spool-2.1.2-arm64-v8a.apk','source.tar.gz':'spool-v2.1.2-source.tar.gz'}
         for src,dst in mapping.items():
             files=list(root.rglob(src));assert len(files)==1;shutil.copy2(files[0],Path('/tmp/release')/dst)
         out=Path('/tmp/release')
@@ -84,15 +144,23 @@ jobs:
         for apk in /tmp/release/*.apk; do
           "$aapt" dump badging "$apk" > /tmp/badging.txt
           grep -q "package: name='app.spool.music'" /tmp/badging.txt
-          grep -q "versionCode='58'" /tmp/badging.txt
-          grep -q "versionName='2.1.1'" /tmp/badging.txt
+          grep -q "versionCode='59'" /tmp/badging.txt
+          grep -q "versionName='2.1.2'" /tmp/badging.txt
           "$signer" verify --verbose --print-certs "$apk" > /tmp/cert.txt
           grep -qi a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee /tmp/cert.txt
         done
     - name: Tag exact accepted source tree
       run: |
         set -euo pipefail
-        if gh api repos/$REPO/git/ref/tags/v2.1.1 > /tmp/tag-state.json 2>/tmp/tag-error; then
+        gh api repos/$REPO/releases/latest > /tmp/prepublish-latest.json
+        python3 - <<'LIVE_STABLE'
+        import json
+        r=json.load(open('/tmp/prepublish-latest.json'))
+        assert r['tag_name']=='v2.1.1' and r['draft'] is False and r['prerelease'] is False
+        a=[x for x in r['assets'] if x['name']=='spool.apk' and x['state']=='uploaded'];assert len(a)==1
+        a=a[0];assert a['id']==772779012 and a['size']==153656069 and a['digest']=='sha256:a2049d0546bd17791014a59f84a40f258a214445d8b4aa6a32349335f1bb0ba1'
+        LIVE_STABLE
+        if gh api repos/$REPO/git/ref/tags/v2.1.2 > /tmp/tag-state.json 2>/tmp/tag-error; then
           echo 'Ref already exists; stop for explicit state reconciliation'
           exit 1
         else
@@ -100,41 +168,45 @@ jobs:
           grep -q '404' /tmp/tag-error
         fi
         mkdir /tmp/tag-source
-        tar xzf /tmp/release/spool-v2.1.1-source.tar.gz -C /tmp/tag-source --strip-components=1
+        tar xzf /tmp/release/spool-v2.1.2-source.tar.gz -C /tmp/tag-source
         cd /tmp/tag-source
         git init -q
         git config user.name 'github-actions[bot]'
         git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
         git add -A
-        test "$(git write-tree)" = 94d5843ce09cf680d488d5d6654b97f65c7d99ef
-        git commit -qm 'Spool 2.1.1 verified release source'
+        test "$(git write-tree)" = 3ba8f88089123fb170fad3361d2753a25ba87199
+        git commit -qm 'Spool 2.1.2 verified release source'
         gh auth setup-git
-        git push https://github.com/JoyalGeorge2006/spool.git HEAD:refs/tags/v2.1.1
+        git push https://github.com/JoyalGeorge2006/spool.git HEAD:refs/tags/v2.1.2
     - name: Publish complete stable release with updater-compatible universal asset
       run: |
         set -euo pipefail
         cat > /tmp/notes.md <<'NOTES'
-        ## Spool 2.1.1
+        ## Spool 2.1.2
 
-        - Removed decorative row dividers while keeping grouped cards and spacing.
-        - Added the combined floating History/profile control and scrolling page titles. Settings and the full-screen player keep their existing controls.
-        - Fixed a stale saved update that could briefly announce an equal or older version on startup.
-        - Fixed Material You colors on App updates, About the developer, Credits and licenses, and bundled license details.
+        - For you and every mood/category now follow your own listening taste (history, likes and skips), on device.
+        - Settings and sub-pages rebuilt without the grey header and Back button, with the audit consistency fixes applied.
+        - Fixed content drawing under the status bar on every page.
+        - Added Malayalam as an app language (English and Malayalam are the focus languages).
+        - Tightened excess spacing above the Replay title.
+        - App updates: after a download is verified, the install confirmation opens automatically.
 
         Install over the existing app. Do not uninstall or clear app data.
 
         Downloads:
         - `spool.apk`: universal phone APK, also used by the in-app updater.
-        - `Spool-2.1.1-arm64-v8a.apk`: smaller APK for arm64 phones.
-        - `spool-v2.1.1-source.tar.gz`: exact corresponding source.
+        - `Spool-2.1.2-arm64-v8a.apk`: smaller APK for arm64 phones.
+        - `spool-v2.1.2-source.tar.gz`: exact corresponding source.
         - `SHA256SUMS.txt`: download checksums.
 
-        Package: `app.spool.music`. Version: `2.1.1` (58). Signed with the existing Spool certificate.
+        Package: `app.spool.music`. Version: `2.1.2` (59). Signed with the existing Spool certificate.
 
-        Automated source/render tests and emulator upgrade, startup, navigation, keyboard and offline local-playback checks passed before publication. The emulator had network access disabled. Live release metadata and APK integrity were checked separately; an end-to-end in-app network download was not tested on that emulator. This does not install the update on your phone or verify third-party account sign-in.
+        Validation: One continuous Android 14 (API 34), x86_64 emulator session upgraded the universal APK from signed Spool 2.1.1 (58) to this exact 2.1.2 (59), keeping the same device boot and app data directory. Checks covered seeded English, Dark theme and one empty local playlist across the upgrade and named cold starts; new Malayalam selection and English restoration; light/dark Settings; the enabled App updates state; an offline, signed-out For you tap and Home-route check; mood-grid top and safely visible full bottom controls; and the empty Yearly Replay screen. The final installed APK bytes and test-owned media/permission cleanup were checked.
+
+        Limits: This is representative emulator coverage, not an exhaustive bug-free claim. The arm64 APK was hash/package/signature checked but was not device-run in this session. No real-phone or Android 17 beta acceptance, live provider playback, live OTA installer/background-download flow, signed-in account migration, TV, Wear or Android Auto acceptance is claimed. Malayalam was selected after the upgrade, not migrated from 2.1.1.
         NOTES
-        gh release create v2.1.1 --repo "$REPO" --draft --title 'Spool 2.1.1' --notes-file /tmp/notes.md /tmp/release/*
-        gh release edit v2.1.1 --repo "$REPO" --draft=false --prerelease=false --latest
+        gh release create v2.1.2 --repo "$REPO" --draft --title 'Spool 2.1.2' --notes-file /tmp/notes.md /tmp/release/*
+        gh release edit v2.1.2 --repo "$REPO" --draft=false --prerelease=false --latest
     - name: Verify published latest release and exact OTA phone asset
       run: |
         set -euo pipefail
@@ -143,7 +215,7 @@ jobs:
         import json,hashlib,urllib.request
         from pathlib import Path
         r=json.load(open('/tmp/latest.json'))
-        assert r['tag_name']=='v2.1.1' and not r['draft'] and not r['prerelease']
+        assert r['tag_name']=='v2.1.2' and not r['draft'] and not r['prerelease']
         a=[a for a in r['assets'] if a['name']=='spool.apk' and a['state']=='uploaded'];assert len(a)==1
         a=a[0];b=Path('/tmp/release/spool.apk').read_bytes();digest=hashlib.sha256(b).hexdigest()
         assert a['size']==len(b) and a['digest']=='sha256:'+digest
@@ -151,12 +223,12 @@ jobs:
         downloaded=urllib.request.urlopen(a['browser_download_url']).read()
         assert hashlib.sha256(downloaded).hexdigest()==digest
         print('Release:',r['html_url']);print('OTA universal APK:',a['browser_download_url']);print('SHA256:',digest)
-        Path('/tmp/ota-verification.json').write_text(json.dumps({'release':r['html_url'],'apk':a['browser_download_url'],'size':len(b),'sha256':digest,'version':'2.1.1','versionCode':58,'olderInstalledVersion':'2.1.0','numericUpgrade':True},indent=2))
+        Path('/tmp/ota-verification.json').write_text(json.dumps({'release':r['html_url'],'apk':a['browser_download_url'],'size':len(b),'sha256':digest,'version':'2.1.2','versionCode':59,'olderInstalledVersion':'2.1.1','numericUpgrade':True},indent=2))
         PY
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: always()
       with:
-        name: spool-2.1.1-publication-diagnostics
+        name: spool-2.1.2-publication-diagnostics
         path: |
           /tmp/latest.json
           /tmp/ota-verification.json
@@ -171,4 +243,4 @@ jobs:
     needs: publish
     uses: ./.github/workflows/ota-delta-publish.yml
     with:
-      release_tag: v2.1.1
+      release_tag: v2.1.2
