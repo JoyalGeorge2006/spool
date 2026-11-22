@@ -85,7 +85,7 @@ jobs:
         heap-size: 512M
         disk-size: 4096M
         disable-animations: false
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader -camera-back none -no-snapshot -memory 3072
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu lavapipe -camera-back none -no-snapshot -memory 3072
           -cores 2
         force-avd-creation: true
         script: python3 proposal/continuous59.py
@@ -93,6 +93,15 @@ jobs:
       if: always()
       shell: bash
       run: sudo dmesg --time-format iso 2>/dev/null | tail -n 80 || sudo dmesg | tail -n 80 || true
+    - name: Collect emulator crash forensics after device session, diagnostics only
+      if: always()
+      shell: bash
+      run: |
+        sudo coredumpctl list --no-pager 2>/dev/null | tail -n 20 || true
+        sudo coredumpctl info --no-pager 2>/dev/null | head -n 60 || true
+        ls -la /tmp/android-runner/ 2>/dev/null || true
+        for f in /tmp/android-runner/emu-crash-*.db; do test -e "$f" && strings "$f" | tail -n 40 || true; done
+        true
     - name: Recheck live predecessor race after device, no account effect
       run: python3 proposal/latest_after.py
       env:
