@@ -140,9 +140,11 @@ class PlayerContextLayerDiscriminatorTest {
             }
             println("PLAYER-COVER-RASTER mode=$mode cover1200=${loaded.get()} gold=$gold coverFailure=$coverFailure")
             println("PLAYER-RELATED-BEFORE mode=$mode\n"+compose.onRoot(useUnmergedTree=true).printToString())
+            // Positive area is part of "visible": an offscreen-composited duplicate reports
+            // zero bounds and would satisfy the bare in-viewport check, stealing the click.
             val visibleRelated = hasText("Related") and SemanticsMatcher("visible Related tab") {
                 val b=it.boundsInRoot
-                b.left>=0f && b.right<=390f && b.top>=0f && b.bottom<=780f
+                b.width > 0f && b.height > 0f && b.left>=0f && b.right<=390f && b.top>=0f && b.bottom<=780f
             }
             val matches = compose.onAllNodes(visibleRelated).fetchSemanticsNodes()
             println("PLAYER-RELATED-MATCHES mode=$mode count=${matches.size}")
