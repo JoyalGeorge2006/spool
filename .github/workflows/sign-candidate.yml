@@ -12,20 +12,20 @@ jobs:
     steps:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       with:
-        ref: 121c8ced80be73b9a43e2d523c60479f1518a845
+        ref: c1d1c286e2ee2404c50757171beedab6bf6b1684
         path: proposal
         persist-credentials: false
     - name: Bind exact immutable reviewed source bundle
       shell: bash
       run: |
         set -euo pipefail
-        test "$(git -C proposal rev-parse HEAD)" = 121c8ced80be73b9a43e2d523c60479f1518a845
-        test "$(git -C proposal rev-parse HEAD^{tree})" = 0bd056189e9cc9d117a92e03872c65dbb634c343
+        test "$(git -C proposal rev-parse HEAD)" = c1d1c286e2ee2404c50757171beedab6bf6b1684
+        test "$(git -C proposal rev-parse HEAD^{tree})" = 36b909c12e40248fbd5dd9e756e2f6b7b065662a
         python3 - <<'BIND'
         import pathlib,json,hashlib,os
         p=pathlib.Path('proposal');raw=(p/'release-prep/spool-2.1.2/device-source.json').read_bytes()
-        assert hashlib.sha256(raw).hexdigest()=='2f1354241b9af22939d99f9ce77b2b4916b5a8113940a838790ac5505a40eb3f'
-        expected={'baseline.py': '275655ee82b2c6621300c3d86a3d67f807f35541b12a3fba7b3fe0b45d2c1288', 'navigator.py': '13aeb7fba340dbf0292e366db449e798ea1e086ad80d171ae0078b557ed633c7', 'candidate59.py': '825e42109d2c2025caaf4a94be31f33b19e9792a755285a00160cc6f58c488dc', 'continuous59.py': '893e672f56cf0fe22a46cecc4db14adec6fd1505a49c7c82fc663ead989a6765', 'candidate_inputs.py': 'c2afec943bc4a36143e10ea62ba91c494e03f0edeff71aa162420aecc381d89c', 'verify.py': 'bdc2e23dd4eaa9219912276760aded355f1ec5118050c310becebc87ff7ffb51', 'inspect-inputs.py': 'a560f557bb19d7880994a574af9e0352f5d6ea23463e347479912fce2cc60ea1', 'inspection-resources.json': '0e6e81de2ee5f72222e757f3c4409218a6b08c752420cade510f25f79dcd8479', 'inspect-evidence.py': '11e39584c7090959ee495778960ba91918c5b3cc8274f807955d70d781d8b323', 'artifact.py': '765ff87f4902cf89cc65cb276166bc799f97b1302424a59934a5988d7f338b36', 'build.py': 'a3711fc6ef5581ece9236d8b2b335e8de820bd693a21e7e9ca3fbb1285819245', 'platform.gradle': '0a3cd89d7c96724e3167fc2f9b226aa2c7a62b49ff887da6605e8466a10076c2', 'metadata-only.patch': 'f36d76dec3a5fc8c713e215f0653957cffec0c03a825ed9d8295073a6c609340', 'latest_after.py': 'b5c4befa08d435290941664461bade32d64497672ca4fb0607a22dd2c72d664d', 'r8_diagnostics.py': '855ab92ce4c124f839c00d4bd23bf0d2dd1380f41afe6791cdcf6b2fcb222afe'}
+        assert hashlib.sha256(raw).hexdigest()=='33bc98f06cbc0d326818eafc6e3141c279377c57f6a754feb86238fa64c5c5b1'
+        expected={'baseline.py': '275655ee82b2c6621300c3d86a3d67f807f35541b12a3fba7b3fe0b45d2c1288', 'navigator.py': 'fc36b07e4b44dfdb78f30f88c76ce6c95ef8f43b9f07c65286856c2899248dd4', 'candidate59.py': '825e42109d2c2025caaf4a94be31f33b19e9792a755285a00160cc6f58c488dc', 'continuous59.py': '893e672f56cf0fe22a46cecc4db14adec6fd1505a49c7c82fc663ead989a6765', 'candidate_inputs.py': 'c2afec943bc4a36143e10ea62ba91c494e03f0edeff71aa162420aecc381d89c', 'verify.py': 'bdc2e23dd4eaa9219912276760aded355f1ec5118050c310becebc87ff7ffb51', 'inspect-inputs.py': 'a560f557bb19d7880994a574af9e0352f5d6ea23463e347479912fce2cc60ea1', 'inspection-resources.json': '0e6e81de2ee5f72222e757f3c4409218a6b08c752420cade510f25f79dcd8479', 'inspect-evidence.py': '11e39584c7090959ee495778960ba91918c5b3cc8274f807955d70d781d8b323', 'artifact.py': '765ff87f4902cf89cc65cb276166bc799f97b1302424a59934a5988d7f338b36', 'build.py': 'a3711fc6ef5581ece9236d8b2b335e8de820bd693a21e7e9ca3fbb1285819245', 'platform.gradle': '0a3cd89d7c96724e3167fc2f9b226aa2c7a62b49ff887da6605e8466a10076c2', 'metadata-only.patch': 'f36d76dec3a5fc8c713e215f0653957cffec0c03a825ed9d8295073a6c609340', 'latest_after.py': 'b5c4befa08d435290941664461bade32d64497672ca4fb0607a22dd2c72d664d', 'r8_diagnostics.py': '855ab92ce4c124f839c00d4bd23bf0d2dd1380f41afe6791cdcf6b2fcb222afe'}
         def unique(pairs):
          d={}
          for k,v in pairs:
@@ -37,7 +37,7 @@ jobs:
          assert not(p/name).exists()
         for name in expected:(p/name).write_text(j['files'][name])
         e=pathlib.Path('evidence');e.mkdir(exist_ok=True)
-        (e/'artifact-binding-source.json').write_text(json.dumps(dict(source_commit='121c8ced80be73b9a43e2d523c60479f1518a845',source_tree='0bd056189e9cc9d117a92e03872c65dbb634c343',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
+        (e/'artifact-binding-source.json').write_text(json.dumps(dict(source_commit='c1d1c286e2ee2404c50757171beedab6bf6b1684',source_tree='36b909c12e40248fbd5dd9e756e2f6b7b065662a',bundle_sha256=hashlib.sha256(raw).hexdigest(),files=expected,workflow_sha=os.environ['GITHUB_SHA'],run_id=os.environ['GITHUB_RUN_ID'],run_attempt=os.environ['GITHUB_RUN_ATTEMPT']),indent=2))
         BIND
     - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
       with:
