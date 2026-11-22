@@ -35,7 +35,7 @@ internal object UpdateStore {
         val i=a.info
         val j=JSONObject().put("schema",1).put("token",a.token).put("phase",a.phase).put("id",a.id)
             .put("version",i.version).put("apk",i.apkUrl).put("release",i.releaseUrl)
-            .put("sha",i.sha256).put("size",i.sizeBytes).put("notes",i.notes?.take(8192) ?: "")
+            .put("sha",i.sha256).put("size",i.sizeBytes).put("notes",i.notes?.take(8192) ?: JSONObject.NULL)
             .put("releaseId",i.releaseId ?: "").put("assetId",i.assetId ?: "")
             .put("permissionHandoffLaunched",a.permissionHandoffLaunched).put("autoInstallPending",a.autoInstallPending).put("legacy",a.legacy).put("message",a.message.take(1024)).put("session",a.session).put("installToken",a.installToken)
         a.delta?.let { d -> j.put("delta",JSONObject().put("baseCode",d.baseCode).put("baseSize",d.baseSize)
@@ -57,7 +57,7 @@ internal object UpdateStore {
         }
         val j=JSONObject(bytes.toString(Charsets.UTF_8));require(j.getInt("schema")==1)
         val token=j.getString("token");require(UUID.fromString(token).toString()==token)
-        val i=AppUpdateChecker.UpdateInfo(j.getString("version"),j.getString("release"),j.getString("apk"),j.optString("notes"),j.getString("sha"),j.getLong("size"),releaseId=j.optString("releaseId").ifBlank { null },assetId=j.optString("assetId").ifBlank { null })
+        val i=AppUpdateChecker.UpdateInfo(j.getString("version"),j.getString("release"),j.getString("apk"),if(j.isNull("notes"))null else j.getString("notes"),j.getString("sha"),j.getLong("size"),releaseId=j.optString("releaseId").ifBlank { null },assetId=j.optString("assetId").ifBlank { null })
         require(UpdateSources.release(i.releaseUrl) && UpdateSources.asset(requireNotNull(i.apkUrl)))
         require(UpdateSources.hash(i.sha256) && requireNotNull(i.sizeBytes) in 1..SpoolDelta.MAX_APK)
         val d=j.optJSONObject("delta")?.let {
