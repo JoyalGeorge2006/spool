@@ -1,0 +1,120 @@
+name: Spool separate test APK (no release or OTA)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: spool-separate-test-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/spool-song-menu-cleanup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+    - uses: actions/checkout@v4
+    - name: Record exact source identity
+      run: |
+        set -euo pipefail
+        git rev-parse HEAD | tee /tmp/source-commit.txt
+        git rev-parse 'HEAD^{tree}' | tee /tmp/source-tree.txt
+        test -z "$(git status --porcelain)"
+    - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Prepare exact compatible Android SDK
+      run: sdkmanager 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+    - name: Write bounded JVM init script
+      run: |
+        cat > /tmp/platform.gradle <<'EOF'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) {
+              android.compileSdkVersion('android-37.0')
+              if (p.path == ':app') {
+                android.productFlavors.getByName('dev').buildConfigField('boolean', 'SEPARATELY_PROVIDED_UPDATES', 'true')
+                android.buildTypes.getByName('release').versionNameSuffix = '-test-ad5fc4e3'
+              }
+            }
+          }
+        }
+        EOF
+    - name: Restore accepted signing material
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        python3 - <<'PY'
+        import base64,os,pathlib
+        def esc(s):
+            return s.replace('\\','\\\\').replace('\n','\\n').replace('\r','\\r').replace('=','\\=').replace(':','\\:').replace(' ','\\ ')
+        for name in ['SPOOL_DEBUG_KEYSTORE_B64','SPOOL_DEBUG_STORE_PASSWORD','SPOOL_DEBUG_KEY_PASSWORD']:
+            assert os.environ.get(name), 'Required existing signing input unavailable'
+        key = pathlib.Path('spool-debug.keystore')
+        key.write_bytes(base64.b64decode(os.environ['SPOOL_DEBUG_KEYSTORE_B64'], validate=True))
+        key.chmod(0o600)
+        props = pathlib.Path('keystore.properties')
+        props.write_text('storeFile=spool-debug.keystore\nkeyAlias=spooldebug\nstorePassword=' + esc(os.environ['SPOOL_DEBUG_STORE_PASSWORD']) + '\nkeyPassword=' + esc(os.environ['SPOOL_DEBUG_KEY_PASSWORD']) + '\n')
+        props.chmod(0o600)
+        PY
+    - name: Build signed separate test APKs
+      run: |
+        set -o pipefail
+        bash gradlew --no-daemon --console=plain --init-script /tmp/platform.gradle :app:assembleDevRelease -Pbitchord.bundleWear=false --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m' -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee /tmp/build.log
+    - name: Verify and stage separate test APK
+      run: |
+        set -euo pipefail
+        python3 - <<'PYCODE'
+        import hashlib,json,os,pathlib,re,shutil,subprocess
+        root=pathlib.Path('app/build')
+        candidates=[]
+        for p in root.rglob('output-metadata.json'):
+            x=json.loads(p.read_text())
+            if x.get('artifactType',{}).get('type')=='APK' and x.get('variantName')=='devRelease':
+                for e in x.get('elements',[]):
+                    if any(f.get('filterType')=='ABI' and f.get('value')=='arm64-v8a' for f in e.get('filters',[])):
+                        apk=p.parent/e['outputFile']
+                        if apk.is_file(): candidates.append(apk)
+        assert len(candidates)==1,candidates
+        apk=candidates[0]
+        tools=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
+        def cmd(*a):return subprocess.check_output([str(v) for v in a],text=True,stderr=subprocess.STDOUT)
+        cert=cmd(tools/'apksigner','verify','--verbose','--print-certs',apk)
+        bad=cmd(tools/'aapt','dump','badging',apk)
+        expected='a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+        assert re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)$',cert,re.M)==[expected],cert
+        assert "package: name='app.spool.music.dev' versionCode='63' versionName='2.1.4-test-ad5fc4e3'" in bad,bad[:500]
+        assert 'application-debuggable' not in bad
+        assert "native-code: 'arm64-v8a'" in bad
+        assert "sdkVersion:'26'" in bad
+        out=pathlib.Path('test-apk-output');out.mkdir()
+        name='Spool-test-ad5fc4e3-arm64-v8a.apk'
+        shutil.copyfile(apk,out/name)
+        digest=hashlib.sha256((out/name).read_bytes()).hexdigest()
+        manifest=dict(commit=os.environ['GITHUB_SHA'],tree=pathlib.Path('/tmp/source-tree.txt').read_text().strip(),package='app.spool.music.dev',version='2.1.4-test-ad5fc4e3',code=63,certificate_sha256=expected,sha256=digest,size=(out/name).stat().st_size,filename=name,production_replaced=False,ota_published=False)
+        (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
+        (out/'SHA256SUMS.txt').write_text(digest+'  '+name+'\n')
+        print(json.dumps(manifest,indent=2))
+        PYCODE
+    - name: Upload separate test APK only
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: spool-separate-test-${{ github.run_id }}-${{ github.run_attempt }}
+        path: test-apk-output/
+        if-no-files-found: error
+        retention-days: 7
+    - name: Cleanup signing material even on failure
+      if: always()
+      run: rm -f spool-debug.keystore keystore.properties
