@@ -220,22 +220,40 @@ fun SongActionsMenu(
             if (startsGroup()) IosMenuSeparator()
             IosMenuQuickActions {
                 if (canRate) {
+                    if (LocalSpoolPlayerMenu.current) {
+                        SparkRatingAction(
+                            active = liked, dislike = false,
+                            label = stringResource(R.string.like),
+                            activeLabel = stringResource(R.string.spark_liked),
+                            onClick = onToggleLike,
+                        )
+                    } else {
                     IosMenuQuickAction(
-                        icon = if (LocalSpoolPlayerMenu.current) Icons.Outlined.ThumbUp else if (liked) SfIcons.StarFill else SfIcons.Star,
+                        icon = if (liked) SfIcons.StarFill else SfIcons.Star,
                         label = stringResource(R.string.like),
                         tint = if (liked) palette.accent else null,
                         onClick = onToggleLike,
                     )
+                    }
                 }
                 // No dislike for a device file: there is no recommendation
                 // feed on the device for one to steer.
                 if (signedIn && !isOffline) {
+                    if (LocalSpoolPlayerMenu.current) {
+                        SparkRatingAction(
+                            active = disliked, dislike = true,
+                            label = stringResource(R.string.dislike),
+                            activeLabel = stringResource(R.string.spark_disliked),
+                            onClick = onToggleDislike,
+                        )
+                    } else {
                     IosMenuQuickAction(
-                        icon = if (LocalSpoolPlayerMenu.current) Icons.Outlined.ThumbDown else if (disliked) BrokenHeart.Fill else BrokenHeart.Outline,
+                        icon = if (disliked) BrokenHeart.Fill else BrokenHeart.Outline,
                         label = stringResource(R.string.dislike),
                         tint = if (disliked) palette.accent else null,
                         onClick = onToggleDislike,
                     )
+                    }
                 }
                 shareAction?.let {
                     IosMenuQuickAction(icon = if (LocalSpoolPlayerMenu.current) Icons.Outlined.Share else SfIcons.Share, label = stringResource(R.string.share), onClick = it)
