@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
@@ -23,6 +24,9 @@ import dev.chrisbanes.haze.hazeEffect
  * blur cannot run, and by callers for the Blur effects switch off or below
  * Android 12.
  */
+/** Identity of the unchanged page capture, selected only by explicitly approved sibling effects. */
+internal object PageFrostSourceKey
+
 object SpoolFrost {
     const val DarkTintAlpha = FrostMaterial.DarkTintAlpha
     const val LightTintAlpha = FrostMaterial.LightTintAlpha
@@ -48,17 +52,21 @@ fun rememberFrostEnabled(): Boolean {
  * In a separate window (a real Popup/Dialog the haze cannot reach) Haze draws
  * the style's opaque fallback tint, which is the same solid fill.
  */
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun Modifier.frostedCard(
     hazeState: HazeState?,
     container: Color,
     shape: Shape,
     style: HazeStyle? = null,
+    pageSourceKey: Any? = null,
 ): Modifier {
     val frost = rememberFrostEnabled()
     return clip(shape).then(
         if (frost && hazeState != null) {
-            Modifier.hazeEffect(state = hazeState, style = style ?: SpoolFrost.style(container))
+            Modifier.hazeEffect(state = hazeState, style = style ?: SpoolFrost.style(container)) {
+                canDrawArea = if (pageSourceKey != null) ({ area -> area.key === pageSourceKey }) else null
+            }
         } else {
             Modifier.background(container)
         },

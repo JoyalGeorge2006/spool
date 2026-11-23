@@ -1067,6 +1067,7 @@ internal fun SourceEditorAlert(
     onSaved: () -> Unit,
     onDelete: () -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
+    pageSourceKey: Any? = null,
 ) {
     val isNew = SourceRegistry.config(config.id) == null
     var baseUrl by remember { mutableStateOf(config.baseUrl) }
@@ -1151,6 +1152,7 @@ internal fun SourceEditorAlert(
         approvedPanel = true,
         adaptiveSurface = true,
         hazeState = hazeState,
+        pageSourceKey = pageSourceKey,
         title = if (isNew) {
             stringResource(R.string.add_addon)
         } else {

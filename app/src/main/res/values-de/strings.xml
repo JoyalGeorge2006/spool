@@ -1578,4 +1578,18 @@
     <string name="panel_smb_server">Server</string>
     <string name="panel_smb_share">Netzwerkfreigabe</string>
     <string name="panel_smb_folder">Ordner in der Freigabe (optional)</string>
+    <string name="conflict_panel_title">Datei bereits vorhanden</string>
+    <string name="conflict_exists">Dieser Dateiname ist bereits auf dem Server vorhanden.</string>
+    <string name="conflict_keep_one">Original behalten und eine weitere Kopie hochladen.</string>
+    <string name="conflict_overwrite_one">Die vorhandene Serverdatei ersetzen.</string>
+    <string name="conflict_skip_detail_one">Ohne Hochladen dieser Datei fortfahren.</string>
+    <string name="conflict_scope_many">Dieser und alle weiteren Konflikte</string>
+    <string name="conflict_keep_many">Originale behalten und Kopien hochladen.</string>
+    <string name="conflict_overwrite_many">Die entsprechenden Serverdateien ersetzen.</string>
+    <string name="conflict_skip_detail_many">Diese und alle weiteren Dateien mit Konflikten überspringen.</string>
+    <string name="conflict_close_one">Beim Schließen wird diese Datei übersprungen.</string>
+    <string name="conflict_close_many">Beim Schließen werden dieser und alle weiteren Konflikte übersprungen.</string>
+    <string name="conflict_skip_one">Diese Datei überspringen</string>
+    <string name="conflict_skip_many">Diese Dateien überspringen</string>
+    <string name="conflict_toggle_hint">Nur wenn weitere Konflikte vorliegen</string>
 </resources>

@@ -221,4 +221,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Mix automatique</string>
+    <string name="mix_overview_subtitle">Aperçu de la transition</string>
+    <string name="mix_overview_live">Mixage en cours</string>
+    <string name="mix_overview_completed">Transition terminée</string>
+    <string name="mix_overview_planned">Prochaine transition</string>
+    <string name="mix_overview_outgoing">FONDU SORTANT</string>
+    <string name="mix_overview_incoming">FONDU ENTRANT</string>
+    <string name="mix_overview_read_only">Suivez le mixage. Aucun réglage à effectuer.</string>
+    <string name="mix_overview_done">Terminé</string>
+    <string name="mix_overview_close">Fermer Automix</string>
+    <string name="mix_overview_out">SORTIE</string>
+    <string name="mix_overview_in">ENTRÉE</string>
 </resources>

@@ -1583,4 +1583,18 @@
     <string name="panel_smb_server">שרת</string>
     <string name="panel_smb_share">שיתוף רשת</string>
     <string name="panel_smb_folder">תיקייה בתוך שיתוף הרשת (רשות)</string>
+    <string name="conflict_panel_title">הקובץ כבר קיים</string>
+    <string name="conflict_exists">שם הקובץ הזה כבר קיים בשרת.</string>
+    <string name="conflict_keep_one">שמירת המקור והעלאת עותק נוסף.</string>
+    <string name="conflict_overwrite_one">החלפת הקובץ הקיים בשרת.</string>
+    <string name="conflict_skip_detail_one">המשך בלי להעלות את הקובץ הזה.</string>
+    <string name="conflict_scope_many">ההתנגשות הזו וכל השאר</string>
+    <string name="conflict_keep_many">שמירת המקור והעלאת עותקים.</string>
+    <string name="conflict_overwrite_many">החלפת הקבצים התואמים בשרת.</string>
+    <string name="conflict_skip_detail_many">דילוג על הקובץ הזה ועל שאר הקבצים המתנגשים.</string>
+    <string name="conflict_close_one">סגירה תדלג על הקובץ הזה.</string>
+    <string name="conflict_close_many">סגירה תדלג על ההתנגשות הזו ועל כל השאר.</string>
+    <string name="conflict_skip_one">דילוג על הקובץ הזה</string>
+    <string name="conflict_skip_many">דילוג על הקבצים האלה</string>
+    <string name="conflict_toggle_hint">רק כשנותרו התנגשויות נוספות</string>
 </resources>

@@ -1610,4 +1610,18 @@
     <string name="panel_smb_server">Сервер</string>
     <string name="panel_smb_share">Сетевой ресурс</string>
     <string name="panel_smb_folder">Папка в сетевом ресурсе (необязательно)</string>
+    <string name="conflict_panel_title">Файл уже существует</string>
+    <string name="conflict_exists">Файл с таким именем уже есть на сервере.</string>
+    <string name="conflict_keep_one">Сохранить оригинал и загрузить ещё одну копию.</string>
+    <string name="conflict_overwrite_one">Заменить существующий файл на сервере.</string>
+    <string name="conflict_skip_detail_one">Продолжить без загрузки этого файла.</string>
+    <string name="conflict_scope_many">Этот и оставшиеся конфликты</string>
+    <string name="conflict_keep_many">Сохранить оригиналы и загрузить копии.</string>
+    <string name="conflict_overwrite_many">Заменить соответствующие файлы на сервере.</string>
+    <string name="conflict_skip_detail_many">Пропустить этот и оставшиеся конфликтующие файлы.</string>
+    <string name="conflict_close_one">При закрытии этот файл будет пропущен.</string>
+    <string name="conflict_close_many">При закрытии этот и оставшиеся конфликты будут пропущены.</string>
+    <string name="conflict_skip_one">Пропустить этот файл</string>
+    <string name="conflict_skip_many">Пропустить эти файлы</string>
+    <string name="conflict_toggle_hint">Только если остаются другие конфликты</string>
 </resources>

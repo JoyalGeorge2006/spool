@@ -1583,4 +1583,18 @@
     <string name="panel_smb_server">Servidor</string>
     <string name="panel_smb_share">Compartilhamento de rede</string>
     <string name="panel_smb_folder">Pasta no compartilhamento (opcional)</string>
+    <string name="conflict_panel_title">O arquivo já existe</string>
+    <string name="conflict_exists">Este nome de arquivo já existe no servidor.</string>
+    <string name="conflict_keep_one">Manter o original e enviar outra cópia.</string>
+    <string name="conflict_overwrite_one">Substituir o arquivo existente no servidor.</string>
+    <string name="conflict_skip_detail_one">Continuar sem enviar este arquivo.</string>
+    <string name="conflict_scope_many">Este conflito e os restantes</string>
+    <string name="conflict_keep_many">Manter os originais e enviar cópias.</string>
+    <string name="conflict_overwrite_many">Substituir os arquivos correspondentes no servidor.</string>
+    <string name="conflict_skip_detail_many">Ignorar este arquivo e os restantes em conflito.</string>
+    <string name="conflict_close_one">Fechar ignora este arquivo.</string>
+    <string name="conflict_close_many">Fechar ignora este conflito e os restantes.</string>
+    <string name="conflict_skip_one">Ignorar este arquivo</string>
+    <string name="conflict_skip_many">Ignorar estes arquivos</string>
+    <string name="conflict_toggle_hint">Somente quando houver mais conflitos</string>
 </resources>

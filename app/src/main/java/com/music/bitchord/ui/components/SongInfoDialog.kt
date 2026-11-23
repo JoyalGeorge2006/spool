@@ -38,7 +38,7 @@ private val INFO_BODY_MAX_HEIGHT = 360.dp
  * the same solid fill the window dialog drew.
  */
 @Composable
-internal fun SongInfoDialog(song: Song, onDismiss: () -> Unit) {
+internal fun SongInfoDialog(song: Song, pageSourceKey: Any? = null, onDismiss: () -> Unit) {
     var retry by remember(song.videoId) { mutableIntStateOf(0) }
     val info by produceState<SongInfo?>(null, song, retry) {
         value = null
@@ -49,6 +49,7 @@ internal fun SongInfoDialog(song: Song, onDismiss: () -> Unit) {
     InlineFrostDialog(
         onDismiss = onDismiss,
         hazeState = LocalSheetHaze.current,
+        pageSourceKey = pageSourceKey,
         paneTitle = stringResource(R.string.song_info),
     ) {
             Column(

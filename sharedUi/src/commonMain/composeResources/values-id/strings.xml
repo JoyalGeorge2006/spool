@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Mix otomatis</string>
+    <string name="mix_overview_subtitle">Ringkasan transisi</string>
+    <string name="mix_overview_live">Mencampur langsung</string>
+    <string name="mix_overview_completed">Transisi selesai</string>
+    <string name="mix_overview_planned">Transisi berikutnya</string>
+    <string name="mix_overview_outgoing">MEMUDAR KELUAR</string>
+    <string name="mix_overview_incoming">MEMUDAR MASUK</string>
+    <string name="mix_overview_read_only">Ikuti perpaduannya. Tidak ada kontrol untuk disesuaikan.</string>
+    <string name="mix_overview_done">Selesai</string>
+    <string name="mix_overview_close">Tutup Automix</string>
+    <string name="mix_overview_out">KELUAR</string>
+    <string name="mix_overview_in">MASUK</string>
 </resources>

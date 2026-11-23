@@ -37,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.rememberUpdatedState
+import dev.chrisbanes.haze.HazeState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -185,6 +187,9 @@ fun SongActionsMenu(
      * as before — present when the id is there, absent when it never was.
      */
     resolvingLinks: Boolean = false,
+    /** Song Info only: does not change this menu frame or any child fallback bounds. */
+    infoPageHazeState: HazeState? = null,
+    infoPageSourceKey: Any? = null,
 ) {
     var showingSongInfo by remember(song.videoId) { mutableStateOf(false) }
     var pickingSleepTimer by remember { mutableStateOf(false) }
@@ -406,9 +411,15 @@ fun SongActionsMenu(
     // hosts this menu (full scrim, taps under it blocked); over just the
     // menu's panel in a held menu, which has no overlay slot of its own.
     val overlayHost = LocalSheetOverlay.current
+    val infoHostHaze = LocalSheetHaze.current
+    val infoSourceKey by rememberUpdatedState(
+        infoPageSourceKey.takeIf {
+            overlayHost != null && infoPageHazeState != null && infoHostHaze === infoPageHazeState
+        },
+    )
     if (showingSongInfo && overlayHost != null) {
         DisposableEffect(song.videoId) {
-            overlayHost.value = { SongInfoDialog(song) { showingSongInfo = false } }
+            overlayHost.value = { SongInfoDialog(song, pageSourceKey = infoSourceKey) { showingSongInfo = false } }
             onDispose { overlayHost.value = null }
         }
     }

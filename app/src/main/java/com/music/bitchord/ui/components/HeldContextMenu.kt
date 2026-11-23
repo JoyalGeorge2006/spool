@@ -51,6 +51,7 @@ import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.player.additiveChrome
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -80,7 +81,7 @@ import kotlin.math.roundToInt
  * with nothing moving, and "Reduce dynamic blur" swaps the blurred page for a
  * plain dimming scrim, which is also the cost that setting exists to remove.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class, ExperimentalHazeApi::class)
 @Composable
 fun <T : Any> HeldContextMenu(
     item: T?,
@@ -89,6 +90,7 @@ fun <T : Any> HeldContextMenu(
     onDismiss: () -> Unit,
     /** Tapping the lifted item — open what it stands for. Null leaves it inert. */
     onPreviewClick: ((T) -> Unit)?,
+    pageSourceKey: Any? = null,
     actions: @Composable (T) -> Unit,
 ) {
     val requested = if (item != null && held != null) item to held else null
@@ -188,7 +190,11 @@ fun <T : Any> HeldContextMenu(
                     .clip(cardShape)
                     .then(
                         if (frost) {
-                            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(plate))
+                            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(plate)) {
+                                if (pageSourceKey != null) {
+                                    canDrawArea = { area -> area.key === pageSourceKey }
+                                }
+                            }
                         } else {
                             Modifier.background(plate)
                         },
@@ -218,7 +224,7 @@ fun <T : Any> HeldContextMenu(
                     .pointerInput(Unit) {}
                     // The same frosted plate the held item sits on, so the
                     // item and its menu read as one thing lifted off the page.
-                    .iosMenuPanel(hazeState = hazeState, fillOverride = plate, rimOverride = hairline)
+                    .iosMenuPanel(hazeState = hazeState, fillOverride = plate, rimOverride = hairline, pageSourceKey = pageSourceKey)
                     .padding(vertical = 8.dp),
             ) {
                 // Added onto the plate, on a dark one only: see [IosMenuPopover].

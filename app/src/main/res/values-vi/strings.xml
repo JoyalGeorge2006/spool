@@ -1495,4 +1495,18 @@
     <string name="panel_smb_server">Máy chủ</string>
     <string name="panel_smb_share">Thư mục chia sẻ qua mạng</string>
     <string name="panel_smb_folder">Thư mục bên trong vùng chia sẻ (tùy chọn)</string>
+    <string name="conflict_panel_title">Tệp đã tồn tại</string>
+    <string name="conflict_exists">Tên tệp này đã có trên máy chủ.</string>
+    <string name="conflict_keep_one">Giữ bản gốc và tải lên một bản sao khác.</string>
+    <string name="conflict_overwrite_one">Thay thế tệp hiện có trên máy chủ.</string>
+    <string name="conflict_skip_detail_one">Tiếp tục mà không tải tệp này lên.</string>
+    <string name="conflict_scope_many">Xung đột này và các xung đột còn lại</string>
+    <string name="conflict_keep_many">Giữ các bản gốc và tải lên các bản sao.</string>
+    <string name="conflict_overwrite_many">Thay thế các tệp tương ứng trên máy chủ.</string>
+    <string name="conflict_skip_detail_many">Bỏ qua tệp này và các tệp xung đột còn lại.</string>
+    <string name="conflict_close_one">Đóng sẽ bỏ qua tệp này.</string>
+    <string name="conflict_close_many">Đóng sẽ bỏ qua xung đột này và các xung đột còn lại.</string>
+    <string name="conflict_skip_one">Bỏ qua tệp này</string>
+    <string name="conflict_skip_many">Bỏ qua các tệp này</string>
+    <string name="conflict_toggle_hint">Chỉ khi còn xung đột khác</string>
 </resources>

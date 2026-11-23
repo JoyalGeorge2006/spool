@@ -113,6 +113,7 @@ fun AppLanguageDialog(
     hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    pageSourceKey: Any? = null,
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
 
@@ -136,7 +137,7 @@ fun AppLanguageDialog(
 
     com.music.bitchord.ui.screens.SpoolSettingsSurface {
         ApprovedSettingsPanel(
-            hazeState = hazeState, title = stringResource(R.string.app_language),
+            hazeState = hazeState, pageSourceKey = pageSourceKey, title = stringResource(R.string.app_language),
             subtitle = stringResource(R.string.app_language_description), onDismiss = onDismiss,
             modifier = modifier, scrollBody = false,
             titleModifier = Modifier.clickable(indication = null,
@@ -175,7 +176,6 @@ private fun LanguageRow(language: AppLanguage, selected: Boolean, onClick: () ->
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
             .background(
                 if (pressed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f) else Color.Transparent,
             )

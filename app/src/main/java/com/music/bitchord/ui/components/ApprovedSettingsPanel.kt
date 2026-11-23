@@ -52,12 +52,14 @@ internal fun ApprovedSettingsPanel(
     dragEnabled: Boolean = true,
     scrollBody: Boolean = true,
     titleModifier: Modifier = Modifier,
+    pageSourceKey: Any? = null,
     footer: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     InlineFrostSheet(
         onDismiss = onDismiss,
+        pageSourceKey = pageSourceKey,
         hazeState = hazeState,
         modifier = modifier,
         paneTitle = title,

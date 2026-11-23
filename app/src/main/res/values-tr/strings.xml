@@ -1535,4 +1535,18 @@
     <string name="panel_smb_server">Sunucu</string>
     <string name="panel_smb_share">Ağ paylaşımı</string>
     <string name="panel_smb_folder">Paylaşım içindeki klasör (isteğe bağlı)</string>
+    <string name="conflict_panel_title">Dosya zaten var</string>
+    <string name="conflict_exists">Bu dosya adı sunucuda zaten var.</string>
+    <string name="conflict_keep_one">Özgün dosyayı koru ve başka bir kopya yükle.</string>
+    <string name="conflict_overwrite_one">Sunucudaki mevcut dosyayı değiştir.</string>
+    <string name="conflict_skip_detail_one">Bu dosyayı yüklemeden devam et.</string>
+    <string name="conflict_scope_many">Bu ve kalan çakışmalar</string>
+    <string name="conflict_keep_many">Özgün dosyaları koru ve kopyalarını yükle.</string>
+    <string name="conflict_overwrite_many">Sunucudaki eşleşen dosyaları değiştir.</string>
+    <string name="conflict_skip_detail_many">Bu dosyayı ve kalan çakışan dosyaları atla.</string>
+    <string name="conflict_close_one">Kapatmak bu dosyayı atlar.</string>
+    <string name="conflict_close_many">Kapatmak bu ve kalan çakışmaları atlar.</string>
+    <string name="conflict_skip_one">Bu dosyayı atla</string>
+    <string name="conflict_skip_many">Bu dosyaları atla</string>
+    <string name="conflict_toggle_hint">Yalnızca başka çakışmalar kaldığında</string>
 </resources>

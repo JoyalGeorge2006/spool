@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">מיקס אוטומטי</string>
+    <string name="mix_overview_subtitle">סקירת המעבר</string>
+    <string name="mix_overview_live">מיקס בזמן אמת</string>
+    <string name="mix_overview_completed">המעבר הושלם</string>
+    <string name="mix_overview_planned">המעבר הבא</string>
+    <string name="mix_overview_outgoing">דעיכה החוצה</string>
+    <string name="mix_overview_incoming">דעיכה פנימה</string>
+    <string name="mix_overview_read_only">עקבו אחר המיקס. אין פקדים לשינוי.</string>
+    <string name="mix_overview_done">סיום</string>
+    <string name="mix_overview_close">סגירת Automix</string>
+    <string name="mix_overview_out">יוצא</string>
+    <string name="mix_overview_in">נכנס</string>
 </resources>

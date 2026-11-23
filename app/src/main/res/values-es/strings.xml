@@ -1550,4 +1550,18 @@
     <string name="panel_smb_server">Servidor</string>
     <string name="panel_smb_share">Recurso compartido</string>
     <string name="panel_smb_folder">Carpeta del recurso compartido (opcional)</string>
+    <string name="conflict_panel_title">El archivo ya existe</string>
+    <string name="conflict_exists">Este nombre de archivo ya está en el servidor.</string>
+    <string name="conflict_keep_one">Conservar el original y subir otra copia.</string>
+    <string name="conflict_overwrite_one">Reemplazar el archivo existente en el servidor.</string>
+    <string name="conflict_skip_detail_one">Continuar sin subir este archivo.</string>
+    <string name="conflict_scope_many">Este conflicto y los restantes</string>
+    <string name="conflict_keep_many">Conservar los originales y subir copias.</string>
+    <string name="conflict_overwrite_many">Reemplazar los archivos correspondientes del servidor.</string>
+    <string name="conflict_skip_detail_many">Omitir este archivo y los restantes con conflictos.</string>
+    <string name="conflict_close_one">Al cerrar se omite este archivo.</string>
+    <string name="conflict_close_many">Al cerrar se omiten este conflicto y los restantes.</string>
+    <string name="conflict_skip_one">Omitir este archivo</string>
+    <string name="conflict_skip_many">Omitir estos archivos</string>
+    <string name="conflict_toggle_hint">Solo cuando quedan más conflictos</string>
 </resources>

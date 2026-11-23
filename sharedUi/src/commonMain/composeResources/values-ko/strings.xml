@@ -295,4 +295,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">자동 믹스</string>
+    <string name="mix_overview_subtitle">전환 개요</string>
+    <string name="mix_overview_live">실시간 믹싱 중</string>
+    <string name="mix_overview_completed">전환 완료</string>
+    <string name="mix_overview_planned">다음 전환</string>
+    <string name="mix_overview_outgoing">페이드 아웃</string>
+    <string name="mix_overview_incoming">페이드 인</string>
+    <string name="mix_overview_read_only">믹스 과정을 확인하세요. 조절할 컨트롤은 없습니다.</string>
+    <string name="mix_overview_done">완료</string>
+    <string name="mix_overview_close">Automix 닫기</string>
+    <string name="mix_overview_out">아웃</string>
+    <string name="mix_overview_in">인</string>
 </resources>

@@ -1517,4 +1517,18 @@
     <string name="panel_smb_server">Server</string>
     <string name="panel_smb_share">Condivisione di rete</string>
     <string name="panel_smb_folder">Cartella nella condivisione (facoltativa)</string>
+    <string name="conflict_panel_title">Il file esiste già</string>
+    <string name="conflict_exists">Questo nome file è già presente sul server.</string>
+    <string name="conflict_keep_one">Conserva l’originale e carica un’altra copia.</string>
+    <string name="conflict_overwrite_one">Sostituisci il file esistente sul server.</string>
+    <string name="conflict_skip_detail_one">Continua senza caricare questo file.</string>
+    <string name="conflict_scope_many">Questo conflitto e quelli rimanenti</string>
+    <string name="conflict_keep_many">Conserva gli originali e carica le copie.</string>
+    <string name="conflict_overwrite_many">Sostituisci i file corrispondenti sul server.</string>
+    <string name="conflict_skip_detail_many">Salta questo file e quelli rimanenti in conflitto.</string>
+    <string name="conflict_close_one">La chiusura salta questo file.</string>
+    <string name="conflict_close_many">La chiusura salta questo conflitto e quelli rimanenti.</string>
+    <string name="conflict_skip_one">Salta questo file</string>
+    <string name="conflict_skip_many">Salta questi file</string>
+    <string name="conflict_toggle_hint">Solo quando restano altri conflitti</string>
 </resources>

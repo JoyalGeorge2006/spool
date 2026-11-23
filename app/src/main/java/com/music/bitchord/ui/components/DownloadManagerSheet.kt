@@ -82,7 +82,7 @@ import com.music.bitchord.ui.haptics.rememberHaptics
  * one of them is worth walking over to.
  */
 @Composable
-fun TopBarDownloadButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun TopBarDownloadButton(onClick: () -> Unit, modifier: Modifier = Modifier, pageSourceKey: Any? = null) {
     val session by DownloadSession.state.collectAsStateWithLifecycle()
 
     val haptics = rememberHaptics()
@@ -124,6 +124,7 @@ fun TopBarDownloadButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         ),
     ) {
         HeaderActionButton(
+            pageSourceKey = pageSourceKey,
             onClick = {
                 haptics.play(Haptic.Select)
                 onClick()

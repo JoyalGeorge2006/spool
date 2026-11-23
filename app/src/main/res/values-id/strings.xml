@@ -1555,4 +1555,18 @@
     <string name="panel_smb_server">Server</string>
     <string name="panel_smb_share">Folder bersama di jaringan</string>
     <string name="panel_smb_folder">Folder di dalam folder bersama (opsional)</string>
+    <string name="conflict_panel_title">File sudah ada</string>
+    <string name="conflict_exists">Nama file ini sudah ada di server.</string>
+    <string name="conflict_keep_one">Simpan file asli dan unggah salinan lain.</string>
+    <string name="conflict_overwrite_one">Ganti file yang sudah ada di server.</string>
+    <string name="conflict_skip_detail_one">Lanjutkan tanpa mengunggah file ini.</string>
+    <string name="conflict_scope_many">Konflik ini dan yang tersisa</string>
+    <string name="conflict_keep_many">Simpan file asli dan unggah salinannya.</string>
+    <string name="conflict_overwrite_many">Ganti file yang sesuai di server.</string>
+    <string name="conflict_skip_detail_many">Lewati file ini dan sisa file yang berkonflik.</string>
+    <string name="conflict_close_one">Menutup akan melewati file ini.</string>
+    <string name="conflict_close_many">Menutup akan melewati konflik ini dan yang tersisa.</string>
+    <string name="conflict_skip_one">Lewati file ini</string>
+    <string name="conflict_skip_many">Lewati file-file ini</string>
+    <string name="conflict_toggle_hint">Hanya jika masih ada konflik lain</string>
 </resources>

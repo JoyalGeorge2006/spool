@@ -1544,4 +1544,18 @@
     <string name="panel_smb_server">Server</string>
     <string name="panel_smb_share">Share</string>
     <string name="panel_smb_folder">Folder inside share (optional)</string>
+    <string name="conflict_panel_title">File already exists</string>
+    <string name="conflict_exists">This filename is already on the server.</string>
+    <string name="conflict_keep_one">Keep the original and upload another copy.</string>
+    <string name="conflict_overwrite_one">Replace the existing server file.</string>
+    <string name="conflict_skip_detail_one">Continue without uploading this file.</string>
+    <string name="conflict_scope_many">This and remaining conflicts</string>
+    <string name="conflict_keep_many">Keep originals and upload copies.</string>
+    <string name="conflict_overwrite_many">Replace the matching server files.</string>
+    <string name="conflict_skip_detail_many">Skip this and remaining conflicting files.</string>
+    <string name="conflict_close_one">Closing skips this file.</string>
+    <string name="conflict_close_many">Closing skips this and remaining conflicts.</string>
+    <string name="conflict_skip_one">Skip this file</string>
+    <string name="conflict_skip_many">Skip these files</string>
+    <string name="conflict_toggle_hint">Only when more conflicts remain</string>
 </resources>

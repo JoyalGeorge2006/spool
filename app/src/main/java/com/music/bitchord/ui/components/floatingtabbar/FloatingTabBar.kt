@@ -761,7 +761,7 @@ private fun SharedTransitionScope.ExpandedTabs(
     pill.reduceMotion = reduceAnimation
     // The lens samples the recorded page, and "reduce dynamic blur" stops that
     // recording. There the flat pill carries the whole motion on its own.
-    val glassPill = isGlassSupported() && !reduceDynamicBlur
+    val glassPill = com.music.bitchord.ui.components.rememberFrostEnabled()
     val barGlass = rememberLayerBackdrop()
     val tabRow = rememberLayerBackdrop()
 
@@ -1117,7 +1117,8 @@ private fun Modifier.animateEnterExitTab(
         // on a wider and wider sample of empty space. 12 reaches the same nothing
         // over a quarter of the area, and there are six of these running at once
         // in the middle of the fold, over glass that is sampling the screen.
-        val blurRadius = with(LocalDensity.current) { 12.dp.toPx() }
+        val blurEnabled by AppSettings.blurEffects.collectAsStateWithLifecycle()
+        val blurRadius = if (blurEnabled) with(LocalDensity.current) { 12.dp.toPx() } else 0f
         val animatedBlur by transition.animateFloat(
             transitionSpec = {
                 keyframes {

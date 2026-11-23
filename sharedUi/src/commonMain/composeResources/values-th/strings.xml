@@ -216,4 +216,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">มิกซ์อัตโนมัติ</string>
+    <string name="mix_overview_subtitle">ภาพรวมการเปลี่ยนเพลง</string>
+    <string name="mix_overview_live">กำลังมิกซ์แบบสด</string>
+    <string name="mix_overview_completed">เปลี่ยนเพลงเสร็จแล้ว</string>
+    <string name="mix_overview_planned">การเปลี่ยนเพลงถัดไป</string>
+    <string name="mix_overview_outgoing">ค่อย ๆ ลดเสียง</string>
+    <string name="mix_overview_incoming">ค่อย ๆ เพิ่มเสียง</string>
+    <string name="mix_overview_read_only">ติดตามการมิกซ์ ไม่มีตัวควบคุมให้ปรับ</string>
+    <string name="mix_overview_done">เสร็จสิ้น</string>
+    <string name="mix_overview_close">ปิด Automix</string>
+    <string name="mix_overview_out">ออก</string>
+    <string name="mix_overview_in">เข้า</string>
 </resources>

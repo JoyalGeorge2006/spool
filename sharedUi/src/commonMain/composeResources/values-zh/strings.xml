@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">自动混音</string>
+    <string name="mix_overview_subtitle">过渡概览</string>
+    <string name="mix_overview_live">正在实时混音</string>
+    <string name="mix_overview_completed">过渡完成</string>
+    <string name="mix_overview_planned">即将进行的过渡</string>
+    <string name="mix_overview_outgoing">淡出</string>
+    <string name="mix_overview_incoming">淡入</string>
+    <string name="mix_overview_read_only">查看混音过程。此处没有可调节的控件。</string>
+    <string name="mix_overview_done">完成</string>
+    <string name="mix_overview_close">关闭 Automix</string>
+    <string name="mix_overview_out">出</string>
+    <string name="mix_overview_in">入</string>
 </resources>

@@ -1578,4 +1578,18 @@
     <string name="panel_smb_server">सर्वर</string>
     <string name="panel_smb_share">नेटवर्क शेयर</string>
     <string name="panel_smb_folder">शेयर के अंदर फ़ोल्डर (वैकल्पिक)</string>
+    <string name="conflict_panel_title">फ़ाइल पहले से मौजूद है</string>
+    <string name="conflict_exists">इस नाम की फ़ाइल सर्वर पर पहले से मौजूद है।</string>
+    <string name="conflict_keep_one">मूल फ़ाइल रखें और एक और कॉपी अपलोड करें।</string>
+    <string name="conflict_overwrite_one">सर्वर पर मौजूद फ़ाइल बदलें।</string>
+    <string name="conflict_skip_detail_one">इस फ़ाइल को अपलोड किए बिना जारी रखें।</string>
+    <string name="conflict_scope_many">यह और बाकी नाम-संघर्ष</string>
+    <string name="conflict_keep_many">मूल फ़ाइलें रखें और कॉपियाँ अपलोड करें।</string>
+    <string name="conflict_overwrite_many">सर्वर पर समान नाम वाली फ़ाइलें बदलें।</string>
+    <string name="conflict_skip_detail_many">यह और बाकी समान नाम वाली फ़ाइलें छोड़ें।</string>
+    <string name="conflict_close_one">बंद करने पर यह फ़ाइल छूट जाएगी।</string>
+    <string name="conflict_close_many">बंद करने पर यह और बाकी नाम-संघर्ष छोड़ दिए जाएँगे।</string>
+    <string name="conflict_skip_one">यह फ़ाइल छोड़ें</string>
+    <string name="conflict_skip_many">ये फ़ाइलें छोड़ें</string>
+    <string name="conflict_toggle_hint">केवल जब और नाम-संघर्ष बाकी हों</string>
 </resources>

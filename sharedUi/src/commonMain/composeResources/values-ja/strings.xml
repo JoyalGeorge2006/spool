@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">自動ミックス</string>
+    <string name="mix_overview_subtitle">トランジションの概要</string>
+    <string name="mix_overview_live">ミックス中</string>
+    <string name="mix_overview_completed">トランジション完了</string>
+    <string name="mix_overview_planned">次のトランジション</string>
+    <string name="mix_overview_outgoing">フェードアウト</string>
+    <string name="mix_overview_incoming">フェードイン</string>
+    <string name="mix_overview_read_only">ミックスの様子を確認できます。調整用の操作はありません。</string>
+    <string name="mix_overview_done">完了</string>
+    <string name="mix_overview_close">Automixを閉じる</string>
+    <string name="mix_overview_out">アウト</string>
+    <string name="mix_overview_in">イン</string>
 </resources>

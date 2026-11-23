@@ -317,4 +317,15 @@
     <string name="spool_related_add_song">Add %1$s to queue</string>
     <string name="spool_related_play_now">Play now</string>
     <string name="spool_related_add_to_queue">Add to queue</string>
+    <string name="mix_overview_subtitle">Transition overview</string>
+    <string name="mix_overview_live">Mixing live</string>
+    <string name="mix_overview_completed">Transition complete</string>
+    <string name="mix_overview_planned">Upcoming transition</string>
+    <string name="mix_overview_outgoing">FADING OUT</string>
+    <string name="mix_overview_incoming">FADING IN</string>
+    <string name="mix_overview_read_only">Follow the blend. No controls to adjust.</string>
+    <string name="mix_overview_done">Done</string>
+    <string name="mix_overview_close">Close Automix</string>
+    <string name="mix_overview_out">OUT</string>
+    <string name="mix_overview_in">IN</string>
 </resources>

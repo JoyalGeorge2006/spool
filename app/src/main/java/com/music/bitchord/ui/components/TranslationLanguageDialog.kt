@@ -76,6 +76,7 @@ private val LIST_MAX_HEIGHT = 340.dp
 fun TranslationLanguageDialog(
     hazeState: HazeState,
     onDismiss: () -> Unit,
+    pageSourceKey: Any? = null,
     modifier: Modifier = Modifier,
 ) {
     val selected by AppSettings.translationLanguage.collectAsStateWithLifecycle()
@@ -104,7 +105,8 @@ fun TranslationLanguageDialog(
     }
 
     ApprovedSettingsPanel(
-        hazeState = hazeState, title = stringResource(R.string.translation_language),
+        hazeState = hazeState,
+        pageSourceKey = pageSourceKey, title = stringResource(R.string.translation_language),
         subtitle = stringResource(R.string.translation_language_description), onDismiss = onDismiss,
         modifier = modifier, scrollBody = false,
         footer = { ApprovedPanelAction(stringResource(R.string.done), onDismiss) },

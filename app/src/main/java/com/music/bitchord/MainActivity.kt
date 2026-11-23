@@ -2930,7 +2930,7 @@ private fun BitChordApp(
                     // bars stay outside this subtree, since a haze effect
                     // sampling the layer it belongs to renders with no
                     // background at all.
-                    modifier = Modifier.hazeSource(hazeState),
+                    modifier = Modifier.hazeSource(hazeState, key = com.music.bitchord.ui.components.PageFrostSourceKey),
                     label = "content",
                 ) { destination ->
                     // Every branch below reads `destination` rather than the
@@ -4025,7 +4025,7 @@ private fun BitChordApp(
                         // be mistaken for a per-page action — Home, at rest.
                         if (route == null && detail == null && selectedTab == TAB_HOME) {
                             updateNotice?.let { update ->
-                                HeaderActionButton(onClick = { navigator.push(AppRoute.AppUpdates) }) {
+                                HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, onClick = { navigator.push(AppRoute.AppUpdates) }) {
                                     HeaderIcon(
                                         // A closed ring and upward arrow distinguish
                                         // app updates from the adjacent history clock.
@@ -4043,7 +4043,7 @@ private fun BitChordApp(
                             // a history is a record of what was played, which reads
                             // as that tab's business rather than every tab's.
                             if (!floatingPageChrome && route == null && detail == null && (selectedTab == TAB_LIBRARY || selectedTab == TAB_HOME)) {
-                                HeaderActionButton(
+                                HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, 
                                     onClick = {
                                         navigator.push(AppRoute.History)
                                         viewModel.loadHistory()
@@ -4067,7 +4067,7 @@ private fun BitChordApp(
                                 // the same move the detail sort menu makes (see
                                 // [FrostedSortMenu]) — so it is not a window of
                                 // its own and the page can frost through it.
-                                HeaderActionButton(
+                                HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, 
                                     onClick = { librarySortMenuOpen = true },
                                     modifier = Modifier.focusRequester(librarySortFocus),
                                 ) {
@@ -4090,7 +4090,7 @@ private fun BitChordApp(
                             if ((isReleaseDetail || isLocalDetail) && detail != null) {
                                 val releaseSongs = (detail.songs as? UiState.Success)?.data.orEmpty()
                                 if (releaseSongs.isNotEmpty()) {
-                                    HeaderActionButton(onClick = { detailSearching = !detailSearching }) {
+                                    HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, onClick = { detailSearching = !detailSearching }) {
                                         HeaderIcon(
                                             if (detailSearching) Icons.Rounded.Close else BitChordIcons.Search,
                                             contentDescription = stringResource(
@@ -4104,7 +4104,7 @@ private fun BitChordApp(
                                 // with the app's other frosted overlays further
                                 // down — in the main hierarchy, where the haze
                                 // can see the content it blurs.
-                                HeaderActionButton(
+                                HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, 
                                     onClick = { if (isLocalDetail) folderMenuOpen = true else songSortMenuOpen = true },
                                     modifier = Modifier.focusRequester(detailSortFocus),
                                 ) {
@@ -4125,7 +4125,7 @@ private fun BitChordApp(
                                     // tracks arrive stamped with the album they came
                                     // off, which is what the download record groups
                                     // them under.
-                                    HeaderActionButton(
+                                    HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, 
                                         modifier = Modifier.menuAnchor(),
                                         onClick = {
                                             openBrowseMenu(BrowseTarget(
@@ -4160,7 +4160,7 @@ private fun BitChordApp(
                             if (detail != null && !isLocalDetail && detail.type == BrowseType.ARTIST &&
                                 detailActiveShelf == null && detail.browseId.startsWith("UC")
                             ) {
-                                HeaderActionButton(
+                                HeaderActionButton(pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey, 
                                     onClick = {
                                         val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
@@ -4185,7 +4185,7 @@ private fun BitChordApp(
                             // itself rather than being told. Not on the page it
                             // opens, where it would only lead back to itself.
                             if (route != AppRoute.Downloads) {
-                                TopBarDownloadButton(onClick = { navigator.push(AppRoute.Downloads) })
+                                TopBarDownloadButton(onClick = { navigator.push(AppRoute.Downloads) }, pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey)
                             }
                             // Not on a release page, whose pill already carries
                             // three of its own controls — Apple Music leaves the
@@ -4317,6 +4317,7 @@ private fun BitChordApp(
                         tabs = tabs,
                         selectedIndex = selectedTab,
                         hazeState = hazeState,
+                        pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                         onTabSelected = onTabSelected,
                     )
                 }
@@ -4427,6 +4428,8 @@ private fun BitChordApp(
             }
             SongActionsMenu(
                 song = song,
+                infoPageHazeState = hazeState,
+                infoPageSourceKey = if (menuFromPlayer) null else com.music.bitchord.ui.components.PageFrostSourceKey,
                 signedIn = signedIn,
                 likeStatus = likeStatusOf(song),
                 onPlayNext = { playNext(song); songActions = null },
@@ -4765,7 +4768,7 @@ private fun BitChordApp(
                     val playerMenuHaze = remember { HazeState() }
                     val playerMenuFrost = com.music.bitchord.ui.components.rememberFrostEnabled()
                     Box(
-                        Modifier.then(if (playerMenuFrost) Modifier.hazeSource(playerMenuHaze) else Modifier),
+                        Modifier.then(if (playerMenuFrost) Modifier.hazeSource(playerMenuHaze, zIndex = -1f) else Modifier),
                     ) {
                         CompositionLocalProvider(LocalPlayerDock provides activeDock) {
                             nowPlaying(playerSong)
@@ -4778,7 +4781,6 @@ private fun BitChordApp(
                             // Separately hosted dialogs retain their old material;
                             // the embedded sleep page has its own scoped style.
                             childHazeState = null,
-                            solidDarkMain = true,
                         ) { songMenuBody(menuSong) }
                     }
                 }
@@ -4815,6 +4817,7 @@ private fun BitChordApp(
                 InlineFrostSheet(
                     onDismiss = { showReplayShare = false },
                     hazeState = hazeState,
+                    pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                     restoreFocusTo = pageFocus,
                     paneTitle = stringResource(R.string.replay),
                     containerColor = MaterialTheme.colorScheme.background,
@@ -4842,6 +4845,7 @@ private fun BitChordApp(
                 item = songActions,
                 held = songMenuOrigin,
                 hazeState = hazeState,
+                pageSourceKey = if (menuFromPlayer) null else com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { songActions = null },
                 // Tapping the lifted track opens its album, as Apple Music's does.
                 onPreviewClick = { song ->
@@ -4868,6 +4872,7 @@ private fun BitChordApp(
                 onDismiss = { songActions = null },
                 backdrop = pageBackdrop,
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
             ) { song ->
                 songMenuBody(song)
             }
@@ -4995,6 +5000,7 @@ private fun BitChordApp(
             // and dismisses only when no import is running.
             SpotifyImportAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 signedIn = signedIn,
                 onImported = { title, privacy, songs ->
                     viewModel.createPlaylistWithVideoIds(
@@ -5252,6 +5258,7 @@ private fun BitChordApp(
                 InlineFrostSheet(
                     onDismiss = { browseActions = null },
                     hazeState = hazeState,
+                    pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                     restoreFocusTo = pageFocus,
                     paneTitle = stringResource(R.string.rename),
                     containerColor = MaterialTheme.colorScheme.background,
@@ -5263,6 +5270,7 @@ private fun BitChordApp(
                 item = browseActions,
                 held = browseMenuOrigin,
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { browseActions = null },
                 // Tapping the lifted card opens it, as a tap on it in the list
                 // would have. Not for a Local Music grouping, which has no page.
@@ -5288,6 +5296,7 @@ private fun BitChordApp(
                 onDismiss = { browseActions = null },
                 backdrop = pageBackdrop,
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
             ) { target ->
                 browseMenuBody(target)
             }
@@ -5416,6 +5425,7 @@ private fun BitChordApp(
             BackHandler { showLyricsSources = false }
             LyricsSourcesDialog(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { showLyricsSources = false },
             )
         }
@@ -5477,6 +5487,7 @@ private fun BitChordApp(
             BackHandler { showAppLanguage = false }
             AppLanguageDialog(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { showAppLanguage = false },
             )
         }
@@ -5485,6 +5496,7 @@ private fun BitChordApp(
             BackHandler { showTranslationLanguage = false }
             TranslationLanguageDialog(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { showTranslationLanguage = false },
             )
         }
@@ -5552,6 +5564,7 @@ private fun BitChordApp(
                 approvedPanel = true,
                 adaptiveSurface = true,
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = stringResource(R.string.webdav),
                 description = stringResource(R.string.webdav_description),
                 fields = listOf(
@@ -5599,6 +5612,7 @@ private fun BitChordApp(
                 approvedPanel = true,
                 adaptiveSurface = true,
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = stringResource(R.string.smb),
                 description = stringResource(R.string.smb_description),
                 fields = listOf(
@@ -5669,6 +5683,7 @@ private fun BitChordApp(
             BackHandler { answer(com.music.bitchord.data.webdav.WebDavUploads.Choice.SKIP) }
             WebDavConflictAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 fileName = req.fileName,
                 showApplyToAll = req.remaining > 0,
                 applyToAll = applyToAll,
@@ -5788,6 +5803,7 @@ private fun BitChordApp(
         editingSource?.let { config ->
             SourceEditorAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 config = config,
                 onDismiss = { editingSource = null },
                 onSaved = { editingSource = null },
@@ -5822,6 +5838,7 @@ private fun BitChordApp(
         explainingOutdatedAddon?.let { config ->
             InfoAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = config.displayName,
                 description = stringResource(R.string.source_needs_update),
                 onDismiss = { explainingOutdatedAddon = null },
@@ -5831,6 +5848,7 @@ private fun BitChordApp(
         if (confirmJioSaavn) {
             ConfirmationAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = stringResource(R.string.enable_jiosaavn),
                 description = stringResource(R.string.jiosaavn_mismatch_warning),
                 confirmLabel = stringResource(R.string.enable_anyway),
@@ -5847,6 +5865,7 @@ private fun BitChordApp(
         confirmBitPerfect?.let { mode ->
             ConfirmationAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = stringResource(R.string.bit_perfect_confirm_title),
                 description = stringResource(R.string.bit_perfect_confirm_message),
                 confirmLabel = stringResource(R.string.enable),
@@ -5861,6 +5880,7 @@ private fun BitChordApp(
         if (confirmFixedVolume) {
             ConfirmationAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = stringResource(R.string.usb_allow_fixed_volume_confirm_title),
                 description = stringResource(R.string.usb_allow_fixed_volume_confirm_message),
                 confirmLabel = stringResource(R.string.enable),
@@ -5878,6 +5898,7 @@ private fun BitChordApp(
         blockedAddonSong?.let { song ->
             AddonBlockedAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 song = song,
                 onDismiss = { blockedAddonSong = null },
             )
@@ -5886,6 +5907,7 @@ private fun BitChordApp(
         addonLeftOutOfDownload?.let { (addon, why) ->
             InfoAlert(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 title = stringResource(R.string.download_addon_left_out_title, addon),
                 description = when (why) {
                     SourceRegistry.DownloadExclusion.DOWNLOADS_NOT_ALLOWED ->

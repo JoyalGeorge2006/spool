@@ -1543,4 +1543,18 @@
     <string name="panel_smb_server">伺服器</string>
     <string name="panel_smb_share">網路共用</string>
     <string name="panel_smb_folder">共用內的資料夾（選用）</string>
+    <string name="conflict_panel_title">檔案已存在</string>
+    <string name="conflict_exists">伺服器上已存在此檔案名稱。</string>
+    <string name="conflict_keep_one">保留原始檔案並上載另一份副本。</string>
+    <string name="conflict_overwrite_one">取代伺服器上現有的檔案。</string>
+    <string name="conflict_skip_detail_one">不上載此檔案並繼續。</string>
+    <string name="conflict_scope_many">此衝突及其餘衝突</string>
+    <string name="conflict_keep_many">保留原始檔案並上載副本。</string>
+    <string name="conflict_overwrite_many">取代伺服器上對應的檔案。</string>
+    <string name="conflict_skip_detail_many">略過此檔案及其餘衝突檔案。</string>
+    <string name="conflict_close_one">關閉將略過此檔案。</string>
+    <string name="conflict_close_many">關閉將略過此衝突及其餘衝突。</string>
+    <string name="conflict_skip_one">略過此檔案</string>
+    <string name="conflict_skip_many">略過這些檔案</string>
+    <string name="conflict_toggle_hint">僅在還有其他衝突時顯示</string>
 </resources>

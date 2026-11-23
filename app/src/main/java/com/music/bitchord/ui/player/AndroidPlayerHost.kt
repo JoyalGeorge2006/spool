@@ -244,7 +244,7 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
     // Android 12 there is no RenderEffect to blur it with.
     @Composable
     override fun rememberPlayerFrost(): PlayerFrost? {
-        if (!isGlassSupported()) return null
+        if (!rememberFrostEnabled()) return null
         val backdrop = rememberSnapshotBackdrop()
         return remember(backdrop) { BackdropPlayerFrost(backdrop) }
     }

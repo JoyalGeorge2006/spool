@@ -551,8 +551,9 @@ object AppSettings {
      * Frosted backdrop blur behind the mini player and the navigation bar,
      * Android 12+ only; both bars keep a tint so text stays readable. Off by
      * default: the flat look stays the default, and this stays independent of
-     * [paletteMode]. The other blur consumers above (status bar, bottom fade,
-     * lyrics focus) are not governed by this switch.
+     * [paletteMode]. This is the master gate for panel backdrop, snapshot,
+     * glass and transition blur. Off surfaces use opaque fills. The status
+     * bar keeps its independent always-on material.
      */
     val blurEffects = MutableStateFlow(false)
 

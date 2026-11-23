@@ -17,6 +17,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.settings.PaletteMode
 import com.music.bitchord.R
 import dev.chrisbanes.haze.HazeState
 
@@ -35,16 +39,15 @@ fun SpoolPlayerOverflow(
     restoreFocusTo: FocusRequester? = null,
     /** Keep separately hosted dialogs on their previous source until approved. */
     childHazeState: HazeState? = hazeState,
-    /** The raised player's dark main menu was solid before the light-only approval. */
-    solidDarkMain: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val mainPage = remember { mutableStateOf(true) }
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val themedPage = !mainPage.value || !dark
+    val palette by AppSettings.paletteMode.collectAsStateWithLifecycle()
+    val themedPage = !mainPage.value || !dark || palette == PaletteMode.MATERIAL_YOU
     InlineFrostSheet(
         onDismiss = onDismiss,
-        hazeState = if (mainPage.value && dark && solidDarkMain) null else hazeState,
+        hazeState = hazeState,
         childHazeState = childHazeState,
         frostStyle = if (mainPage.value) null else sleepMenuFrostStyle(
             MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface,

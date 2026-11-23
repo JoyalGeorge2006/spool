@@ -159,7 +159,13 @@ import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.SongRow
 import com.music.bitchord.ui.components.SearchPlayingBars
 import com.music.bitchord.ui.components.libraryGrid
-import com.music.bitchord.ui.components.lightweightLiquidGlass
+import com.music.bitchord.ui.components.frostedCard
+import com.music.bitchord.ui.components.rememberFrostEnabled
+import com.music.bitchord.ui.components.liquidGlassRim
+import com.music.bitchord.ui.components.GLASS_EDGE_WIDTH
+import com.music.bitchord.ui.components.GLASS_EDGE_COLOR
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.detailSkeleton
 import com.music.bitchord.ui.components.topBarContentPadding
@@ -536,7 +542,16 @@ fun DetailScreen(
             // dissolve, so it takes the same [ArtworkPalette.background] the
             // bars at either end of the screen are already fading into.
             val pageColor = if (isArtist) palette.wash else palette.background
+            val statBackdrop = remember { HazeState() }
+            val statFrostOn = rememberFrostEnabled()
             BoxWithConstraints(Modifier.fillMaxSize().background(pageColor)) {
+                // Artist About sits on this flat page floor, not on the framed
+                // artwork/list. Record only the floor, never the chips or text
+                // consuming it. A negative local order also works while nested
+                // in the activity page source, without the shared repair.
+                if (isArtist && statFrostOn) {
+                    Box(Modifier.matchParentSize().hazeSource(statBackdrop, zIndex = -1f).background(pageColor))
+                }
                 // Measured rather than read off the window. The player runs
                 // full-screen at every window size, so this page's own width in
                 // landscape is the *whole* window. Straight off that width, the ratio hands back
@@ -671,6 +686,7 @@ fun DetailScreen(
                                     subscriberCountText = page.subscriberCountText,
                                     monthlyListenerCount = page.monthlyListenerCount,
                                     palette = palette,
+                                    backdrop = statBackdrop,
                                 )
                             }
                         } else {
@@ -1854,6 +1870,7 @@ private fun ArtistStatsRow(
     subscriberCountText: String?,
     monthlyListenerCount: String?,
     palette: ArtworkPalette,
+    backdrop: HazeState,
 ) {
     // Stacked and left-aligned with the text under it, since this now sits in
     // the About section rather than across the header.
@@ -1873,6 +1890,7 @@ private fun ArtistStatsRow(
                 icon = Icons.Rounded.Person,
                 text = stringResource(R.string.subscribers, it.substringBefore(' ')),
                 palette = palette,
+                backdrop = backdrop,
             )
         }
         monthlyListenerCount?.let {
@@ -1880,20 +1898,22 @@ private fun ArtistStatsRow(
                 icon = Icons.Rounded.GraphicEq,
                 text = stringResource(R.string.monthly_listeners, it.substringBefore(' ')),
                 palette = palette,
+                backdrop = backdrop,
             )
         }
     }
 }
 
 @Composable
-private fun StatChip(icon: ImageVector, text: String, palette: ArtworkPalette) {
+private fun StatChip(icon: ImageVector, text: String, palette: ArtworkPalette, backdrop: HazeState) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .lightweightLiquidGlass(
-                shape = CircleShape,
-                fallbackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            )
+            .frostedCard(backdrop, MaterialTheme.colorScheme.surface, CircleShape)
+            // Liquid Glass retains only its optional decoration. The master
+            // Blur switch alone selects frost versus the opaque fallback.
+            .liquidGlassRim(CircleShape)
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Icon(

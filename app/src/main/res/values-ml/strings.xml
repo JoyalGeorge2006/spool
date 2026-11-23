@@ -1441,4 +1441,18 @@
     <string name="panel_smb_server">സെർവർ</string>
     <string name="panel_smb_share">ഷെയർ</string>
     <string name="panel_smb_folder">ഷെയറിനുള്ളിലെ ഫോൾഡർ (ഐച്ഛികം)</string>
+    <string name="conflict_panel_title">ഫയൽ ഇതിനകം നിലവിലുണ്ട്</string>
+    <string name="conflict_exists">ഈ പേരിലുള്ള ഫയൽ സെർവറിൽ ഇതിനകം ഉണ്ട്.</string>
+    <string name="conflict_keep_one">നിലവിലുള്ളത് സൂക്ഷിച്ച് മറ്റൊരു പകർപ്പ് അപ്‌ലോഡ് ചെയ്യുക.</string>
+    <string name="conflict_overwrite_one">സെർവറിലെ നിലവിലുള്ള ഫയൽ മാറ്റിസ്ഥാപിക്കുക.</string>
+    <string name="conflict_skip_detail_one">ഈ ഫയൽ അപ്‌ലോഡ് ചെയ്യാതെ തുടരുക.</string>
+    <string name="conflict_scope_many">ഇതും ശേഷിക്കുന്ന പേരുമുട്ടലുകളും</string>
+    <string name="conflict_keep_many">നിലവിലുള്ളവ സൂക്ഷിച്ച് പകർപ്പുകൾ അപ്‌ലോഡ് ചെയ്യുക.</string>
+    <string name="conflict_overwrite_many">സെർവറിലെ അതേ പേരിലുള്ള ഫയലുകൾ മാറ്റിസ്ഥാപിക്കുക.</string>
+    <string name="conflict_skip_detail_many">ഇതും ശേഷിക്കുന്ന അതേ പേരിലുള്ള ഫയലുകളും ഒഴിവാക്കുക.</string>
+    <string name="conflict_close_one">അടച്ചാൽ ഈ ഫയൽ ഒഴിവാക്കും.</string>
+    <string name="conflict_close_many">അടച്ചാൽ ഇതും ശേഷിക്കുന്ന പേരുമുട്ടലുകളും ഒഴിവാക്കും.</string>
+    <string name="conflict_skip_one">ഈ ഫയൽ ഒഴിവാക്കുക</string>
+    <string name="conflict_skip_many">ഈ ഫയലുകൾ ഒഴിവാക്കുക</string>
+    <string name="conflict_toggle_hint">കൂടുതൽ പേരുമുട്ടലുകൾ ശേഷിക്കുമ്പോൾ മാത്രം</string>
 </resources>

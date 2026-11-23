@@ -1555,4 +1555,18 @@
     <string name="panel_smb_server">服务器</string>
     <string name="panel_smb_share">网络共享</string>
     <string name="panel_smb_folder">共享内的文件夹（可选）</string>
+    <string name="conflict_panel_title">文件已存在</string>
+    <string name="conflict_exists">服务器上已存在此文件名。</string>
+    <string name="conflict_keep_one">保留原文件并上传另一个副本。</string>
+    <string name="conflict_overwrite_one">替换服务器上现有的文件。</string>
+    <string name="conflict_skip_detail_one">不上传此文件并继续。</string>
+    <string name="conflict_scope_many">此冲突及剩余冲突</string>
+    <string name="conflict_keep_many">保留原文件并上传副本。</string>
+    <string name="conflict_overwrite_many">替换服务器上对应的文件。</string>
+    <string name="conflict_skip_detail_many">跳过此文件及剩余的冲突文件。</string>
+    <string name="conflict_close_one">关闭将跳过此文件。</string>
+    <string name="conflict_close_many">关闭将跳过此冲突及剩余冲突。</string>
+    <string name="conflict_skip_one">跳过此文件</string>
+    <string name="conflict_skip_many">跳过这些文件</string>
+    <string name="conflict_toggle_hint">仅当还有其他冲突时显示</string>
 </resources>

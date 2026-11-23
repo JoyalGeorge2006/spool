@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Автоматический микс</string>
+    <string name="mix_overview_subtitle">Обзор перехода</string>
+    <string name="mix_overview_live">Микширование в реальном времени</string>
+    <string name="mix_overview_completed">Переход завершён</string>
+    <string name="mix_overview_planned">Следующий переход</string>
+    <string name="mix_overview_outgoing">ЗАТУХАНИЕ</string>
+    <string name="mix_overview_incoming">НАРАСТАНИЕ</string>
+    <string name="mix_overview_read_only">Наблюдайте за миксом. Здесь нет настроек для изменения.</string>
+    <string name="mix_overview_done">Готово</string>
+    <string name="mix_overview_close">Закрыть Automix</string>
+    <string name="mix_overview_out">ВЫХОД</string>
+    <string name="mix_overview_in">ВХОД</string>
 </resources>

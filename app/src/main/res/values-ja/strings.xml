@@ -1556,4 +1556,18 @@
     <string name="panel_smb_server">サーバー</string>
     <string name="panel_smb_share">ネットワーク共有</string>
     <string name="panel_smb_folder">共有内のフォルダ（任意）</string>
+    <string name="conflict_panel_title">ファイルは既に存在します</string>
+    <string name="conflict_exists">このファイル名はサーバーに既に存在します。</string>
+    <string name="conflict_keep_one">元のファイルを残して別のコピーをアップロードします。</string>
+    <string name="conflict_overwrite_one">サーバー上の既存のファイルを置き換えます。</string>
+    <string name="conflict_skip_detail_one">このファイルをアップロードせずに続行します。</string>
+    <string name="conflict_scope_many">この競合と残りの競合</string>
+    <string name="conflict_keep_many">元のファイルを残してコピーをアップロードします。</string>
+    <string name="conflict_overwrite_many">サーバー上の同名のファイルを置き換えます。</string>
+    <string name="conflict_skip_detail_many">このファイルと残りの競合ファイルをスキップします。</string>
+    <string name="conflict_close_one">閉じるとこのファイルはスキップされます。</string>
+    <string name="conflict_close_many">閉じるとこの競合と残りの競合はスキップされます。</string>
+    <string name="conflict_skip_one">このファイルをスキップ</string>
+    <string name="conflict_skip_many">これらのファイルをスキップ</string>
+    <string name="conflict_toggle_hint">競合が他にも残っている場合のみ</string>
 </resources>

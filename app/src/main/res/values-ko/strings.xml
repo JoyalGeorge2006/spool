@@ -1414,4 +1414,18 @@
     <string name="panel_smb_server">서버</string>
     <string name="panel_smb_share">네트워크 공유</string>
     <string name="panel_smb_folder">공유 내 폴더(선택 사항)</string>
+    <string name="conflict_panel_title">파일이 이미 있습니다</string>
+    <string name="conflict_exists">이 파일 이름이 서버에 이미 있습니다.</string>
+    <string name="conflict_keep_one">원본을 유지하고 다른 복사본을 업로드합니다.</string>
+    <string name="conflict_overwrite_one">서버의 기존 파일을 바꿉니다.</string>
+    <string name="conflict_skip_detail_one">이 파일을 업로드하지 않고 계속합니다.</string>
+    <string name="conflict_scope_many">현재 충돌 및 나머지 충돌</string>
+    <string name="conflict_keep_many">원본을 유지하고 복사본을 업로드합니다.</string>
+    <string name="conflict_overwrite_many">서버에서 이름이 같은 파일들을 바꿉니다.</string>
+    <string name="conflict_skip_detail_many">이 파일과 나머지 충돌 파일을 건너뜁니다.</string>
+    <string name="conflict_close_one">닫으면 이 파일을 건너뜁니다.</string>
+    <string name="conflict_close_many">닫으면 현재 충돌과 나머지 충돌을 건너뜁니다.</string>
+    <string name="conflict_skip_one">이 파일 건너뛰기</string>
+    <string name="conflict_skip_many">이 파일들 건너뛰기</string>
+    <string name="conflict_toggle_hint">다른 충돌이 남아 있을 때만</string>
 </resources>

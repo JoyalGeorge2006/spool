@@ -1561,4 +1561,18 @@
     <string name="panel_smb_server">เซิร์ฟเวอร์</string>
     <string name="panel_smb_share">โฟลเดอร์ที่แชร์บนเครือข่าย</string>
     <string name="panel_smb_folder">โฟลเดอร์ภายในโฟลเดอร์ที่แชร์ (ไม่บังคับ)</string>
+    <string name="conflict_panel_title">มีไฟล์นี้อยู่แล้ว</string>
+    <string name="conflict_exists">มีชื่อไฟล์นี้อยู่บนเซิร์ฟเวอร์แล้ว</string>
+    <string name="conflict_keep_one">เก็บต้นฉบับและอัปโหลดสำเนาอีกชุด</string>
+    <string name="conflict_overwrite_one">แทนที่ไฟล์ที่มีอยู่บนเซิร์ฟเวอร์</string>
+    <string name="conflict_skip_detail_one">ดำเนินการต่อโดยไม่อัปโหลดไฟล์นี้</string>
+    <string name="conflict_scope_many">ข้อขัดแย้งนี้และที่เหลือ</string>
+    <string name="conflict_keep_many">เก็บต้นฉบับและอัปโหลดสำเนา</string>
+    <string name="conflict_overwrite_many">แทนที่ไฟล์ที่ตรงกันบนเซิร์ฟเวอร์</string>
+    <string name="conflict_skip_detail_many">ข้ามไฟล์นี้และไฟล์ที่ขัดแย้งที่เหลือ</string>
+    <string name="conflict_close_one">การปิดจะข้ามไฟล์นี้</string>
+    <string name="conflict_close_many">การปิดจะข้ามข้อขัดแย้งนี้และที่เหลือ</string>
+    <string name="conflict_skip_one">ข้ามไฟล์นี้</string>
+    <string name="conflict_skip_many">ข้ามไฟล์เหล่านี้</string>
+    <string name="conflict_toggle_hint">เฉพาะเมื่อยังมีข้อขัดแย้งอื่น</string>
 </resources>

@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Automatyczny miks</string>
+    <string name="mix_overview_subtitle">Podgląd przejścia</string>
+    <string name="mix_overview_live">Miksowanie na żywo</string>
+    <string name="mix_overview_completed">Przejście zakończone</string>
+    <string name="mix_overview_planned">Nadchodzące przejście</string>
+    <string name="mix_overview_outgoing">WYCISZANIE</string>
+    <string name="mix_overview_incoming">ZGŁAŚNIANIE</string>
+    <string name="mix_overview_read_only">Obserwuj miks. Nie ma tu ustawień do zmiany.</string>
+    <string name="mix_overview_done">Gotowe</string>
+    <string name="mix_overview_close">Zamknij Automix</string>
+    <string name="mix_overview_out">WYJŚCIE</string>
+    <string name="mix_overview_in">WEJŚCIE</string>
 </resources>

@@ -76,7 +76,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.settings.PaletteMode
 import com.music.bitchord.ui.components.backdrop.backdrops.SnapshotBackdrop
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.flow.first
@@ -136,7 +138,8 @@ fun iosMenuColors(): IosMenuColors {
         val mainPage = LocalSpoolPlayerMainPage.current
         val darkMain = mainPage?.value == true &&
             MaterialTheme.colorScheme.background.luminance() < 0.5f
-        if (mainPage != null && !darkMain) {
+        val palette by AppSettings.paletteMode.collectAsStateWithLifecycle()
+        if (mainPage != null && (!darkMain || palette == PaletteMode.MATERIAL_YOU)) {
             val scheme = MaterialTheme.colorScheme
             val ink = scheme.onSurface
             return IosMenuColors(
@@ -187,12 +190,14 @@ val IosMenuWidth = 256.dp
  * "Reduce dynamic blur" turns the frost off and the slab opaque: an unblurred
  * page seen through it is exactly what the frost was there to prevent.
  */
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun Modifier.iosMenuPanel(
     colors: IosMenuColors = iosMenuColors(),
     translucent: Boolean = false,
     backdrop: Backdrop? = null,
     hazeState: HazeState? = null,
+    pageSourceKey: Any? = null,
     /** Paints the slab in this instead, as the held-item menu does to match its item's plate. */
     fillOverride: Color? = null,
     rimOverride: Color? = null,
@@ -207,7 +212,11 @@ fun Modifier.iosMenuPanel(
     val frost = rememberFrostEnabled()
     val surface = shadowed.clip(IosMenuShape).then(
         if (frost && hazeState != null) {
-            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(fill))
+            Modifier.hazeEffect(state = hazeState, style = SpoolFrost.style(fill)) {
+                if (pageSourceKey != null) {
+                    canDrawArea = { area -> area.key === pageSourceKey }
+                }
+            }
         } else {
             Modifier.background(fill)
         },
@@ -449,6 +458,7 @@ fun <T : Any> IosMenuPopover(
     onDismiss: () -> Unit,
     backdrop: Backdrop? = null,
     hazeState: HazeState? = null,
+    pageSourceKey: Any? = null,
     content: @Composable (T) -> Unit,
 ) {
     var last by remember { mutableStateOf<Pair<T, Rect?>?>(null) }
@@ -484,7 +494,7 @@ fun <T : Any> IosMenuPopover(
                 withFrameNanos { }
                 withFrameNanos { }
                 (backdrop as? SnapshotBackdrop)?.takeIf {
-                    isGlassSupported() && !AppSettings.reduceDynamicBlur.value
+                    isGlassSupported() && AppSettings.blurEffects.value
                 }?.let { still ->
                     withTimeoutOrNull(STILL_WAIT_MS) { snapshotFlow { still.hasStill }.first { it } }
                 }
@@ -552,6 +562,7 @@ fun <T : Any> IosMenuPopover(
                         translucent = true,
                         backdrop = backdrop,
                         hazeState = hazeState,
+                        pageSourceKey = pageSourceKey,
                         castsShadow = false,
                     ),
                 propagateMinConstraints = true,

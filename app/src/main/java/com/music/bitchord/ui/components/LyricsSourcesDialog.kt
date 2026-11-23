@@ -90,6 +90,7 @@ fun LyricsSourcesDialog(
     hazeState: HazeState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    pageSourceKey: Any? = null,
 ) {
     val selected by AppSettings.lyricsSources.collectAsStateWithLifecycle()
     val savedOrder by AppSettings.lyricsSourceOrder.collectAsStateWithLifecycle()
@@ -103,7 +104,7 @@ fun LyricsSourcesDialog(
     if (showPaxSenixKeyDialog) {
         var input by remember(paxSenixApiKey) { mutableStateOf(paxSenixApiKey) }
         ApprovedSettingsPanel(
-            hazeState = hazeState, title = stringResource(R.string.paxsenix_api_key),
+            hazeState = hazeState, pageSourceKey = pageSourceKey, title = stringResource(R.string.paxsenix_api_key),
             subtitle = stringResource(R.string.panel_optional),
             onDismiss = { showPaxSenixKeyDialog = false },
             footer = {
@@ -125,6 +126,7 @@ fun LyricsSourcesDialog(
     val returnFromPane: () -> Unit = { if (showSourceOrder) showSourceOrder = false else onDismiss() }
     ApprovedSettingsPanel(
         hazeState = hazeState,
+        pageSourceKey = pageSourceKey,
         title = stringResource(if (showSourceOrder) R.string.panel_sources_order else R.string.lyrics_sources),
         subtitle = stringResource(if (showSourceOrder) R.string.panel_sources_order_description else R.string.panel_lyrics_description),
         onDismiss = onDismiss, onBack = returnFromPane, modifier = modifier,

@@ -21,7 +21,7 @@ import dev.chrisbanes.haze.HazeState
  * temporary cap — see [AppSettings.streamCeilingOverride].
  */
 @Composable
-fun AddonBlockedAlert(hazeState: HazeState, song: Song, onDismiss: () -> Unit) {
+fun AddonBlockedAlert(hazeState: HazeState, song: Song, onDismiss: () -> Unit, pageSourceKey: Any? = null) {
     val addon = SourceRegistry.parseTrackKey(song.videoId)
         ?.let { (configId, _) -> SourceRegistry.config(configId)?.displayName }
         ?: stringResource(R.string.search_source_addons)
@@ -39,6 +39,7 @@ fun AddonBlockedAlert(hazeState: HazeState, song: Song, onDismiss: () -> Unit) {
     }
     InfoAlert(
         hazeState = hazeState,
+        pageSourceKey = pageSourceKey,
         title = stringResource(R.string.addon_blocked_title),
         description = message,
         onDismiss = onDismiss,

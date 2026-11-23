@@ -102,7 +102,7 @@ internal fun FrostedPlayerFrame(
     }
     Box(modifier.fillMaxSize()) {
         val source = if (frost != null) with(frost) { Modifier.frostSource() } else Modifier
-        val haze = if (sourceState != null) Modifier.hazeSource(sourceState) else Modifier
+        val haze = if (sourceState != null) Modifier.hazeSource(sourceState, zIndex = -1f) else Modifier
         Box(Modifier.fillMaxSize().then(source).then(haze)) {
             CompositionLocalProvider(LocalPlayerChrome provides chrome, content = content)
         }

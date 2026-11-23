@@ -1618,4 +1618,18 @@
     <string name="panel_smb_server">Serwer</string>
     <string name="panel_smb_share">Udział sieciowy</string>
     <string name="panel_smb_folder">Folder w udziale (opcjonalnie)</string>
+    <string name="conflict_panel_title">Plik już istnieje</string>
+    <string name="conflict_exists">Plik o tej nazwie już jest na serwerze.</string>
+    <string name="conflict_keep_one">Zachowaj oryginał i prześlij kolejną kopię.</string>
+    <string name="conflict_overwrite_one">Zastąp istniejący plik na serwerze.</string>
+    <string name="conflict_skip_detail_one">Kontynuuj bez przesyłania tego pliku.</string>
+    <string name="conflict_scope_many">Ten i pozostałe konflikty</string>
+    <string name="conflict_keep_many">Zachowaj oryginały i prześlij kopie.</string>
+    <string name="conflict_overwrite_many">Zastąp odpowiednie pliki na serwerze.</string>
+    <string name="conflict_skip_detail_many">Pomiń ten i pozostałe pliki powodujące konflikt.</string>
+    <string name="conflict_close_one">Zamknięcie spowoduje pominięcie tego pliku.</string>
+    <string name="conflict_close_many">Zamknięcie spowoduje pominięcie tego i pozostałych konfliktów.</string>
+    <string name="conflict_skip_one">Pomiń ten plik</string>
+    <string name="conflict_skip_many">Pomiń te pliki</string>
+    <string name="conflict_toggle_hint">Tylko gdy pozostały inne konflikty</string>
 </resources>

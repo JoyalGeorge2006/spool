@@ -6,7 +6,7 @@ name: Unit tests on a Spool branch (no APK, no release)
 # an init script remapping compileSdk, since AGP has no stable android-37 id.
 on:
   push:
-    branches: [taste-aware-moods]
+    branches: [taste-aware-moods, spool-verify-20261123]
   workflow_dispatch:
     inputs:
       ref:

@@ -221,4 +221,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Otomatik miks</string>
+    <string name="mix_overview_subtitle">Geçişe genel bakış</string>
+    <string name="mix_overview_live">Canlı miksleniyor</string>
+    <string name="mix_overview_completed">Geçiş tamamlandı</string>
+    <string name="mix_overview_planned">Sıradaki geçiş</string>
+    <string name="mix_overview_outgoing">SES AZALIYOR</string>
+    <string name="mix_overview_incoming">SES ARTIYOR</string>
+    <string name="mix_overview_read_only">Miksi takip edin. Ayarlanacak kontrol yok.</string>
+    <string name="mix_overview_done">Bitti</string>
+    <string name="mix_overview_close">Automix’i kapat</string>
+    <string name="mix_overview_out">ÇIKIŞ</string>
+    <string name="mix_overview_in">GİRİŞ</string>
 </resources>

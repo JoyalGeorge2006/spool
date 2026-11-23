@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Automatischer Mix</string>
+    <string name="mix_overview_subtitle">Übergangsübersicht</string>
+    <string name="mix_overview_live">Live-Mix</string>
+    <string name="mix_overview_completed">Übergang abgeschlossen</string>
+    <string name="mix_overview_planned">Nächster Übergang</string>
+    <string name="mix_overview_outgoing">AUSBLENDEN</string>
+    <string name="mix_overview_incoming">EINBLENDEN</string>
+    <string name="mix_overview_read_only">Verfolge den Übergang. Hier gibt es nichts einzustellen.</string>
+    <string name="mix_overview_done">Fertig</string>
+    <string name="mix_overview_close">Automix schließen</string>
+    <string name="mix_overview_out">AUS</string>
+    <string name="mix_overview_in">EIN</string>
 </resources>

@@ -6,7 +6,7 @@ name: Emulator pixel verification (branch, no release)
 # branch pushes stay cheap. Public repo: GitHub-hosted minutes are free.
 on:
   push:
-    branches: [taste-aware-moods]
+    branches: [taste-aware-moods, spool-verify-20261123]
     paths:
       - 'app/src/androidTest/**'
       # The strip under verification lives in MainActivity.

@@ -106,6 +106,7 @@ fun SpotifyImportAlert(
     initialStatus: String? = null,
     initialFailed: Boolean = false,
     initialUnmatched: List<SpotifyImportTrack>? = null,
+    pageSourceKey: Any? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -186,7 +187,8 @@ fun SpotifyImportAlert(
         SpotifyImportPane.VISIBILITY -> stringResource(R.string.panel_visibility_description)
     }
     ApprovedSettingsPanel(
-        hazeState = hazeState, title = panelTitle, subtitle = panelSubtitle,
+        hazeState = hazeState,
+        pageSourceKey = pageSourceKey, title = panelTitle, subtitle = panelSubtitle,
         onDismiss = { if (!working) onDismiss() }, onBack = goBack,
         backEnabled = !working, dragEnabled = !working,
         footer = {

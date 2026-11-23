@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Mezcla automática</string>
+    <string name="mix_overview_subtitle">Resumen de la transición</string>
+    <string name="mix_overview_live">Mezclando en directo</string>
+    <string name="mix_overview_completed">Transición completada</string>
+    <string name="mix_overview_planned">Próxima transición</string>
+    <string name="mix_overview_outgoing">SALIDA GRADUAL</string>
+    <string name="mix_overview_incoming">ENTRADA GRADUAL</string>
+    <string name="mix_overview_read_only">Sigue la mezcla. No hay controles que ajustar.</string>
+    <string name="mix_overview_done">Listo</string>
+    <string name="mix_overview_close">Cerrar Automix</string>
+    <string name="mix_overview_out">SALIDA</string>
+    <string name="mix_overview_in">ENTRADA</string>
 </resources>

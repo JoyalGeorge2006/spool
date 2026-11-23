@@ -62,6 +62,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -177,13 +178,14 @@ internal const val STRETCH = 0.16f
  */
 internal const val SQUASH = 0.5f
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class, ExperimentalHazeApi::class)
 @Composable
 fun FloatingBottomBar(
     tabs: List<BottomTab>,
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit,
     hazeState: HazeState,
+    pageSourceKey: Any? = null,
     modifier: Modifier = Modifier,
 ) {
     // Blur effects (Appearance): frosts the bar over what scrolls beneath it,
@@ -199,7 +201,11 @@ fun FloatingBottomBar(
                     Modifier.hazeEffect(
                         state = hazeState,
                         style = SpoolFrost.style(MaterialTheme.colorScheme.surface),
-                    )
+                    ) {
+                        if (pageSourceKey != null) {
+                            canDrawArea = { area -> area.key === pageSourceKey }
+                        }
+                    }
                 } else {
                     Modifier.background(MaterialTheme.colorScheme.surface)
                 },
@@ -302,7 +308,11 @@ fun FloatingBottomBar(
                     Modifier.hazeEffect(
                         state = hazeState,
                         style = SpoolFrost.style(container),
-                    )
+                    ) {
+                        if (pageSourceKey != null) {
+                            canDrawArea = { area -> area.key === pageSourceKey }
+                        }
+                    }
                 } else {
                     Modifier.background(container)
                 },

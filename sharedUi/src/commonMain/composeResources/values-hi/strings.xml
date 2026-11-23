@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">अपने-आप मिक्स</string>
+    <string name="mix_overview_subtitle">ट्रांज़िशन का अवलोकन</string>
+    <string name="mix_overview_live">लाइव मिक्सिंग</string>
+    <string name="mix_overview_completed">ट्रांज़िशन पूरा हुआ</string>
+    <string name="mix_overview_planned">अगला ट्रांज़िशन</string>
+    <string name="mix_overview_outgoing">धीरे-धीरे कम होता स्वर</string>
+    <string name="mix_overview_incoming">धीरे-धीरे बढ़ता स्वर</string>
+    <string name="mix_overview_read_only">मिक्स देखें। बदलने के लिए कोई नियंत्रण नहीं है।</string>
+    <string name="mix_overview_done">हो गया</string>
+    <string name="mix_overview_close">Automix बंद करें</string>
+    <string name="mix_overview_out">बाहर</string>
+    <string name="mix_overview_in">अंदर</string>
 </resources>

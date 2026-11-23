@@ -86,6 +86,7 @@ import com.music.bitchord.R
 import com.music.bitchord.data.model.Account
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.theme.stableStatusBarInsets
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -445,6 +446,7 @@ internal val LocalHeaderBare = staticCompositionLocalOf { false }
 /** The page's haze, handed to bare header circles so Blur effects frosts them. */
 internal val LocalHeaderHaze = staticCompositionLocalOf<HazeState?> { null }
 
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun HeaderActionButton(
     onClick: () -> Unit,
@@ -453,6 +455,7 @@ fun HeaderActionButton(
     bare: Boolean = LocalHeaderBare.current,
     /** The page's haze; the local from the enclosing ArtworkPageActions otherwise. */
     hazeState: HazeState? = null,
+    pageSourceKey: Any? = null,
     content: @Composable () -> Unit,
 ) {
     val haze = hazeState ?: LocalHeaderHaze.current
@@ -465,7 +468,11 @@ fun HeaderActionButton(
                     // A frosted circle over the page's art while Blur effects
                     // is on; the approved bare glyph when it is off.
                     bare && frost && haze != null ->
-                        Modifier.hazeEffect(haze, SpoolFrost.style(MaterialTheme.colorScheme.surface))
+                        Modifier.hazeEffect(haze, SpoolFrost.style(MaterialTheme.colorScheme.surface)) {
+                            if (pageSourceKey != null) {
+                                canDrawArea = { area -> area.key === pageSourceKey }
+                            }
+                        }
                     bare -> Modifier
                     else -> Modifier.background(MaterialTheme.colorScheme.surface)
                 }

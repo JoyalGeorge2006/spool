@@ -317,4 +317,15 @@
     <string name="spool_related_add_song">%1$s ക്യൂവിലേക്ക് ചേർക്കുക</string>
     <string name="spool_related_play_now">ഇപ്പോൾ പ്ലേ ചെയ്യുക</string>
     <string name="spool_related_add_to_queue">ക്യൂവിലേക്ക് ചേർക്കുക</string>
+    <string name="mix_overview_subtitle">ട്രാൻസിഷൻ അവലോകനം</string>
+    <string name="mix_overview_live">ലൈവായി മിക്സ് ചെയ്യുന്നു</string>
+    <string name="mix_overview_completed">ട്രാൻസിഷൻ പൂർത്തിയായി</string>
+    <string name="mix_overview_planned">അടുത്ത ട്രാൻസിഷൻ</string>
+    <string name="mix_overview_outgoing">ശബ്ദം പതുക്കെ കുറയുന്നു</string>
+    <string name="mix_overview_incoming">ശബ്ദം പതുക്കെ കൂടുന്നു</string>
+    <string name="mix_overview_read_only">മിക്സ് കാണുക. ക്രമീകരിക്കാനുള്ള നിയന്ത്രണങ്ങളില്ല.</string>
+    <string name="mix_overview_done">പൂർത്തിയായി</string>
+    <string name="mix_overview_close">Automix അടയ്ക്കുക</string>
+    <string name="mix_overview_out">ഔട്ട്</string>
+    <string name="mix_overview_in">ഇൻ</string>
 </resources>

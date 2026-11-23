@@ -220,4 +220,15 @@
 
     <!-- Settings panel labels and guidance. -->
     <string name="mix_view_title">Trộn nhạc tự động</string>
+    <string name="mix_overview_subtitle">Tổng quan chuyển bài</string>
+    <string name="mix_overview_live">Đang trộn trực tiếp</string>
+    <string name="mix_overview_completed">Đã chuyển bài xong</string>
+    <string name="mix_overview_planned">Lần chuyển bài tiếp theo</string>
+    <string name="mix_overview_outgoing">NHỎ DẦN</string>
+    <string name="mix_overview_incoming">TO DẦN</string>
+    <string name="mix_overview_read_only">Theo dõi bản trộn. Không có điều khiển để điều chỉnh.</string>
+    <string name="mix_overview_done">Xong</string>
+    <string name="mix_overview_close">Đóng Automix</string>
+    <string name="mix_overview_out">RA</string>
+    <string name="mix_overview_in">VÀO</string>
 </resources>

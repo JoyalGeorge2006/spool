@@ -217,9 +217,7 @@ fun Modifier.liquidGlass(
     /** Drawn over the glass in place of the theme's default tint, when set. */
     surfaceTint: Color? = null,
 ): Modifier {
-    if (!isGlassSupported()) return this
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    if (reduceDynamicBlur) {
+    if (!rememberFrostEnabled()) {
         return background(MaterialTheme.colorScheme.surface, shape)
             .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
     }

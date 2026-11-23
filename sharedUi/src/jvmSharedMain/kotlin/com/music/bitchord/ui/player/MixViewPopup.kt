@@ -16,6 +16,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -67,6 +72,10 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -157,25 +166,14 @@ internal fun MixViewPopup(
     /** False once the blend has finished: the popup stays up on its last frame, without a playhead. */
     live: Boolean,
     hazeState: HazeState,
+    completed: Boolean = false,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val progress = PlayerSettings.smartMixProgress.collectAsStateWithLifecycle()
     if (PlayerPlatform.host.supportsStandardPlayerPanels) {
         if (visible) {
-            PlayerPlatform.host.StandardPlayerPanel(
-                hazeState = hazeState,
-                title = stringResource(Res.string.mix_view_title),
-                onDismiss = onDismiss,
-            ) {
-                CompositionLocalProvider(
-                    LocalStandardMixPanel provides true,
-                    LocalDeckHeaderInk provides MaterialTheme.colorScheme.onSurface,
-                    LocalDeckHeaderSecondary provides MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                ) {
-                    MixViewContent(view ?: PlaceholderView, progress, live, standardPanel = true)
-                }
-            }
+            ApprovedMixOverview(view, progress, live, completed, hazeState, onDismiss, modifier)
         }
         return
     }
@@ -233,6 +231,119 @@ internal fun MixViewPopup(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 MixViewContent(view ?: PlaceholderView, progress, live)
+            }
+        }
+    }
+}
+
+/** Approved read-only bottom overview. Engine data and dismiss semantics stay unchanged. */
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+private fun ApprovedMixOverview(
+    view: MixTransitionView?, progress: State<Float>, live: Boolean, completed: Boolean,
+    hazeState: HazeState, onDismiss: () -> Unit, modifier: Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val ink = scheme.onSurface
+    val secondary = scheme.onSurfaceVariant
+    var drag by remember { mutableFloatStateOf(0f) }
+    var panelHeight by remember { mutableIntStateOf(0) }
+    val panelOffset by animateFloatAsState(drag, spring(stiffness = Spring.StiffnessMediumLow), label = "mixOverviewOffset")
+    val dismissOnRelease: () -> Unit = {
+        if (panelHeight > 0 && drag > panelHeight * 0.22f) onDismiss() else drag = 0f
+    }
+    val panelScroll = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            if (drag <= 0f || available.y >= 0f) return Offset.Zero
+            val used = available.y.coerceAtLeast(-drag)
+            drag += used
+            return Offset(0f, used)
+        }
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            if (source == NestedScrollSource.UserInput && available.y > 0f) drag += available.y
+            if (drag > 0f && available.y < 0f) {
+                val used = available.y.coerceAtLeast(-drag)
+                drag += used
+                return Offset(0f, used)
+            }
+            return available
+        }
+        override suspend fun onPreFling(available: Velocity): Velocity {
+            if (drag <= 0f) return Velocity.Zero
+            dismissOnRelease()
+            return available
+        }
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity) = available
+    }
+    val closeLabel = stringResource(Res.string.mix_overview_close)
+    val measured = view ?: PlaceholderView
+    val sweep = rememberSkeletonSweep(measured.outgoing.analysing || measured.incoming.analysing ||
+        measured.outgoing.decoding || measured.incoming.decoding)
+    BoxWithConstraints(
+        modifier.fillMaxSize().containSheetGestures()
+            .background(ScrimColor.copy(alpha = ScrimColor.alpha * if (panelHeight > 0) (1f - panelOffset / panelHeight).coerceIn(0f, 1f) else 1f))
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }, onClick = onDismiss),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Column(
+            Modifier.widthIn(max = 640.dp).fillMaxWidth().heightIn(max = maxHeight * 0.86f)
+                .onSizeChanged { panelHeight = it.height }
+                .offset { IntOffset(0, panelOffset.roundToInt()) }
+                .nestedScroll(panelScroll)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .then(if (PlayerPlatform.host.frostEnabled())
+                    Modifier.hazeEffect(hazeState, FrostMaterial.style(scheme.surface))
+                else Modifier.background(scheme.surface))
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }, onClick = {})
+                .navigationBarsPadding(),
+        ) {
+            Box(Modifier.fillMaxWidth().height(28.dp).pointerInput(panelHeight, onDismiss) {
+                detectVerticalDragGestures(onDragEnd = dismissOnRelease, onDragCancel = { drag = 0f }) { change, delta ->
+                    change.consume()
+                    drag = (drag + delta).coerceAtLeast(0f)
+                }
+            }, contentAlignment = Alignment.Center) {
+                Box(Modifier.width(30.dp).height(4.dp).clip(CircleShape).background(secondary.copy(alpha = 0.55f)))
+            }
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(Res.string.mix_view_title), color = ink, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(Res.string.mix_overview_subtitle), color = secondary, fontSize = 13.sp)
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.semantics { contentDescription = closeLabel }) {
+                    Text("×", color = ink, fontSize = 28.sp)
+                }
+            }
+            Column(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(when {
+                    live -> Res.string.mix_overview_live
+                    completed -> Res.string.mix_overview_completed
+                    else -> Res.string.mix_overview_planned
+                }), color = scheme.onSecondaryContainer, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clip(CircleShape).background(scheme.secondaryContainer).padding(horizontal = 12.dp, vertical = 7.dp))
+                CompositionLocalProvider(LocalDeckHeaderInk provides ink, LocalDeckHeaderSecondary provides secondary, LocalStandardMixPanel provides true) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(Res.string.mix_overview_outgoing), color = secondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        DeckHeader(measured.outgoing, sweep)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(Res.string.mix_overview_incoming), color = secondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        DeckHeader(measured.incoming, sweep)
+                    }
+                }
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(scheme.surfaceContainerLowest)
+                    .padding(horizontal = 12.dp, vertical = 16.dp)) {
+                    MixDecks(measured, progress, live, sweep,
+                        outColors = WaveColors(scheme.onSurface.copy(alpha = 0.9f), scheme.onSurface.copy(alpha = 0.65f), scheme.onSurface.copy(alpha = 0.4f)),
+                        inColors = WaveColors(scheme.secondary, scheme.secondary.copy(alpha = 0.7f), scheme.secondary.copy(alpha = 0.45f)),
+                        chartInk = ink, chartPanel = scheme.surfaceContainerHigh, chartChip = scheme.secondaryContainer,
+                        chartChipInk = scheme.onSecondaryContainer, showDeckLabels = true)
+                }
+                Text(stringResource(Res.string.mix_overview_read_only), color = secondary, fontSize = 12.sp)
+            }
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                Text(stringResource(Res.string.mix_overview_done))
             }
         }
     }
@@ -444,9 +555,11 @@ private fun DeckNumbers(deck: MixDeck) {
 
 /** The two waveform decks, the transition frame across them, and the blend's length under them. */
 @Composable
-private fun MixDecks(view: MixTransitionView, progress: State<Float>, live: Boolean, sweep: State<Float>) {
-    val outColors = DefaultWaveColors
-    val inColors = DefaultWaveColors
+private fun MixDecks(view: MixTransitionView, progress: State<Float>, live: Boolean, sweep: State<Float>,
+    outColors: WaveColors = DefaultWaveColors, inColors: WaveColors = DefaultWaveColors,
+    chartInk: Color = Color.White, chartPanel: Color = PanelColor,
+    chartChip: Color = ChipColor, chartChipInk: Color = Color.White, showDeckLabels: Boolean = false,
+) {
     val pending = view.outgoing.analysing || view.incoming.analysing
     BoxWithConstraints(
         modifier = Modifier
@@ -463,39 +576,45 @@ private fun MixDecks(view: MixTransitionView, progress: State<Float>, live: Bool
                 .width(panelWidth)
                 .height(DecksHeight - 20.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(PanelColor.copy(alpha = 0.85f)),
+                .background(chartPanel.copy(alpha = 0.85f)),
         )
         Canvas(Modifier.fillMaxSize()) {
             val deckHeight = DeckHeight.toPx()
             val topDeck = DeckTop.toPx()
             val bottomDeck = size.height - DeckBottomInset.toPx() - deckHeight
-            drawDeck(view, outgoing = true, top = topDeck, height = deckHeight, colors = outColors, sweep = sweep)
-            drawDeck(view, outgoing = false, top = bottomDeck, height = deckHeight, colors = inColors, sweep = sweep)
+            drawDeck(view, outgoing = true, top = topDeck, height = deckHeight, colors = outColors, sweep = sweep, frameColor = chartInk.copy(alpha = 0.5f), faderColor = if (showDeckLabels) outColors.low else chartInk.copy(alpha = 0.9f), gridColor = chartInk, skeletonInk = outColors.low)
+            drawDeck(view, outgoing = false, top = bottomDeck, height = deckHeight, colors = inColors, sweep = sweep, frameColor = chartInk.copy(alpha = 0.5f), faderColor = if (showDeckLabels) inColors.low else chartInk.copy(alpha = 0.9f), gridColor = chartInk, skeletonInk = inColors.low)
             // The playhead, through both decks at once: they are the same moment.
             // Gone once the blend is over rather than parked at its end.
             if (live) {
                 val x = size.width * (BoxStart + (BoxEnd - BoxStart) * progress.value.coerceIn(0f, 1f))
                 drawLine(
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = chartInk.copy(alpha = 0.9f),
                     start = Offset(x, topDeck - 6.dp.toPx()),
                     end = Offset(x, bottomDeck + deckHeight + 6.dp.toPx()),
                     strokeWidth = 1.5.dp.toPx(),
                 )
             }
         }
+        if (showDeckLabels) {
+        Text(stringResource(Res.string.mix_overview_out), color = outColors.low, fontSize = 10.sp,
+            fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart))
+        Text(stringResource(Res.string.mix_overview_in), color = inColors.low, fontSize = 10.sp,
+            fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).offset(y = DecksHeight - DeckBottomInset - DeckHeight - 16.dp))
+        }
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .offset(x = width * ((BoxStart + BoxEnd) / 2f) - width / 2)
                 .clip(RoundedCornerShape(14.dp))
-                .background(ChipColor)
+                .background(chartChip)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
             // The blend's length is the planner's guess until both tracks are measured.
             if (pending) {
-                SkeletonBlock(sweep, Modifier.width(44.dp).height(13.dp))
+                SkeletonBlock(sweep, Modifier.width(44.dp).height(13.dp), ink = chartChipInk)
             } else {
                 val bars = (view.beats / 4f).roundToInt().coerceAtLeast(1)
                 Text(
@@ -504,7 +623,7 @@ private fun MixDecks(view: MixTransitionView, progress: State<Float>, live: Bool
                         bars == 1 -> stringResource(Res.string.mix_view_one_bar)
                         else -> stringResource(Res.string.mix_view_bars, bars)
                     },
-                    color = Color.White,
+                    color = chartChipInk,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                 )
@@ -528,6 +647,10 @@ private fun DrawScope.drawDeck(
     height: Float,
     colors: WaveColors,
     sweep: State<Float>,
+    frameColor: Color = FrameColor,
+    faderColor: Color = FaderColor,
+    gridColor: Color = Color.White,
+    skeletonInk: Color = Color.White,
 ) {
     val deck = if (outgoing) view.outgoing else view.incoming
     val boxLeft = size.width * BoxStart
@@ -543,7 +666,7 @@ private fun DrawScope.drawDeck(
         view.beatMarks.forEachIndexed { index, mark ->
             val x = boxLeft + boxWidth * mark
             drawLine(
-                color = Color.White.copy(alpha = if (index % 4 == 0) 0.14f else 0.06f),
+                color = gridColor.copy(alpha = if (index % 4 == 0) 0.14f else 0.06f),
                 start = Offset(x, top),
                 end = Offset(x, floor),
                 strokeWidth = 1.dp.toPx(),
@@ -586,7 +709,7 @@ private fun DrawScope.drawDeck(
         }
     } else if (deck.analysing || deck.decoding) {
         // Still being analysed or decoded: a skeleton of a waveform where this one will be.
-        drawWaveSkeleton(centre, half, sweep.value)
+        drawWaveSkeleton(centre, half, sweep.value, skeletonInk)
     } else {
         // Nothing coming — the decode failed: a flat line where the waveform would be.
         drawLine(
@@ -610,7 +733,7 @@ private fun DrawScope.drawDeck(
             lineTo(boxRight, top)
         }
     }
-    drawPath(edge, FrameColor, style = frame)
+    drawPath(edge, frameColor, style = frame)
 
     // The fader, along the frame.
     if (fader.isNotEmpty()) {
@@ -620,7 +743,7 @@ private fun DrawScope.drawDeck(
             val y = floor - (floor - centre) * level
             if (index == 0) line.moveTo(x, y) else line.lineTo(x, y)
         }
-        drawPath(line, FaderColor, style = frame)
+        drawPath(line, faderColor, style = frame)
     }
 }
 
@@ -631,8 +754,8 @@ private fun DrawScope.drawDeck(
  * the skeletons' highlight sweeping through them — reads as "a waveform is
  * coming" where a flat line read as silence.
  */
-private fun DrawScope.drawWaveSkeleton(centre: Float, half: Float, sweep: Float) {
-    val brush = skeletonBrush(size.width, sweep)
+private fun DrawScope.drawWaveSkeleton(centre: Float, half: Float, sweep: Float, ink: Color = Color.White) {
+    val brush = skeletonBrush(size.width, sweep, ink)
     val column = 2.dp.toPx()
     val step = 4.dp.toPx()
     val corner = CornerRadius(column / 2f)
@@ -771,6 +894,7 @@ internal fun MixViewOverlay(hazeState: HazeState) {
         visible = open,
         live = currentBlend != null,
         hazeState = hazeState,
+        completed = heldBlend && currentBlend == null,
         onDismiss = { MixViewRequest.open = false },
     )
 }

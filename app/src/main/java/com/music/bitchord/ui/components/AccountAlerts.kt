@@ -6,6 +6,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.Switch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -284,10 +287,11 @@ fun ServerEditorAlert(
     adaptiveSurface: Boolean = false,
     approvedPanel: Boolean = false,
     supportingText: String? = null,
+    pageSourceKey: Any? = null,
 ) {
     if (approvedPanel) {
         ApprovedSettingsPanel(
-            hazeState = hazeState, title = title, subtitle = description,
+            hazeState = hazeState, pageSourceKey = pageSourceKey, title = title, subtitle = description,
             onDismiss = { if (!testing) onDismiss() }, backEnabled = !testing, dragEnabled = !testing,
             footer = {
                 ApprovedPanelAction(if (testing) stringResource(R.string.testing) else stringResource(R.string.test),
@@ -436,6 +440,7 @@ fun ServerEditorHost(
     onDismiss: () -> Unit,
     adaptiveSurface: Boolean = false,
     approvedPanel: Boolean = false,
+    pageSourceKey: Any? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -447,6 +452,7 @@ fun ServerEditorHost(
     ServerEditorAlert(
         adaptiveSurface = adaptiveSurface,
         approvedPanel = approvedPanel,
+        pageSourceKey = pageSourceKey,
         hazeState = hazeState,
         title = title,
         description = description,
@@ -540,10 +546,12 @@ fun AddonEditorAlert(
     onDismiss: () -> Unit,
     adaptiveSurface: Boolean = false,
     approvedPanel: Boolean = false,
+    pageSourceKey: Any? = null,
 ) {
     ServerEditorAlert(
         adaptiveSurface = adaptiveSurface,
         approvedPanel = approvedPanel,
+        pageSourceKey = pageSourceKey,
         supportingText = if (approvedPanel) stringResource(R.string.panel_addon_help) else null,
         hazeState = hazeState,
         title = title,
@@ -590,55 +598,74 @@ fun WebDavConflictAlert(
     onKeepBoth: () -> Unit,
     onSkip: () -> Unit,
     onDismiss: () -> Unit,
+    pageSourceKey: Any? = null,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 19.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+    val scheme = MaterialTheme.colorScheme
+    val batch = showApplyToAll && applyToAll
+    ApprovedSettingsPanel(
+        hazeState = hazeState,
+        pageSourceKey = pageSourceKey,
+        title = stringResource(R.string.conflict_panel_title),
+        subtitle = stringResource(R.string.upload_to_webdav),
+        onDismiss = onDismiss,
+        onBack = onDismiss,
+        footer = {
             Text(
-                text = stringResource(R.string.webdav_conflict_title, fileName),
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
+                stringResource(if (batch) R.string.conflict_close_many else R.string.conflict_close_one),
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurface.copy(alpha = 0.85f),
             )
-            Text(
-                text = stringResource(R.string.webdav_conflict_message),
-                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-        }
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.webdav_keep_both),
-            emphasised = true,
-            onClick = onKeepBoth,
-        )
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.webdav_overwrite),
-            emphasised = false,
-            onClick = onOverwrite,
-        )
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.webdav_skip),
-            emphasised = false,
-            onClick = onSkip,
-        )
+            ApprovedPanelAction(stringResource(R.string.webdav_keep_both), onKeepBoth)
+            ApprovedPanelAction(stringResource(R.string.webdav_overwrite), onOverwrite,
+                style = ApprovedActionStyle.DESTRUCTIVE)
+            ApprovedPanelAction(stringResource(if (batch) R.string.conflict_skip_many else R.string.conflict_skip_one),
+                onSkip, style = ApprovedActionStyle.SECONDARY)
+        },
+    ) {
+        Text(fileName, style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
+        Text(stringResource(if (batch) R.string.conflict_scope_many else R.string.conflict_exists),
+            style = MaterialTheme.typography.bodyMedium, color = scheme.onSurface.copy(alpha = 0.85f))
+        Spacer(Modifier.height(24.dp))
+        ConflictOutcomeDescription(stringResource(R.string.webdav_keep_both),
+            stringResource(if (batch) R.string.conflict_keep_many else R.string.conflict_keep_one))
+        Spacer(Modifier.height(12.dp))
+        ConflictOutcomeDescription(stringResource(R.string.webdav_overwrite),
+            stringResource(if (batch) R.string.conflict_overwrite_many else R.string.conflict_overwrite_one),
+            destructive = true)
+        Spacer(Modifier.height(12.dp))
+        ConflictOutcomeDescription(stringResource(R.string.webdav_skip),
+            stringResource(if (batch) R.string.conflict_skip_detail_many else R.string.conflict_skip_detail_one))
         if (showApplyToAll) {
-            AlertRule()
-            ChoiceRow(
-                label = stringResource(R.string.webdav_apply_to_all),
-                detail = null,
-                checked = applyToAll,
-                onClick = { onApplyToAllChange(!applyToAll) },
-            )
+            Spacer(Modifier.height(24.dp))
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                    .toggleable(value = applyToAll, role = Role.Switch, onValueChange = onApplyToAllChange)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.webdav_apply_to_all), color = scheme.onSurface,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (batch) FontWeight.SemiBold else FontWeight.Normal)
+                    Text(stringResource(if (batch) R.string.conflict_scope_many else R.string.conflict_toggle_hint),
+                        color = scheme.onSurface.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(checked = applyToAll, onCheckedChange = null)
+            }
         }
+    }
+}
+
+@Composable
+private fun ConflictOutcomeDescription(label: String, detail: String, destructive: Boolean = false) {
+    val scheme = MaterialTheme.colorScheme
+    Column {
+        Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+            color = if (destructive) scheme.error else scheme.onSurface)
+        Text(detail, modifier = Modifier.padding(top = 6.dp),
+            style = MaterialTheme.typography.bodyMedium, color = scheme.onSurface.copy(alpha = 0.85f))
     }
 }
 
@@ -656,8 +683,9 @@ fun ConfirmationAlert(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    pageSourceKey: Any? = null,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
+    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss, pageSourceKey = pageSourceKey) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -707,6 +735,7 @@ fun InfoAlert(
      * once the player was closed, long after the tap it was answering.
      */
     inOwnWindow: Boolean = false,
+    pageSourceKey: Any? = null,
 ) {
     if (inOwnWindow) {
         Dialog(
@@ -721,7 +750,7 @@ fun InfoAlert(
             }
         }
     } else {
-        InfoAlertFrame(hazeState, title, description, onDismiss, frosted = true)
+        InfoAlertFrame(hazeState, title, description, onDismiss, frosted = true, pageSourceKey = pageSourceKey)
     }
 }
 
@@ -732,8 +761,9 @@ private fun InfoAlertFrame(
     description: String,
     onDismiss: () -> Unit,
     frosted: Boolean,
+    pageSourceKey: Any? = null,
 ) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss, frosted = frosted) {
+    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss, frosted = frosted, pageSourceKey = pageSourceKey) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -929,6 +959,7 @@ internal fun AlertScaffold(
      */
     frosted: Boolean = true,
     scrollContent: Boolean = false,
+    pageSourceKey: Any? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(ALERT_CORNER)
@@ -948,7 +979,7 @@ internal fun AlertScaffold(
             modifier = Modifier
                 .width(ALERT_WIDTH)
                 .then(if (scrollContent) Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp - 32).coerceAtLeast(160).dp) else Modifier)
-                .frostedCard(if (frosted) hazeState else null, MaterialTheme.colorScheme.surface, shape)
+                .frostedCard(if (frosted) hazeState else null, MaterialTheme.colorScheme.surface, shape, pageSourceKey = pageSourceKey)
                 .then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .clickable(
                     indication = null,

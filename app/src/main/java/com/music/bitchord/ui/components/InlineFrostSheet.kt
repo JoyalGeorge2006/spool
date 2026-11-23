@@ -170,6 +170,8 @@ fun InlineFrostSheet(
     dragEnabled: Boolean = true,
     /** False when an existing form host already owns hardware Back. */
     handleBack: Boolean = true,
+    /** Explicit sibling-source selection for this frame only; never inherited by children. */
+    pageSourceKey: Any? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
@@ -280,7 +282,7 @@ fun InlineFrostSheet(
                     .fillMaxWidth()
                     .onSizeChanged { height = it.height }
                     .offset { IntOffset(0, offset.roundToInt()) }
-                    .frostedCard(hazeState, containerColor, shape, frostStyle)
+                    .frostedCard(hazeState, containerColor, shape, frostStyle, pageSourceKey)
                     .semantics {
                         isTraversalGroup = true
                         paneTitle?.let { this.paneTitle = it }
@@ -348,6 +350,7 @@ fun InlineFrostDialog(
     containerColor: Color = MaterialTheme.colorScheme.surface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     width: Dp = ALERT_WIDTH,
+    pageSourceKey: Any? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onDismiss)
@@ -372,7 +375,7 @@ fun InlineFrostDialog(
         Column(
             modifier = Modifier
                 .width(width)
-                .frostedCard(hazeState, containerColor, shape)
+                .frostedCard(hazeState, containerColor, shape, pageSourceKey = pageSourceKey)
                 .semantics {
                     isTraversalGroup = true
                     paneTitle?.let { this.paneTitle = it }
