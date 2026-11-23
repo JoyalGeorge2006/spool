@@ -20,7 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: c83023d4
+        ref: c83023d4f713c6cea31d416a036189e7bd90ea37
     - name: Wait for signed candidate and download exact artifact
       run: |
         set -euo pipefail
@@ -95,7 +95,7 @@ jobs:
         existing=subprocess.run(['gh','api',f'repos/{repo}/releases/tags/{tag}'],capture_output=True,text=True)
         assert existing.returncode!=0,'Release already exists: stop rather than overwrite'
         notes=''
-        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','c83023d4','--draft','--title','Spool 2.1.5','--notes',notes],check=True)
+        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','c83023d4f713c6cea31d416a036189e7bd90ea37','--draft','--title','Spool 2.1.5','--notes',notes],check=True)
         assets=[p for p in out.iterdir() if p.suffix in ['.apk','.spdelta'] or p.name=='spool-v2.1.5-source.tar.gz']
         subprocess.run(['gh','release','upload',tag,'--repo',repo]+[str(p) for p in assets],check=True)
         r=json.loads(cmd('gh','api',f'repos/{repo}/releases/tags/{tag}'));assert r['draft']
