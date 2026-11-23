@@ -148,7 +148,7 @@ jobs:
                       name = 'spool-%d%s-to-%d.spdelta' % (code, suffix, tcode)
                       slot[kind] = (name, r['tag_name'], a['name'], str(code),
                                     str(a['size']), a['digest'].replace('sha256:', ''))
-              for code in sorted(cands, reverse=True)[:MAX_BASE_RELEASES]:
+              for code in sorted(cands, reverse=True)[:(4 if tcode == 64 else MAX_BASE_RELEASES)]:
                   for kind in ('universal', 'arm64'):
                       if kind in cands[code]:
                           rows.append(cands[code][kind])
@@ -271,6 +271,28 @@ jobs:
           set -a; . ./target.env; set +a
           python3 - <<'RETAIN_EOF'
           import hashlib, json, os, struct, subprocess
+          if os.environ['TAG'] == 'v2.1.5':
+              import pathlib
+              assert int(os.environ['TCODE']) == 64
+              base_hash = '1126371f6446c2bc115c0311935f769ffe57c92e8eedaec1dba31c5da69f7046'
+              subprocess.run(['gh','run','download','44994216959','--repo',os.environ['REPO'],'--name','spool-2.1.2-reviewed-candidate-44994216959-1','--dir','test-base59-v215'],check=True)
+              bases = [p for p in pathlib.Path('test-base59-v215').rglob('*.apk') if p.stat().st_size == 84374401 and hashlib.sha256(p.read_bytes()).hexdigest() == base_hash]
+              assert len(bases) == 1, 'Exact private test base not recovered'
+              name = 'spool-59-arm64-to-64.spdelta'
+              subprocess.run(['gh','release','download','v2.1.5','--repo',os.environ['REPO'],'--pattern',name,'--output','retained64.spdelta','--clobber'],check=True)
+              release = json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['REPO']+'/releases/tags/v2.1.5']))
+              assets = [a for a in release['assets'] if a['name'] == name]
+              assert len(assets) == 1
+              asset = assets[0];payload = pathlib.Path('retained64.spdelta').read_bytes()
+              phash = hashlib.sha256(payload).hexdigest()
+              assert asset['state'] == 'uploaded' and asset['size'] == len(payload) and asset['digest'] == 'sha256:'+phash
+              subprocess.run(['java','-Xmx64m','-cp','classes','DeltaApply',str(bases[0]),'retained64.spdelta','test59-to64-roundtrip.apk','84374401',os.environ['TSIZE'],base_hash,os.environ['THASH']],check=True)
+              subprocess.run(['cmp','test59-to64-roundtrip.apk','target.apk'],check=True)
+              rows = open('used.tsv').read().splitlines();assert all(r.split('\t')[1] != '59' for r in rows)
+              with open('used.tsv','a') as f:f.write('\t'.join([name,'59','84374401',base_hash,str(len(payload)),phash])+'\n')
+              with open('ids.txt','a') as f:f.write(str(asset['id'])+'\n')
+              print('Retained exact decoder-verified private59 to production64 patch')
+              raise SystemExit(0)
           expected_target = '7eca7902aceb8f730ae2026a90250caa4d53b885bf6105d89d2030f662cf1d19'
           if os.environ['TAG'] != 'v2.1.4':
               raise SystemExit(0)
