@@ -1,5 +1,6 @@
 name: Verify original held contextual menu stable rows
 on:
+  workflow_dispatch:
   push:
     branches: [spool-song-menu-cleanup]
     paths: [.github/workflows/spool-context-proof.yml]
@@ -13,10 +14,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Update focused visual tests only
         run: |
+          set -o pipefail
           python3 - <<'PYTEST'
           from pathlib import Path
           import gzip,base64
-          Path('app/src/test/java/com/music/bitchord/ContextStableRowsTest.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIAKUoBGsC/7VWbW/bNhD+7l/BCf0grQb7CgxIpi1ukrYGEqeNve3DMAS0REucKVIlqbwZ/u+7IyXbqWM3RbEEkMXj8V6ee+7EmmVzVnCS6YpWjRUZnQqXldrkvZ6oam0cYSo3WuS3FHRqbTmd6UblzAmtqGR3unH056foTsFVYXC9U7sRtFHC0bzeqWIa5UTF97gEI+c6FzPBzT4dx63bb8Vr/IsBvaWZ4czx47B52UjeHUTgCuHKZkodm7NSGBAYPdWG3d8LeglvkmfOiOyEX4uMf26Y9LHZJ1rIWO0aw9HQsIJSbR57WDEKQDNa6ZxLeibmfOyYa+zT9MdaFXs0AQ0PjOLK2TVqj2u6kkOB3gl3jJIJrroD2hQBUTqwlhtHmf85/QKo2G2lTaDX0gnUZVsKxFDcwBH1F4C5uW/WNdisB5q59Id2KTOltAvkPdZqJoonKH4wrC5FZoGCvNc7asOJH/V7cJBJACDpHW2eijcX1D9Gg8nwz1PQC2HENp+TlPz95u0/ffJlRSgQ7aEb/SRuufwl6XmfBCw5fuuAI1MJ5LqxGBZZ9MhRwd0BAk+umSRtO6Rb/I+THqmNuAYpmTWKZCXP5nHOzPzgnYYYmErQGhnfWccrarn7ZHQNtb6LozW5fYsZngFPon7kTMMjsAueDZGa5UIVZHpHqsZHiXzmF7MY1Totqx9VQTrHkfUyMByyJBVXDXEG5hDIBsYJ66K+aqRMOnNMTpvKpi8P/cJrwKrdLLnMt339+hHEQ8jx999ibwu0uyECWXucFSBLHjSER8q/pfgWsPKIl+yepwY2qik3cCzn1zQrjbBTpriluE0/wsO7jxOyxIPv9G3cDT06E1Kes9uxuIf9jbEbbw25CkwYweQbet6++ZBgX2ozzvz7+nzSRgnckU2l1g5rlmOpYqfr9NXrlzC+V6pkj88J8C+OzgBjrnzZ4Q8LB2yMsa4pPvpaHUuRzdPFEl7PQPLJcGvTBVYjXa0vjCiEAifKNoBusgz2PDhYoJbu58CAWECxUjGL0cJPqa9Z4BGXlhNc971xfPTLDuoU3yCEE2ErsQoAtTEwCOJa8JsQajAZAMCEBhmOBuudrxOzolA8H6oU+dyXq4Gdrmc3HY5Ohu/fn16ejiZ9SFPLa8D5TKi5Tdv+6AfcIAL4Fo8gxQDUIM8n+nPDGx7WYM+4Szihw/pE3yi00O6WzLSKE10UkmMIm2tIWq5E3ja6k1A6FHUhXNRcDbCD0kVopOfPUd+LfS+BPPQUbPgCYX2W+L/RNFqNYObh1AwE2W7ehMIgmWlTTXSTlUNVN9hfEkD1+LdN0dm7YcK912aYh6Hlp9UU+WzjJMUUYF5EGGPofhgNYdHOhwgrSISaafBbsZosdgQqXEJnHD6DY14xuKRkFrexA72zobrU2i3bAGypXawOxjCpVZGka5MDKfGYjYVF/ThJQHjGLLxtXQXiaNoImb+AKxhAYF+s5uqLLND9KkzAq2cLoHuYMxH+RIHqkRRF6aLl1TNFa1VEyS7UDnfWBokDuITP+NACT2ogBs/hDA6zKYcy8bSD+9CnHbXUfeDva8sbBVmbH2l3qjCjPP722VC/bx6Ge8OFwjTJoo0rncFlhO+k0OHmnSUOGfa7DLsUFVyVvsqvq+w6zhEq9RvL/1AVNwXPJ4ZzPw66qI/BbOfp9Y6oVxMFpl99F3vMhnkatWz2PyMGH5rI9yZR8A5iD4/Xa4H6sYT9Rf/7K7qqSNfSbQd/d3X3GHoQ/qsAiP0qq1ctIPb7QPYfizXCfvD/GI7e2NUj9Pm/22PjJGRw5K+DflKFEYJjA+ZluOa1N7AtJT9PVlq+jZLesvcf3Yq62GUOAAA=')))
+          Path('app/src/test/java/com/music/bitchord/ContextStableRowsTest.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIAFMvBGsC/7VWbW/bNhD+7l/BCf0grQb7CgxIpi1ukrYGEqeNve3DMAS0REucKVIlqbwZ/u+7IyXbqWM3RbEEkMXj8V6ee+7EmmVzVnCS6YpWjRUZnQqXldrkvZ6oam0cYSo3WuS3FHRqbTmd6UblzAmtqGR3unH056foTsFVYXC9U7sRtFHC0bzeqWIa5UTF97gEI+c6FzPBzT4dx63bb8Vr/IsBvaWZ4czx47B52UjeHUTgCuHKZkodm7NSGBAYPdWG3d8LeglvkmfOiOyEX4uMf26Y9LHZJ1rIWO0aw9HQsIJSbR57WDEKQDNa6ZxLeibmfOyYa+zT9MdaFXs0AQ0PjOLK2TVqj2u6kkOB3gl3jJIJrroD2hQBUTqwlhtHmf85/QKo2G2lTaDX0gnUZVsKxFDcwBH1F4C5uW/WNdisB5q59Id2KTOltAvkPdZqJoonKH4wrC5FZoGCvNc7asOJH/V7cJBJACDpHW2eijcX1D9Gg8nwz1PQC2HENp+TlPz95u0/ffJlRSgQ7aEb/SRuufwl6XmfBCw5fuuAI1MJ5LqxGBZZ9MhRwd0BAk+umSRtO6Rb/I+THqmNuAYpmTWKZCXP5nHOzPzgnYYYmErQGhnfWccrarn7ZHQNtb6LozW5fYsZngFPon7kTMMjsAueDZGa5UIVZHpHqsZHiXzmF7MY1Totqx9VQTrHkfUyMByyJBVXDXEG5hDIBsYJ66K+aqRMOnNMTpvKpi8P/cJrwKrdLLnMt339+hHEQ8jx999ibwu0uyECWXucFSBLHjSER8q/pfgWsPKIl+yepwY2qik3cCzn1zQrjbBTpriluE0/wsO7jxOyxIPv9G3cDT06E1Kes9uxuIf9jbEbbw25CkwYweQbet6++ZBgX2ozzvz7+nzSRgnckU2l1g5rlmOpYqfr9NXrlzC+V6pkj88J8C+OzgBjrnzZ4Q8LB2yMsa4pPvpaHUuRzdPFEl7PQPLJcGvTBVYjXa0vjCiEAifKNoBusgz2PDhYoJbu58CAWECxUjGL0cJPqa9Z4BGXlhNc971xfPTLDuoU3yCEE2ErsQoAtTEwCOJa8JsQajAZAMCEBhmOBuudrxOzolA8H6oU+dyXq4Gdrmc3HY5Ohu/fn16ejiZ9SFPLa8D5TKi5Tdv+6AfcIAL4Fo8gxQDUIM8n+nPDGx7WYM+4Szihw/pE3yi00O6WzLSKE10UkmMIm2tIWq5E3ja6k1A6FHUhXNRcDbCD0kVopOfPUd+LfS+BPPQUbPgCYX2W+L/RNFqNYObh1AwE2W7ehMIgmWlTTXSTlUNVN9hfEkD1+LdN0dm7YcK912aYh6Hlp9UU+WzjJMUUYF5EGGPofhgNYdHOhwgrSIZqpsFvxWqy2BGocAmdcfgMjnnF4JKSWdzGDvTOhupSa7dsA7CldrE6GMOkVkWSrk0OpMRjNhYW9eMkAeEZs/C2dRWIo2kjZP4CrmAAgX2xmqsvskD3qzABr54tgO5hzkT4EwWqR1IUpYuWV88UrVURJbtQO9xZGyQO4BI+40MLPKmBGDyHMzjMphzKxNMO7kOfdtRS94G/ry1vFGRtfqTdqcKM8vjbZ0P9vnkY7g0XCtMkizaudAaXEb6TQoebd5Y4ZNjvMuxSVHBV+iq/rrLrOEeo1G8s/0NV3BQ8nxjO/Tjooj4Gs52n1zuiXk0UmH71XewxG+Zp1LLZ/4wYfGgi35tEwTuIPTxerwXqxxL2F/3vr+iqIl1Ltx383dXdY+hB+K8CIParrF61gNjvA9l/LNYI+8H/Yzh6Y1eP0Of/bo+Nk5DBkb8O+kkVRgiODZiX4ZrX3sC2lPw8WWn5Nkp6y95/OngKzWUOAAA=')))
           PYTEST
           git diff --check
           git config user.name github-actions[bot]
@@ -30,12 +32,14 @@ jobs:
           java-version: '17'
       - name: Prepare Android platform
         run: |
+          set -o pipefail
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
           cat > /tmp/platform.gradle <<'INIT'
           allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
           INIT
       - name: Render complete action menus and Library
         run: |
+          set -o pipefail
           ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.ContextStableRowsTest --no-daemon --stacktrace 2>&1 | tee complete-proof.log
       - uses: actions/upload-artifact@v4
         if: always()
