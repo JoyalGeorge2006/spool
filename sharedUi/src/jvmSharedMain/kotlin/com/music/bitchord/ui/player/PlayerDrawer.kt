@@ -106,6 +106,13 @@ fun PlayerDrawer(
     modifier: Modifier = Modifier,
     /** Air between the title and whatever the drawer opens with. */
     titleGap: Dp = 14.dp,
+    /**
+     * The panel's fill, frosted or solid. The player's fixed charcoal unless
+     * the sheet passes a theme colour to follow the app palette.
+     */
+    containerColor: Color = MenuFrostDark,
+    /** Title and grab-handle colour; pure white on the player's charcoal. */
+    contentColor: Color = Color.White,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // The Blur effects switch AND this phone's support, answered by the
@@ -216,9 +223,9 @@ fun PlayerDrawer(
                     // the Blur effects switch; the solid fill when it is off
                     // or the phone cannot sample the window.
                     if (frostOn) {
-                        Modifier.hazeEffect(state = hazeState, style = FrostMaterial.style(MenuFrostDark))
+                        Modifier.hazeEffect(state = hazeState, style = FrostMaterial.style(containerColor))
                     } else {
-                        Modifier.background(MenuFrostDark)
+                        Modifier.background(containerColor)
                     }
                 )
                 .clickable(
@@ -251,7 +258,7 @@ fun PlayerDrawer(
                     .padding(bottom = 12.dp)
                     .size(width = 36.dp, height = 4.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.25f)),
+                    .background(contentColor.copy(alpha = 0.25f)),
             )
             Text(
                 text = title,
@@ -259,7 +266,7 @@ fun PlayerDrawer(
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                color = Color.White,
+                color = contentColor,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 4.dp, bottom = titleGap),
