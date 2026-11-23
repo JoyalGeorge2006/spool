@@ -46,6 +46,7 @@ class OverflowScrollScreenshotTest {
                                 signedIn = true, likeStatus = LikeStatus.INDIFFERENT,
                                 onPlayNext = {}, onAddToQueue = {}, onStartRadio = {}, onDownload = {},
                                 onToggleLike = {}, onToggleDislike = {}, onAddToPlaylist = {},
+                                onUpgradeQuality = { error("Removed action must not run") },
                                 onOpenAlbum = {}, onOpenArtist = {},
                                 onShare = {}, onCopyLog = { copies++ }, onLyricsOffset = {},
                                 showSleepTimer = true,
@@ -56,6 +57,11 @@ class OverflowScrollScreenshotTest {
                 }
             }
             compose.waitForIdle()
+            compose.onNodeWithText("Upgrade quality", useUnmergedTree = true).assertDoesNotExist()
+            compose.onNodeWithText("Like", useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText("Dislike", useUnmergedTree = true).assertIsDisplayed()
+            compose.onAllNodes(isRoot()).onLast().captureRoboImage(
+                "build/outputs/roborazzi/menu_top_${page}_${if (dark) "dark" else "light"}.png")
             val target = when (page) {
                 "sleep" -> "Sleep timer"
                 "info" -> "Song info"
