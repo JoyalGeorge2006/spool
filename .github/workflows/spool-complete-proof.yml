@@ -1,8 +1,6 @@
 name: Render complete menu actions and corrected Library proof
 on:
-  push:
-    branches: [spool-song-menu-cleanup]
-    paths: [.github/workflows/spool-complete-proof.yml]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -13,6 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Update focused visual tests only
         run: |
+          set -o pipefail
           python3 - <<'PYTEST'
           from pathlib import Path
           import gzip,base64
@@ -32,12 +31,14 @@ jobs:
           java-version: '17'
       - name: Prepare Android platform
         run: |
+          set -o pipefail
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
           cat > /tmp/platform.gradle <<'INIT'
           allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
           INIT
       - name: Render complete action menus and Library
         run: |
+          set -o pipefail
           ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.SparkRatingMotionTest --tests com.music.bitchord.StableMenuRowsTest --tests com.music.bitchord.LibrarySpacingProofTest --no-daemon --stacktrace 2>&1 | tee complete-proof.log
       - uses: actions/upload-artifact@v4
         if: always()
