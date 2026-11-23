@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -139,6 +140,9 @@ fun LibraryScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER + if (floatingTitle) 112.dp else 0.dp, top = 8.dp, bottom = 8.dp),
                     )
+                    // Keep the next full-width row clear of the 48dp floating
+                    // controls - the same gap Home carries (see HomeScreen).
+                    if (floatingTitle) Spacer(Modifier.height(20.dp))
                 }
             }
             item(key = "replay") { replay() }
