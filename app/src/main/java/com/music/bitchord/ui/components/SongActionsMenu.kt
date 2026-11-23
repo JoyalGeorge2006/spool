@@ -298,7 +298,7 @@ fun SongActionsMenu(
         // Where the track goes next, and what is kept of it. The file rows
         // ride in this group rather than one of their own because for a
         // device file they can all be absent, and a group may not be empty.
-        if (startsGroup()) IosMenuSeparator()
+        startsGroup()
         ActionRow(
             icon = SfIcons.Radio,
             label = stringResource(R.string.start_radio),
@@ -340,7 +340,7 @@ fun SongActionsMenu(
         onAudioOutput?.let { ActionRow(SfIcons.VolumeUp, org.jetbrains.compose.resources.stringResource(Res.string.audio_output), accent = palette.accent, onClick = it) }
         onPartyMembers?.let { ActionRow(SfIcons.Person, stringResource(R.string.listen_together), accent = palette.accent, onClick = it) }
 
-        if (startsGroup()) IosMenuSeparator()
+        startsGroup()
         // Keep destinations present and the description slot stable during lookup.
         StableDestinationRow(
             icon = if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Album else SfIcons.Album,
