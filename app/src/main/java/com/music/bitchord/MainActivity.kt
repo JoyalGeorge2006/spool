@@ -3471,7 +3471,7 @@ private fun BitChordApp(
                                 signInBannerDismissed = homeSignInBannerDismissed,
                                 onDismissSignInBanner = AppSettings::dismissHomeSignInBanner,
                                 onSignIn = { webSession = WebSessionMode.SIGN_IN },
-                                onSearchClick = { selectedTab = TAB_SEARCH },
+                                onSearchClick = { searchFocusRequested = true; selectedTab = TAB_SEARCH },
                                 onHistoryClick = {
                                     navigator.push(AppRoute.History)
                                     viewModel.loadHistory()
