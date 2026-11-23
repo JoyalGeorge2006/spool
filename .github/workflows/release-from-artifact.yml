@@ -1,0 +1,170 @@
+name: Spool 2.1.4 publish from verified candidate and OTA
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Successful "Spool 2.1.4 release candidate build (no publish)" run id on spool-2.1.4-release'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: spool-final-v214-release
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  REPO: JoyalGeorge2006/spool
+  TAG: v2.1.4
+  RUN_ID: ${{ inputs.run_id }}
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/spool-2.1.4-release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      published: ${{ steps.gate.outputs.published }}
+    steps:
+    - name: Validate the candidate run and resolve its artifact
+      id: src
+      run: |
+        set -euo pipefail
+        run=$(gh api repos/$REPO/actions/runs/$RUN_ID)
+        test "$(jq -r .conclusion <<<"$run")" = 'success'
+        test "$(jq -r .head_branch <<<"$run")" = 'spool-2.1.4-release'
+        test "$(jq -r .name <<<"$run")" = 'Spool 2.1.4 release candidate build (no publish)'
+        test "$(jq -r .event <<<"$run")" = 'workflow_dispatch'
+        aname=$(gh api repos/$REPO/actions/runs/$RUN_ID/artifacts | jq -r '.artifacts[].name' | grep '^spool-214-release-' | head -1)
+        test -n "$aname"
+        echo "artifact=$aname" >> "$GITHUB_OUTPUT"
+        jq -r .head_sha <<<"$run" > /tmp/candidate-head-sha.txt
+    - name: Download candidate files
+      run: |
+        set -euo pipefail
+        gh run download "$RUN_ID" --repo "$REPO" -n '${{ steps.src.outputs.artifact }}' -D release-output
+    - name: Re-verify candidate hashes and identity
+      run: |
+        set -euo pipefail
+        cd release-output
+        sha256sum -c SHA256SUMS.txt
+        python3 - <<'PY'
+        import json, subprocess
+        m = json.load(open('manifest.json'))
+        assert m['version'] == '2.1.4' and m['code'] == 63
+        assert m['package'] == 'app.spool.music'
+        assert m['certificate_sha256'] == 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+        assert m['run_id'] and m['run_attempt']  # recorded at build time; head_sha is the binding
+        head = open('/tmp/candidate-head-sha.txt').read().strip()
+        assert m['commit'] == head, (m['commit'], head)
+        tip = subprocess.check_output(['gh', 'api', 'repos/JoyalGeorge2006/spool/branches/spool-2.1.4-release', '--jq', '.commit.sha'], text=True).strip()
+        assert tip == m['commit'], (tip, m['commit'])
+        print('candidate identity verified:', m['commit'], m['tree'])
+        PY
+    - name: Write approved release notes
+      run: |
+        cat > /tmp/release-notes.md <<'EOF'
+        • Fixed the mini player's frosted background.
+        • Audio output and Lyrics offset now follow the selected Appearance palette, including wallpaper colors when Material You is selected.
+        • Added spacing between the Library cards and floating controls.
+        • Improved frosted backgrounds across menus, dialogs and sheets.
+        EOF
+    - name: Guard repository state, tag, publish and verify
+      id: gate
+      run: |
+        set -euo pipefail
+        echo 'published=false' >> "$GITHUB_OUTPUT"
+        latest=$(gh api repos/$REPO/releases/latest)
+        test "$(jq -r .tag_name <<<"$latest")" = 'v2.1.1'
+        test "$(jq -r .draft <<<"$latest")" = 'false'
+        test "$(jq -r .prerelease <<<"$latest")" = 'false'
+        for path in "git/ref/tags/$TAG" "releases/tags/$TAG"; do
+          if gh api "repos/$REPO/$path" >/dev/null 2>&1; then
+            echo "Existing $path: stop for state reconciliation"
+            exit 1
+          fi
+        done
+        commit=$(python3 -c "import json;print(json.load(open('release-output/manifest.json'))['commit'])")
+        gh api repos/$REPO/git/refs -f "ref=refs/tags/$TAG" -f "sha=$commit"
+        gh release create "$TAG" --repo "$REPO" --draft --title 'Spool 2.1.4' --notes-file /tmp/release-notes.md \
+          release-output/spool.apk \
+          release-output/Spool-2.1.4-arm64-v8a.apk \
+          release-output/spool-v2.1.4-source.tar.gz \
+          release-output/SHA256SUMS.txt
+        gh release edit "$TAG" --repo "$REPO" --draft=false --prerelease=false --latest
+        now=$(gh api repos/$REPO/releases/latest)
+        test "$(jq -r .tag_name <<<"$now")" = "$TAG"
+        test "$(jq -r .draft <<<"$now")" = 'false'
+        test "$(jq -r .prerelease <<<"$now")" = 'false'
+        jq -r .html_url <<<"$now"
+        echo "$now" > published-release.json
+        echo 'published=true' >> "$GITHUB_OUTPUT"
+    - name: Upload publication evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: spool-214-publication-${{ github.run_id }}-${{ github.run_attempt }}
+        path: published-release.json
+        if-no-files-found: warn
+        retention-days: 7
+
+  ota:
+    if: github.ref == 'refs/heads/spool-2.1.4-release' && needs.publish.outputs.published == 'true'
+    needs: publish
+    uses: JoyalGeorge2006/spool/.github/workflows/ota-delta-publish.yml@d55ff585f5886c93162c3e65d414ac5c0f53049c
+    with:
+      release_tag: v2.1.4
+
+  postverify:
+    if: github.ref == 'refs/heads/spool-2.1.4-release' && needs.publish.outputs.published == 'true'
+    needs: [publish, ota]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+    - name: Download candidate files
+      run: |
+        set -euo pipefail
+        aname=$(gh api repos/$REPO/actions/runs/$RUN_ID/artifacts | jq -r '.artifacts[].name' | grep '^spool-214-release-' | head -1)
+        test -n "$aname"
+        gh run download "$RUN_ID" --repo "$REPO" -n "$aname" -D release-output
+    - name: Verify live public release, assets and OTA catalog binding
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import json, subprocess, urllib.request
+        REPO = 'JoyalGeorge2006/spool'
+        TAG = 'v2.1.4'
+        def gh(*a):
+            return subprocess.check_output(['gh', *a], text=True)
+        latest = json.loads(gh('api', 'repos/' + REPO + '/releases/latest'))
+        assert latest['tag_name'] == TAG and not latest['draft'] and not latest['prerelease']
+        assets = {a['name']: a for a in latest['assets']}
+        for n in ['spool.apk', 'Spool-2.1.4-arm64-v8a.apk', 'spool-v2.1.4-source.tar.gz', 'SHA256SUMS.txt', 'spool-ota-v1.json']:
+            assert n in assets and assets[n]['state'] == 'uploaded', n
+        patches = [n for n in assets if n.endswith('.spdelta')]
+        assert patches, 'no delta patches attached'
+        catalog = json.loads(urllib.request.urlopen(assets['spool-ota-v1.json']['browser_download_url'], timeout=60).read())
+        manifest = json.loads(open('release-output/manifest.json').read())
+        expect = manifest['files']['spool.apk']
+        matched = False
+        for p in catalog['patches']:
+            assert p['target_version'] == '2.1.4' and p['target_sha256'] == expect['sha256'] and p['target_size'] == expect['size']
+            matched = True
+        assert matched, 'catalog has no patches for this target'
+        sums = urllib.request.urlopen(assets['SHA256SUMS.txt']['browser_download_url'], timeout=60).read().decode()
+        for n, v in manifest['files'].items():
+            assert v['sha256'] + '  ' + n in sums, n
+            assert assets[n]['digest'] == 'sha256:' + v['sha256'], n
+            assert assets[n]['size'] == v['size'], n
+        for n in ['spool.apk', 'Spool-2.1.4-arm64-v8a.apk']:
+            req = urllib.request.Request(assets[n]['browser_download_url'], method='HEAD')
+            status = urllib.request.urlopen(req, timeout=60).status
+            assert status == 200, (n, status)
+        print('LIVE PUBLIC VERIFICATION PASSED:', latest['html_url'])
+        print('assets:', sorted(assets))
+        print('patches:', patches)
+        PY
