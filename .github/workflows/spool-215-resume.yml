@@ -1,0 +1,94 @@
+name: Spool 2.1.5 resume verified draft
+on:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-215-resume.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: spool-215-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: JoyalGeorge2006/spool
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: c83023d4f713c6cea31d416a036189e7bd90ea37
+    - name: Recover verified publication evidence and existing draft assets
+      run: |
+        set -euo pipefail
+        gh run download 45201843455 --repo "$REPO" --name spool-215-publication-evidence --dir evidence
+        find evidence -type f
+        python3 - <<'PYREC'
+        import json,pathlib,subprocess,hashlib,os
+        repo=os.environ['REPO'];root=pathlib.Path('evidence')
+        plans=list(root.rglob('patch-plan.json'));assert len(plans)==1
+        plan=json.loads(plans[0].read_text());assert len(plan)==9
+        releases=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases?per_page=100'],text=True))
+        drafts=[r for r in releases if r['name']=='Spool 2.1.5' and r['draft']]
+        assert len(drafts)==1,drafts
+        r=drafts[0];pathlib.Path('draft-id.txt').write_text(str(r['id']))
+        out=pathlib.Path('candidate');out.mkdir();pathlib.Path('ota').mkdir()
+        for a in r['assets']:
+            p=out/a['name']
+            with p.open('wb') as f:subprocess.run(['gh','api',f"repos/{repo}/releases/assets/{a['id']}",'-H','Accept: application/octet-stream'],stdout=f,check=True)
+            assert p.stat().st_size==a['size'] and 'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()==a['digest']
+        mps=list(root.rglob('manifest.json'));assert len(mps)==1
+        m=json.loads(mps[0].read_text());assert m['commit']=='c83023d4f713c6cea31d416a036189e7bd90ea37' and m['code']==64 and m['package']=='app.spool.music'
+        for n,v in m['files'].items():assert hashlib.sha256((out/n).read_bytes()).hexdigest()==v['sha256']
+        for e in plan:assert hashlib.sha256((out/e['name']).read_bytes()).hexdigest()==e['patch_sha256']
+        (out/'manifest.json').write_text(json.dumps(m));pathlib.Path('ota/patch-plan.json').write_text(json.dumps(plan))
+        PYREC
+    - name: Stage complete draft release and catalog, then publish OTA
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import json,subprocess,pathlib,os,hashlib,urllib.request
+        repo=os.environ['REPO'];out=pathlib.Path('candidate');tag='v2.1.5'
+        def cmd(*a):return subprocess.check_output([str(v) for v in a],text=True)
+        def sha(p):return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+        rid=pathlib.Path('draft-id.txt').read_text().strip()
+        r=json.loads(cmd('gh','api',f'repos/{repo}/releases/{rid}'));assert r['draft'] and r['name']=='Spool 2.1.5'
+        assets=[p for p in out.iterdir() if p.suffix in ['.apk','.spdelta'] or p.name=='spool-v2.1.5-source.tar.gz']
+        by={a['name']:a for a in r['assets']};cat=json.loads(pathlib.Path('ota/patch-plan.json').read_text())
+        for e in cat:
+            name=e.pop('name');a=by[name];assert a['size']==e['patch_size'] and a['digest']=='sha256:'+e['patch_sha256'];e['patch_asset_id']=str(a['id'])
+        (out/'spool-ota-v1.json').write_text(json.dumps(dict(schema=1,patches=cat),indent=2))
+        files=assets+[out/'spool-ota-v1.json'];(out/'SHA256SUMS.txt').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in sorted(files)))
+        for name in ['spool-ota-v1.json','SHA256SUMS.txt']:
+            req=urllib.request.Request(r['upload_url'].split('{')[0]+'?name='+name,data=(out/name).read_bytes(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/octet-stream'},method='POST')
+            with urllib.request.urlopen(req) as response: assert response.status==201
+        subprocess.run(['gh','api','--method','PATCH',f'repos/{repo}/releases/{rid}','-f','tag_name=v2.1.5','-f','target_commitish=c83023d4f713c6cea31d416a036189e7bd90ea37','-F','draft=false','-f','make_latest=true'],check=True)
+        PY
+    - name: Verify live OTA catalog, published patches and APK bytes
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import subprocess,json,pathlib,hashlib,urllib.request,os
+        repo=os.environ['REPO'];r=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/latest'],text=True));assert r['tag_name']=='v2.1.5' and not r['draft'] and not r['prerelease']
+        out=pathlib.Path('candidate');pub=pathlib.Path('public-check');pub.mkdir()
+        for a in r['assets']:
+            p=pub/a['name'];urllib.request.urlretrieve(a['browser_download_url'],p)
+            assert hashlib.sha256(p.read_bytes()).hexdigest()==hashlib.sha256((out/a['name']).read_bytes()).hexdigest(),a['name']
+            print('PUBLIC BYTES VERIFIED',a['name'],a['browser_download_url'],flush=True)
+        cat=json.loads((pub/'spool-ota-v1.json').read_text());assert len(cat['patches'])==9 and set(e['base_code'] for e in cat['patches'])=={56,57,58,59,63}
+        assert all(e['target_code']==64 and e['package']=='app.spool.music' for e in cat['patches'])
+        print('OTA LIVE VERIFIED BEFORE APK DELIVERY',r['html_url'])
+        PY
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      if: always()
+      with:
+        name: spool-215-publication-evidence
+        path: |
+          candidate/manifest.json
+          candidate/SHA256SUMS.txt
+          candidate/spool-ota-v1.json
+          ota/patch-plan.json
+        if-no-files-found: warn
