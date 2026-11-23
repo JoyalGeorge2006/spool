@@ -27,7 +27,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Compile before emulator boot
         run: |
-          ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest -Pandroid.injected.build.abi=x86_64 --no-daemon --max-workers=2 -Dorg.gradle.jvmargs=-Xmx3g
+          ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest -Pbitchord.bundleWear=false -Pandroid.injected.build.abi=x86_64 --no-daemon --max-workers=2 -Dorg.gradle.jvmargs=-Xmx3g
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
