@@ -18,6 +18,7 @@ jobs:
           java-version: '17'
       - name: Prepare Android SDK
         run: |
+          set -o pipefail
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
           cat > /tmp/platform.gradle <<'INIT'
           allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
@@ -27,6 +28,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Compile before emulator boot
         run: |
+          set -o pipefail
           ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest -Pbitchord.bundleWear=false -Pandroid.injected.build.abi=x86_64 --no-daemon --max-workers=2 -Dorg.gradle.jvmargs=-Xmx3g
       - uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -40,8 +42,9 @@ jobs:
           heap-size: 512M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk
-            adb install -r app/build/outputs/apk/androidTest/dev/debug/app-dev-debug-androidTest.apk
+            set -o pipefail
+            PHONE_APK=$(python3 -c 'import json;from pathlib import Path;p=Path("app/build/outputs/apk/dev/debug");d=json.loads((p/"output-metadata.json").read_text());assert len(d["elements"])==1;print(p/d["elements"][0]["outputFile"])'); test -f "$PHONE_APK"; adb install -r "$PHONE_APK"
+            TEST_APK=$(python3 -c 'import json;from pathlib import Path;p=Path("app/build/outputs/apk/androidTest/dev/debug");d=json.loads((p/"output-metadata.json").read_text());assert len(d["elements"])==1;print(p/d["elements"][0]["outputFile"])'); test -f "$TEST_APK"; adb install -r "$TEST_APK"
             adb shell ime enable com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME || true
             adb shell settings put secure show_ime_with_hard_keyboard 1
             adb shell am instrument -w -r -e class com.music.bitchord.ListenSearchKeyboardTest app.spool.music.dev.test/androidx.test.runner.AndroidJUnitRunner | tee keyboard-instrumentation.log
@@ -50,6 +53,7 @@ jobs:
       - name: Retain actual screen evidence
         if: always()
         run: |
+          set -o pipefail
           mkdir -p keyboard-screens
           adb pull /sdcard/Android/data/app.spool.music.dev/files/. keyboard-screens/ || true
       - uses: actions/upload-artifact@v4
