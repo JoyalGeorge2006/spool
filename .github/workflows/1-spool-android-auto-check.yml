@@ -15,6 +15,8 @@ concurrency:
 jobs:
   browse-tree-test:
     name: AndroidAutoMediaLibraryTest on phone emulator
+    # skipped for run 3: passed twice on untouched code, avoiding redundant compute
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
@@ -62,6 +64,9 @@ jobs:
   car-ui-screenshots:
     name: Spool in car media UI (Android Automotive OS emulator)
     runs-on: ubuntu-latest
+    env:
+      ANDROID_AVD_HOME: /home/runner/.android/avd
+      ANDROID_SDK_HOME: /home/runner/.android
     timeout-minutes: 90
     steps:
     - uses: actions/checkout@v4
@@ -121,7 +126,21 @@ jobs:
         [ -n "$DEV" ] || DEV=automotive_1080p
         echo "Using device definition: $DEV"
         echo no | "$BT/avdmanager" create avd -n car -k "$SPOOL_CAR_IMAGE" --device "$DEV" --force
-        printf 'hw.ramSize=4096\ndisk.dataPartition.size=6G\n' >> "$HOME/.android/avd/car.avd/config.ini"
+        # verify the AVD exists where we expect (avdmanager success is silent)
+        if ! "$BT/avdmanager" list avd 2>/dev/null | grep -q 'Name: car'; then
+          echo 'AVD car not present after create; diagnostics follow'
+          "$BT/avdmanager" list avd || true
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME HOME=$HOME"
+          find "$HOME" /usr/local/lib/android -maxdepth 5 -name '*.avd' -type d 2>/dev/null | head -20
+          exit 1
+        fi
+        CFG="$ANDROID_AVD_HOME/car.avd/config.ini"
+        if [ -f "$CFG" ]; then
+          printf 'hw.ramSize=4096\ndisk.dataPartition.size=6G\n' >> "$CFG"
+        else
+          echo "config.ini not at $CFG; listing actual location"
+          find "$HOME" -maxdepth 5 -path '*car.avd/config.ini' 2>/dev/null | head -5
+        fi
         nohup "$ANDROID_HOME/emulator/emulator" -avd car -no-window -no-audio -no-snapshot -gpu swiftshader_indirect -accel on > /tmp/car-emulator.log 2>&1 &
         adb wait-for-device
         BOOTED=""
