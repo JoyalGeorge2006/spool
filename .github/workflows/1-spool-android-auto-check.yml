@@ -1,0 +1,255 @@
+name: Android Auto verification (isolated test branch, no release)
+# Isolated verification only: runs the repo's AndroidAutoMediaLibraryTest on a
+# phone emulator and captures Spool's browse/playback UI inside an Android
+# Automotive OS emulator's Media Center. Debug build only; never touches
+# release signing, tags, releases or the OTA catalog.
+on:
+  push:
+    branches: [spool-android-auto-check]
+permissions:
+  contents: read
+concurrency:
+  group: spool-android-auto-check
+  cancel-in-progress: true
+
+jobs:
+  browse-tree-test:
+    name: AndroidAutoMediaLibraryTest on phone emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+        cache: gradle
+    - name: Android platform, NDK and compileSdk remap (same as the release build)
+      shell: bash
+      run: |
+        set -euo pipefail
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Run AndroidAutoMediaLibraryTest
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        profile: pixel_6
+        script: ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.AndroidAutoMediaLibraryTest --no-daemon --stacktrace
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-auto-browse-test-results
+        path: '**/build/outputs/androidTest-results/**'
+        if-no-files-found: warn
+
+  car-ui-screenshots:
+    name: Spool in car media UI (Android Automotive OS emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+        cache: gradle
+    - name: Android platform, NDK, car system image and compileSdk remap
+      shell: bash
+      run: |
+        set -euo pipefail
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1' 'emulator' 'platform-tools'
+        "$SM" 'system-images;android-34;automotive;x86_64'
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Restore the persisted debug keystore (same as the verify workflow)
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+      run: |
+        if [ -n "$SPOOL_DEBUG_KEYSTORE_B64" ]; then
+          echo "$SPOOL_DEBUG_KEYSTORE_B64" | base64 -d > spool-debug.keystore
+        fi
+    - name: Assemble dev debug APK (test-only, never shipped)
+      env:
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        chmod +x gradlew
+        timeout 1800 ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug --no-daemon --stacktrace
+        ls -la app/build/outputs/apk/dev/debug/*.apk
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Create and boot the automotive emulator
+      shell: bash
+      run: |
+        set -euo pipefail
+        BT="$ANDROID_HOME/cmdline-tools/latest/bin"
+        echo no | "$BT/avdmanager" create avd -n car -k 'system-images;android-34;automotive;x86_64' --device 'automotive_1080p' --force
+        printf 'hw.ramSize=4096\ndisk.dataPartition.size=6G\n' >> "$HOME/.android/avd/car.avd/config.ini"
+        nohup "$ANDROID_HOME/emulator/emulator" -avd car -no-window -no-audio -no-snapshot -gpu swiftshader_indirect -accel on > /tmp/car-emulator.log 2>&1 &
+        adb wait-for-device
+        BOOTED=""
+        for i in $(seq 1 120); do
+          if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then BOOTED=1; break; fi
+          sleep 5
+        done
+        if [ -z "$BOOTED" ]; then echo 'car emulator did not boot in time'; tail -50 /tmp/car-emulator.log; exit 1; fi
+        echo 'car emulator booted'
+        adb shell settings put global window_animation_scale 0
+        adb shell settings put global transition_animation_scale 0
+        adb shell settings put global animator_duration_scale 0
+    - name: Install Spool and capture the car media UI
+      shell: bash
+      run: |
+        set -uo pipefail
+        adb install -r app/build/outputs/apk/dev/debug/*.apk
+        cat > /tmp/car-capture.py <<'SPOOL_CAPTURE'
+        import os, re, subprocess, sys, time
+        OUT = 'car-captures'
+        os.makedirs(OUT, exist_ok=True)
+        def sh(args, timeout=40):
+            try:
+                return subprocess.run(args, capture_output=True, timeout=timeout)
+            except Exception as e:
+                print('cmd failed', args, e)
+                return subprocess.CompletedProcess(args, 1, b'', str(e).encode())
+        def cap(name):
+            r = sh(['adb', 'exec-out', 'screencap', '-p'], 60)
+            if r.returncode == 0 and len(r.stdout) > 1000:
+                open(os.path.join(OUT, name + '.png'), 'wb').write(r.stdout)
+                print('cap', name, len(r.stdout))
+            else:
+                print('cap FAILED', name, r.returncode, len(r.stdout))
+        def dump(name):
+            sh(['adb', 'shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], 60)
+            r = sh(['adb', 'exec-out', 'cat', '/sdcard/ui.xml'], 60)
+            open(os.path.join(OUT, name + '.xml'), 'wb').write(r.stdout)
+            return r.stdout.decode('utf-8', 'replace')
+        def tap_xy(x, y):
+            sh(['adb', 'shell', 'input', 'tap', str(x), str(y)])
+            time.sleep(4)
+        def tap_text(xml, want, exact=True):
+            pat = re.compile(r'<node[^>]*text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"[^>]*>')
+            for m in pat.finditer(xml):
+                t = m.group(1)
+                x1, y1, x2, y2 = (int(m.group(i)) for i in (2, 3, 4, 5))
+                ok = (t == want) if exact else (want.lower() in t.lower())
+                if ok:
+                    tap_xy((x1 + x2) // 2, (y1 + y2) // 2)
+                    print('tapped text', repr(t))
+                    return True
+            print('text not found', repr(want))
+            return False
+        def back():
+            sh(['adb', 'shell', 'input', 'keyevent', '4'])
+            time.sleep(3)
+        # Packages present, for the report.
+        pkgs = sh(['adb', 'shell', 'pm', 'list', 'packages']).stdout.decode('utf-8', 'replace')
+        open(os.path.join(OUT, 'packages.txt'), 'w').write(pkgs)
+        media_pkgs = [l.split(':', 1)[1].strip() for l in pkgs.splitlines() if ('car' in l and 'media' in l)]
+        print('car media packages:', media_pkgs)
+        cap('00-car-home')
+        dump('00-car-home')
+        # Start Spool so its media session exists, then nudge play so the
+        # session becomes the active one the car media UI binds to.
+        sh(['adb', 'shell', 'monkey', '-p', 'app.spool.music.dev', '-c', 'android.intent.category.LAUNCHER', '1'])
+        time.sleep(15)
+        cap('01-spool-app')
+        dump('01-spool-app')
+        sh(['adb', 'shell', 'input', 'keyevent', '126'])  # MEDIA_PLAY
+        time.sleep(6)
+        # Open the car media UI.
+        launched = False
+        for pkg in media_pkgs or ['com.android.car.media']:
+            r = sh(['adb', 'shell', 'monkey', '-p', pkg, '-c', 'android.intent.category.LAUNCHER', '1'])
+            if r.returncode == 0 and b'Events injected: 1' in r.stdout + r.stderr:
+                launched = True
+                print('launched media center', pkg)
+                break
+        time.sleep(12)
+        cap('02-media-center')
+        xml = dump('02-media-center')
+        # If an app/source picker is visible, pick Spool.
+        for want in ('Spool', 'spool'):
+            if want in xml:
+                tap_text(xml, want, exact=False)
+                time.sleep(4)
+                cap('03-media-center-spool')
+                xml = dump('03-media-center-spool')
+                break
+        # Browse folders one by one with screenshots.
+        pages = [('Quick picks', '10-quick-picks'), ('Recent', '11-recent'),
+                 ('Playlists', '12-playlists'), ('Liked songs', '13-liked'),
+                 ('More', '14-more')]
+        for label, name in pages:
+            xml = dump(name + '-before')
+            if tap_text(xml, label, exact=True):
+                time.sleep(6)
+                cap(name)
+                dump(name)
+                if label == 'More':
+                    for sub, sname in (('Downloads', '15-downloads'), ('Local music', '16-local-music')):
+                        xml2 = dump(sname + '-before')
+                        if tap_text(xml2, sub, exact=True):
+                            time.sleep(5)
+                            cap(sname)
+                            dump(sname)
+                            back()
+                # Try opening the first playable row for Now Playing.
+                if label == 'Quick picks':
+                    xml3 = dump('17-quick-picks-before-play')
+                    m = re.search(r'<node[^>]*resource-id="[^"]*media_item[^"]*"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml3)
+                    if m:
+                        tap_xy((int(m.group(1)) + int(m.group(3))) // 2, (int(m.group(2)) + int(m.group(4))) // 2)
+                    else:
+                        rows = re.findall(r'<node[^>]*clickable="true"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml3)
+                        if rows:
+                            x1, y1, x2, y2 = (int(v) for v in rows[0])
+                            tap_xy((x1 + x2) // 2, (y1 + y2) // 2)
+                    time.sleep(15)
+                    cap('20-now-playing')
+                    dump('20-now-playing')
+                    back()
+                    time.sleep(2)
+                back()
+        cap('99-final')
+        dump('99-final')
+        print('capture done')
+        SPOOL_CAPTURE
+        python3 /tmp/car-capture.py; RC=$?
+        echo "capture rc=$RC"
+        exit 0
+    - name: Upload car UI captures
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-car-ui-captures
+        path: car-captures/**
+        if-no-files-found: warn
