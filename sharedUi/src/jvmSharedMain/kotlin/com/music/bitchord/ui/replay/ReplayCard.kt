@@ -227,7 +227,6 @@ private fun Embossed(
             fontSize = size,
             letterSpacing = 1.6.sp,
             color = color,
-            shadow = EmbossShadow,
         ),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,

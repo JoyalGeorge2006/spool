@@ -248,7 +248,7 @@ data class LibraryLink(val item: ShelfItem, val icon: ImageVector, val logo: Dra
 private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
     Column(
         Modifier
-            .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 4.dp, bottom = 22.dp)
+            .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 12.dp, bottom = 8.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surface),

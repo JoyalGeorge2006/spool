@@ -51,7 +51,10 @@ class SparkRatingMotionTest {
   compose.onNodeWithText("Like").assertIsDisplayed()
   compose.onNodeWithText("Disliked").assertIsDisplayed()
   compose.onNodeWithText("Disliked").performClick()
-  compose.mainClock.advanceTimeBy(500);shot("undo")
+  compose.runOnUiThread {assertEquals("Undo callback must run",2,dislikes);assertEquals(LikeStatus.INDIFFERENT,rating)}
+  compose.mainClock.advanceTimeByFrame()
+  compose.waitForIdle()
+  compose.mainClock.advanceTimeBy(500);compose.waitForIdle();shot("undo")
   compose.onNodeWithText("Dislike").assertIsDisplayed()
   compose.onNodeWithText("Like").performClick();compose.mainClock.advanceTimeBy(150)
   compose.runOnUiThread {rating=LikeStatus.INDIFFERENT}

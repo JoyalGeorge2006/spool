@@ -1,4 +1,6 @@
 <resources>
     <string name="spark_liked">Liked</string>
     <string name="spark_disliked">Disliked</string>
+    <string name="menu_destination_loading">Loading...</string>
+    <string name="menu_destination_none">None</string>
 </resources>

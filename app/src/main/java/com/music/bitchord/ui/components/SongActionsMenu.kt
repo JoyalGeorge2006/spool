@@ -341,29 +341,19 @@ fun SongActionsMenu(
         onPartyMembers?.let { ActionRow(SfIcons.Person, stringResource(R.string.listen_together), accent = palette.accent, onClick = it) }
 
         if (startsGroup()) IosMenuSeparator()
-        // Names where each one leads under it, as a menu's "Go to" does.
-        when (val id = song.albumId) {
-            null -> if (resolvingLinks) {
-                LoadingActionRow(if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Album else SfIcons.Album, stringResource(R.string.open_album), palette)
-            }
-            else -> ActionRow(
-                if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Album else SfIcons.Album,
-                stringResource(R.string.open_album),
-                accent = palette.accent,
-                description = if (LocalSpoolPlayerMenu.current) null else song.albumName,
-            ) { onOpenAlbum(id) }
-        }
-        when (val id = song.artistId) {
-            null -> if (resolvingLinks) {
-                LoadingActionRow(if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Artist else SfIcons.Artist, stringResource(R.string.open_artist), palette)
-            }
-            else -> ActionRow(
-                if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Artist else SfIcons.Artist,
-                stringResource(R.string.open_artist),
-                accent = palette.accent,
-                description = if (LocalSpoolPlayerMenu.current) null else song.artist.takeIf { it.isNotBlank() },
-            ) { onOpenArtist(id) }
-        }
+        // Keep destinations present and the description slot stable during lookup.
+        StableDestinationRow(
+            icon = if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Album else SfIcons.Album,
+            label = stringResource(R.string.open_album),
+            id = song.albumId, name = song.albumName, resolving = resolvingLinks,
+            onOpen = onOpenAlbum,
+        )
+        StableDestinationRow(
+            icon = if (LocalSpoolPlayerMenu.current) SpoolMenuIcons.Artist else SfIcons.Artist,
+            label = stringResource(R.string.open_artist),
+            id = song.artistId, name = song.artist, resolving = resolvingLinks,
+            onOpen = onOpenArtist,
+        )
         ActionRow(SfIcons.Info, stringResource(if (LocalSpoolPlayerMenu.current) R.string.spool_song_info else R.string.song_info), accent = palette.accent) {
             showingSongInfo = true
         }
@@ -1034,4 +1024,22 @@ internal fun SheetHeading(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp, bottom = 4.dp),
     )
+}
+
+/** A missing destination is visible but never actionable. Names do not grant navigation. */
+@Composable
+internal fun StableDestinationRow(
+    icon: ImageVector, label: String, id: String?, name: String?, resolving: Boolean,
+    onOpen: (String) -> Unit,
+) {
+    val destination = id?.takeIf { it.isNotBlank() }
+    val detail = name?.takeIf { destination != null && it.isNotBlank() }
+        ?: stringResource(if (resolving) R.string.menu_destination_loading else R.string.menu_destination_none)
+    if (LocalActionRowStyle.current == ActionRowStyle.Menu) {
+        IosMenuRow(label = label, icon = icon, description = detail,
+            enabled = destination != null, onClick = { destination?.let(onOpen) })
+    } else {
+        ActionRow(icon = icon, label = label, value = detail,
+            enabled = destination != null, onClick = { destination?.let(onOpen) })
+    }
 }
