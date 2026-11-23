@@ -1,0 +1,136 @@
+name: Spool 2.1.5 signed production candidate (no publish)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-215-candidate.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: spool-215-candidate
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  REPO: JoyalGeorge2006/spool
+  TAG: v2.1.5
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/spool-song-menu-cleanup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+    - uses: actions/checkout@v4
+    - name: Record exact source identity
+      run: |
+        set -euo pipefail
+        git rev-parse HEAD | tee /tmp/source-commit.txt
+        git rev-parse 'HEAD^{tree}' | tee /tmp/source-tree.txt
+        test -z "$(git status --porcelain)"
+    - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Prepare exact compatible Android SDK
+      run: sdkmanager 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+    - name: Write bounded JVM init script
+      run: |
+        cat > /tmp/platform.gradle <<'EOF'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        EOF
+    - name: Restore accepted signing material
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        python3 - <<'PY'
+        import base64,os,pathlib
+        def esc(s):
+            return s.replace('\\','\\\\').replace('\n','\\n').replace('\r','\\r').replace('=','\\=').replace(':','\\:').replace(' ','\\ ')
+        for name in ['SPOOL_DEBUG_KEYSTORE_B64','SPOOL_DEBUG_STORE_PASSWORD','SPOOL_DEBUG_KEY_PASSWORD']:
+            assert os.environ.get(name), 'Required existing signing input unavailable'
+        key = pathlib.Path('spool-debug.keystore')
+        key.write_bytes(base64.b64decode(os.environ['SPOOL_DEBUG_KEYSTORE_B64'], validate=True))
+        key.chmod(0o600)
+        props = pathlib.Path('keystore.properties')
+        props.write_text('storeFile=spool-debug.keystore\nkeyAlias=spooldebug\nstorePassword=' + esc(os.environ['SPOOL_DEBUG_STORE_PASSWORD']) + '\nkeyPassword=' + esc(os.environ['SPOOL_DEBUG_KEY_PASSWORD']) + '\n')
+        props.chmod(0o600)
+        PY
+    - name: Build signed prod release APKs
+      run: |
+        set -o pipefail
+        bash gradlew --no-daemon --console=plain --init-script /tmp/platform.gradle :app:assembleProdRelease -Pbitchord.bundleWear=false --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m' -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee /tmp/build.log
+    - name: Verify and stage release files
+      run: |
+        python3 - <<'PY'
+        import hashlib, json, os, pathlib, re, shutil, subprocess
+        CERT = 'a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+        CODE = 64
+        NAME = '2.1.5'
+        def sha(p):
+            h = hashlib.sha256()
+            with open(p, 'rb') as f:
+                for b in iter(lambda: f.read(1048576), b''):
+                    h.update(b)
+            return h.hexdigest()
+        def cmd(*a):
+            return subprocess.check_output([str(x) for x in a], text=True, stderr=subprocess.STDOUT)
+        tools = pathlib.Path(os.environ['ANDROID_HOME']) / 'build-tools/35.0.0'
+        metas = [p for p in pathlib.Path('app/build').rglob('output-metadata.json') if json.loads(p.read_text()).get('artifactType', {}).get('type') == 'APK' and json.loads(p.read_text()).get('variantName') == 'prodRelease']
+        assert len(metas) == 1, metas
+        generated = metas[0].parent
+        apks = list(generated.glob('*.apk'))
+        assert len(apks) == 4, apks
+        assert json.loads((generated / 'output-metadata.json').read_text())['applicationId'] == 'app.spool.music'
+        out = pathlib.Path('release-output')
+        out.mkdir()
+        verified = {}
+        for abi, dest in [('arm64-v8a', 'Spool-2.1.5-arm64-v8a.apk'), ('universal', 'spool.apk')]:
+            c = list(generated.glob('*-' + abi + '-release.apk'))
+            assert len(c) == 1, c
+            cert = cmd(tools / 'apksigner', 'verify', '--verbose', '--print-certs', c[0])
+            bad = cmd(tools / 'aapt', 'dump', 'badging', c[0])
+            assert re.search(r"package: name='app\.spool\.music' versionCode='" + str(CODE) + r"' versionName='" + re.escape(NAME) + r"'", bad), bad[:400]
+            actual = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)$', cert, re.M)
+            assert actual == [CERT], actual
+            assert 'application-debuggable' not in bad
+            assert 'android.permission.REQUEST_INSTALL_PACKAGES' in bad
+            assert "sdkVersion:'26'" in bad
+            native = re.search(r'^native-code: (.+)$', bad, re.M)
+            assert native
+            abis = set(re.findall(r"'([^']+)'", native[1]))
+            assert abis == ({'armeabi-v7a', 'arm64-v8a', 'x86_64'} if abi == 'universal' else {'arm64-v8a'}), abis
+            shutil.copyfile(c[0], out / dest)
+            verified[dest] = dict(sha256=sha(out / dest), size=(out / dest).stat().st_size, abis=sorted(abis))
+        subprocess.run(['git', 'archive', '--format=tar.gz', '-o', str(out / 'spool-v2.1.5-source.tar.gz'), 'HEAD'], check=True)
+        verified['spool-v2.1.5-source.tar.gz'] = dict(sha256=sha(out / 'spool-v2.1.5-source.tar.gz'), size=(out / 'spool-v2.1.5-source.tar.gz').stat().st_size)
+        (out / 'SHA256SUMS.txt').write_text(''.join(verified[n]['sha256'] + '  ' + n + '\n' for n in sorted(verified)))
+        manifest = dict(commit=os.environ['GITHUB_SHA'], tree=open('/tmp/source-tree.txt').read().strip(), version=NAME, code=CODE, package='app.spool.music', certificate_sha256=CERT, run_id=os.environ['GITHUB_RUN_ID'], run_attempt=os.environ['GITHUB_RUN_ATTEMPT'], files=verified)
+        (out / 'manifest.json').write_text(json.dumps(manifest, indent=2))
+        print(json.dumps(verified, indent=2))
+        PY
+    - name: Upload release candidate files
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: spool-215-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+        path: release-output/
+        if-no-files-found: error
+        retention-days: 7
+    - name: Cleanup signing material even on failure
+      if: always()
+      run: rm -f spool-debug.keystore keystore.properties
