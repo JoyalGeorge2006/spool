@@ -1,0 +1,53 @@
+name: Implement approved wide readable queue notice
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-queue-background.yml]
+permissions:
+  contents: write
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update focused visual tests only
+        run: |
+          set -o pipefail
+          python3 - <<'PYTEST'
+          from pathlib import Path
+          import gzip,base64
+          assert __import__('hashlib').sha256(Path('app/src/main/java/com/music/bitchord/ui/components/QueueActionNotice.kt').read_bytes()).hexdigest() == '0cb4f6f0ce7b1aaf37d7103d8ec54e9ffed4bdc6bd3fbcb11b065d80c4b42c85'
+          Path('app/src/main/java/com/music/bitchord/ui/components/QueueActionNotice.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIADcwBGsC/5VWbVPjNhD+7l+xvS91aCooN725SYfSlHIH0wBXwhwfbxR7HWtOtnySHPAx/PdbyY7zYocGMzFr6dnVvq8KHn3lc4RIZSwrjYjYTNgoVTpmpWC0Wqgcc2uCQBCpLfA81krEj/WeQcZzkXErVM7GnsL4TOWWePbgOCegvtM8N8J978PxKOyrGBIe4+W+wJtyH62NFE7mZ9RWRFzKal8eEv8qJqvmaFPU98KmO+GJKvO4xkteqdKyREh5xR/vRfwqtoLHscjn+3CYlBfIbt2CC7fOUU/d0k5elxdacPmWXTXUXYrZPvhpqRMe7YO8w8fd0dNlbkWG7Mx/85nE/4WS7z9zWe4GUoFcqVgkAvVLmLnmRSoiQ2dL9SLSYMbpbIJOxAJvcU6+phNwPx7Z8uyHb6mX4GUuLIuLDkSKBKMqktiCIyUlRnZsppZC4lJ2ssQsuXuaDCUUJ02spcwzbFwU04Ze8sS4YFGqhZnxHA1L+XdkF/TypwRBocWCCFhwCdc3d5dn51/ObiY3t3AC3t3h0eOHD8fv3d+gDzy9GH86J3A3l8Pfye5BEBweHMAYyA/fSgT60VujKaUdglFEFsidwkCFCoZnCDxyNeJAlmtrQNDPucsnFRwcBs5miCQ3Bv5z8sae4VpRLDAMgB6noIhHcJnbYbuQoTHUqkcwtZoOXNsQ1DHK7J9S++q8ovIXZgQTRVqdwNsvR0dHkxWa9qg7o/7oXp6hhp4SNi+lHAaN0X9rgUljcaTyROi6LYFJ1UMOIsswFuROWQGfqQV6DzhdoKCOgtrb+tdawSVl3jX4QhlbG53771EXclornzW1NoJl1ZHGS7KGOLWpsUBBfvrZgEsWHyWnWUFugUTTcQZIWw0PKbcgDLjAa4rSH958oKhVhpioYXsLnNx0mXAjaHNvzV/w1HpXY1xGOF62cJhVsJbUbGv7paIJKQxO6tZUrX3lHsoualGe0aniXTVc7bZDclpgRICndss9IoFwS5nBFsQ9WwOaXdNtANbHEmwOZA/YkPIMKA32iA7ryRwO4BfoTFR4ghTFPLXw659L6hCO4XmwcXpHaCuYRu1K8sbc3S16U+/263nl1KiOwb9YOYdSzpwyEa8DJJ+hpL0337aT+M0KlK3Sd0luzOxwUGMpIBCVWtOJpGuwHrrl8k91Dm6HrhmaYcc/h4dwizx25Qiq4K6lzbihIhFUBAXSi4SqpC4Ydy+kDvag9FfX+GEmSw3mwbVu1pEcuW5LFq034WEPyjvwrAH7/+w+FRa7WH/JWEn0nboXFauHc4mLuuBO4Ij6dheXdXtGb/ZsRaIf01yVQhph4juZxF3Mf3vnB8aLDDNlrcoI/H43tp3LFP7VTCeezUsB+0Qtikr/edPWvip2N6Ow9zBLOyS5SSfWjJhhL9bYSrp4bNzgmK0K5W84FZupuJq4ptTP3xOBfkce+wjCoinZ1rVdsTtLNqjfz8EPEPENGOAMAAA=')))
+          Path('app/src/test/java/com/music/bitchord/QueueNoticeProofTest.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIADcwBGsC/41VUW/bNhB+968ghA6gBo9pmqBbM3hI7DZdHlK0SbA8DMNAS2f5FolUyWPmJMh/35GyY3lOjLzY1PG7u+/uPp1aXdzoCkRhG9UEj4WaIhVz68oBNq11JLQpncVyoRjSWg9qZoMpNaE1asrelYvPr0HX+s4GUj++iG00gUNdH6jz5elqDg28An8FC3oR5oIhbGBH4oDq3JY4Q3C7MCc1VqYBQ7tAldPtHAuvJra2O8MReNpNKiH+CQbpUBUOuNxJd3kR6qe2xNFVSPMwVaRv9BwdG5ydWqfv71Fd8KmGghwWH+EWC/gWdJ1K9a+MUOiWgoMY6KxhsfTdNjUTOSf6hpvk17U9j6Q4XDVGmkTLxqitq7q6Vb/StfWKG7Nt5UEbcOxirrma/r1bN6HfkBjmIjm9BNbGWOrkO7FmhtUrgJ+XCmBJweB4yUY+m/boqKi19/nguO8k+w8q/Xw5uTr74xPjOhbSlzejPw8O/xp+f5rmaMek1VdcQP1zPkjpxLcAAb5YYsxXZ+0sEhIPA3FcAR3FjotbXYulEEdbypP5QLQOb9kqZsEIP7ckS+1ujsaWGWiTx2Di8s4TNMoDcZIWHN3JbK2qpG0HBY8+G2bkAmQcdpU0enGpxDoSD2JDIylTOo3iqcslxnYhV++wmmFdn+vFJd4z196Wkht7haXKb+hlkc5rUL6MKPgFDo3h9A5a7oA8eMs3+NNvIm4bmY2DvxO6noaGSXdM32A2/D+Jayx5+hsscCbxh3ejEcdLS0K+XZye/rL/7tOH01xA7aFn3n9/ePL+Q54PE9lRulDXcyTIxaN4TETTOE+KKL5uqL9bT3LLKveH2aU1ldBlCaUgK75HSJavOeu44eTTnlNjS2SbCR/B5XE8KWOXdzWpfzXSqXVnZRTGrytrTFpCVH7XrWcTKxYj6+LMf0Tf8ucBStnXgDUXlpWVb20gmU0D1uUef07aQH7vSVV7KfDfbx64xZ04sviXdV3NuK45ZY+qNVUUG1dxnKQfRdx5RrTMR0nRUZP5NiQFWWFmmgPng8fBfzoO8N1JBwAA')))
+          PYTEST
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/test app/src/main/java/com/music/bitchord/ui/components/QueueActionNotice.kt
+          git commit -m 'Use approved opaque wide queue notice background'
+          git push origin HEAD:spool-song-menu-cleanup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android platform
+        run: |
+          set -o pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+          cat > /tmp/platform.gradle <<'INIT'
+          allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
+          INIT
+      - name: Render complete action menus and Library
+        run: |
+          set -o pipefail
+          ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.QueueNoticeProofTest --no-daemon --stacktrace 2>&1 | tee complete-proof.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: queue-background-proof
+          path: |
+            **/build/outputs/roborazzi/
+            **/build/test-results/
+            complete-proof.log
