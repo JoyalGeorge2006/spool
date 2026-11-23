@@ -51,6 +51,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 env:
   REPO: JoyalGeorge2006/spool
@@ -258,6 +259,65 @@ jobs:
             printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name" "$code" "$size" "$hash" "$psize" "$phash" >> used.tsv
             echo "$pid" >> ids.txt
           done < bases.tsv
+
+      - name: Retain verified 2.1.2 test-base coverage for 2.1.4
+        # This private test base was not a public predecessor release. Its patch
+        # was reconstructed byte-for-byte with the shipped decoder before upload.
+        # Pin its immutable bytes, header and exact target before catalog adoption.
+        # Do not infer a base from a version label or weaken installed APK hashing.
+        run: |
+          set -euo pipefail
+          cd ota
+          set -a; . ./target.env; set +a
+          python3 - <<'RETAIN_EOF'
+          import hashlib, json, os, struct, subprocess
+          expected_target = '7eca7902aceb8f730ae2026a90250caa4d53b885bf6105d89d2030f662cf1d19'
+          if os.environ['TAG'] != 'v2.1.4':
+              raise SystemExit(0)
+          assert os.environ['THASH'] == expected_target
+          assert int(os.environ['TCODE']) == 63 and int(os.environ['TSIZE']) == 153991309
+          name = 'spool-59-arm64-to-63.spdelta'
+          base_hash = '1126371f6446c2bc115c0311935f769ffe57c92e8eedaec1dba31c5da69f7046'
+          patch_hash = '6c209cfe7f8fcf413f8a63a6179a2edfcc83c60a57b0bb94897e38c3f516c26f'
+          release = json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['REPO']+'/releases/tags/v2.1.4']))
+          matches = [a for a in release['assets'] if a['name'] == name]
+          assert len(matches) <= 1, 'Ambiguous test-base patch asset'
+          if not matches:
+              # Recover only the already-delivered exact test APK. Artifact expiry
+              # fails closed; it never authorizes a rebuild or different base.
+              import glob
+              subprocess.run(['gh','run','download','44994216959','--repo',os.environ['REPO'],'--name','spool-2.1.2-reviewed-candidate-44994216959-1','--dir','test-base59'],check=True)
+              bases = [p for p in glob.glob('test-base59/**/*.apk',recursive=True)
+                       if os.path.getsize(p) == 84374401 and hashlib.sha256(open(p,'rb').read()).hexdigest() == base_hash]
+              assert len(bases) == 1, 'Exact delivered test APK not recovered'
+              base = bases[0]
+              subprocess.run(['python3','make_delta.py',base,'target.apk',name],check=True)
+              assert os.path.getsize(name) == 41286879 and hashlib.sha256(open(name,'rb').read()).hexdigest() == patch_hash
+              subprocess.run(['java','-Xmx64m','-cp','classes','DeltaApply',base,name,'test59-roundtrip.apk','84374401','153991309',base_hash,expected_target],check=True)
+              assert hashlib.sha256(open('test59-roundtrip.apk','rb').read()).hexdigest() == expected_target
+              subprocess.run(['cmp','test59-roundtrip.apk','target.apk'],check=True)
+              subprocess.run(['gh','release','upload','v2.1.4',name,'--repo',os.environ['REPO']],check=True)
+              release = json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['REPO']+'/releases/tags/v2.1.4']))
+              matches = [a for a in release['assets'] if a['name'] == name]
+          assert len(matches) == 1, 'Test-base upload not confirmed'
+          asset = matches[0]
+          assert asset['state'] == 'uploaded' and asset['size'] == 41286879
+          assert asset['digest'] == 'sha256:'+patch_hash
+          subprocess.run(['gh','release','download','v2.1.4','--repo',os.environ['REPO'],'--pattern',name,'--output','retained.spdelta','--clobber'],check=True)
+          payload = open('retained.spdelta','rb').read()
+          assert len(payload) == 41286879 and hashlib.sha256(payload).hexdigest() == patch_hash
+          assert payload[:8] == b'SPDELTA\x01'
+          assert struct.unpack('>QQ',payload[8:24]) == (84374401,153991309)
+          assert payload[24:56].hex() == base_hash and payload[56:88].hex() == expected_target
+          assert 0 < struct.unpack('>I',payload[88:92])[0] <= 100000
+          rows = open('used.tsv').read().splitlines()
+          assert all(r.split('\t')[1] != '59' for r in rows), 'Duplicate test base'
+          with open('used.tsv','a') as f:
+              f.write('\t'.join([name,'59','84374401',base_hash,'41286879',patch_hash])+'\n')
+          with open('ids.txt','a') as f:
+              f.write(str(asset['id'])+'\n')
+          print('Retained exact verified test-base patch: code59 to code63')
+          RETAIN_EOF
 
       - name: Publish catalog spool-ota-v1.json
         run: |
