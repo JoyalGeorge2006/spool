@@ -77,7 +77,13 @@ jobs:
         SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
         [ -x "$SM" ] || SM="$(command -v sdkmanager)"
         "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1' 'emulator' 'platform-tools'
-        "$SM" 'system-images;android-34;automotive;x86_64'
+        "$SM" --list > /tmp/sdk-list.txt 2>&1 || true
+        IMG="$(grep -oE 'system-images;android-[0-9]+;android-automotive;x86_64' /tmp/sdk-list.txt | sort -uV | tail -1)"
+        if [ -z "$IMG" ]; then IMG="$(grep -oE 'system-images;android-[0-9]+;[a-zA-Z0-9_-]*automotive[a-zA-Z0-9_-]*;x86_64' /tmp/sdk-list.txt | sort -uV | tail -1)"; fi
+        if [ -z "$IMG" ]; then echo 'no automotive x86_64 system image offered'; grep -i automotive /tmp/sdk-list.txt | head -20; exit 1; fi
+        echo "Using car system image: $IMG"
+        "$SM" "$IMG"
+        echo "SPOOL_CAR_IMAGE=$IMG" >> "$GITHUB_ENV"
         cat > /tmp/platform.gradle <<'INIT'
         allprojects {
           afterEvaluate { p ->
@@ -111,7 +117,10 @@ jobs:
       run: |
         set -euo pipefail
         BT="$ANDROID_HOME/cmdline-tools/latest/bin"
-        echo no | "$BT/avdmanager" create avd -n car -k 'system-images;android-34;automotive;x86_64' --device 'automotive_1080p' --force
+        DEV="$("$BT/avdmanager" list device 2>/dev/null | grep -oE 'id: [0-9]+ or "[^"]+"' | grep -i automotive | head -1 | sed 's/.*"\([^"]*\)"/\1/')"
+        [ -n "$DEV" ] || DEV=automotive_1080p
+        echo "Using device definition: $DEV"
+        echo no | "$BT/avdmanager" create avd -n car -k "$SPOOL_CAR_IMAGE" --device "$DEV" --force
         printf 'hw.ramSize=4096\ndisk.dataPartition.size=6G\n' >> "$HOME/.android/avd/car.avd/config.ini"
         nohup "$ANDROID_HOME/emulator/emulator" -avd car -no-window -no-audio -no-snapshot -gpu swiftshader_indirect -accel on > /tmp/car-emulator.log 2>&1 &
         adb wait-for-device
