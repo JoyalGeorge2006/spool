@@ -32,6 +32,7 @@ class OverflowScrollScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
     private fun shot(dark: Boolean, page: String) {
+        System.setProperty("roborazzi.test.record", "true")
         val oldTheme = AppSettings.themeMode.value
         AppSettings.setThemeMode(if (dark) ThemeMode.DARK else ThemeMode.LIGHT)
         var copies = 0
