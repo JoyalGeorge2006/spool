@@ -1,0 +1,51 @@
+name: Verify approved queue notice over Library host
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-queue-host-proof.yml]
+permissions:
+  contents: write
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update focused visual tests only
+        run: |
+          set -o pipefail
+          python3 - <<'PYTEST'
+          from pathlib import Path
+          import gzip,base64
+          Path('app/src/test/java/com/music/bitchord/QueueHostProofTest.kt').write_bytes(gzip.decompress(base64.b64decode('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')))
+          PYTEST
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/test app/src/main/java/com/music/bitchord/ui/components/QueueActionNotice.kt
+          git commit -m 'Render queue notice over actual shared mini-player host'
+          git push origin HEAD:spool-song-menu-cleanup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android platform
+        run: |
+          set -o pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+          cat > /tmp/platform.gradle <<'INIT'
+          allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
+          INIT
+      - name: Render complete action menus and Library
+        run: |
+          set -o pipefail
+          ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.QueueHostProofTest --no-daemon --stacktrace 2>&1 | tee complete-proof.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: queue-background-proof
+          path: |
+            **/build/outputs/roborazzi/
+            **/build/test-results/
+            complete-proof.log
