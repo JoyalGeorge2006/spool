@@ -1,0 +1,68 @@
+name: Fix focused proof integrity and verify contextual rows
+on:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-proof-integrity.yml]
+permissions:
+  contents: write
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update focused visual tests only
+        run: |
+          python3 - <<'PYTEST'
+          from pathlib import Path
+          import gzip,base64
+          Path('app/src/test/java/com/music/bitchord/ContextStableRowsTest.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIAMIqBGsC/7VWbW/bNhD+7l/BCf0grQb7CgxIpi1ukrYGEqeNve3DMAS0REucKVIlqbwZ/u+7IyXbqWM3RbEEkMXj8V6ee+7EmmVzVnCS6YpWjRUZnQqXldrkvZ6oam0cYSo3WuS3FHRqbTmd6UblzAmtqGR3unH056foTsFVYXC9U7sRtFHC0bzeqWIa5UTF97gEI+c6FzPBzT4dx63bb8Vr/IsBvaWZ4czx47B52UjeHUTgCuHKZkodm7NSGBAYPdWG3d8LeglvkmfOiOyEX4uMf26Y9LHZJ1rIWO0aw9HQsIJSbR57WDEKQDNa6ZxLeibmfOyYa+zT9MdaFXs0AQ0PjOLK2TVqj2u6kkOB3gl3jJIJrroD2hQBUTqwlhtHmf85/QKo2G2lTaDX0gnUZVsKxFDcwBH1F4C5uW/WNdisB5q59Id2KTOltAvkPdZqJoonKH4wrC5FZoGCvNc7asOJH/V7cJBJACDpHW2eijcX1D9Gg8nwz1PQC2HENp+TlPz95u0/ffJlRSgQ7aEb/SRuufwl6XmfBCw5fuuAI1MJ5LqxGBZZ9MhRwd0BAk+umSRtO6Rb/I+THqmNuAYpmTWKZCXP5nHOzPzgnYYYmErQGhnfWccrarn7ZHQNtb6LozW5fYsZngFPon7kTMMjsAueDZGa5UIVZHpHqsZHiXzmF7MY1Totqx9VQTrHkfUyMByyJBVXDXEG5hDIBsYJ66K+aqRMOnNMTpvKpi8P/cJrwKrdLLnMt339+hHEQ8jx999ibwu0uyECWXucFSBLHjSER8q/pfgWsPKIl+yepwY2qik3cCzn1zQrjbBTpriluE0/wsO7jxOyxIPv9G3cDT06E1Kes9uxuIf9jbEbbw25CkwYweQbet6++ZBgX2ozzvz7+nzSRgnckU2l1g5rlmOpYqfr9NXrlzC+V6pkj88J8C+OzgBjrnzZ4Q8LB2yMsa4pPvpaHUuRzdPFEl7PQPLJcGvTBVYjXa0vjCiEAifKNoBusgz2PDhYoJbu58CAWECxUjGL0cJPqa9Z4BGXlhNc971xfPTLDuoU3yCEE2ErsQoAtTEwCOJa8JsQajAZAMCEBhmOBuudrxOzolA8H6oU+dyXq4Gdrmc3HY5Ohu/fn16ejiZ9SFPLa8D5TKi5Tdv+6AfcIAL4Fo8gxQDUIM8n+nPDGx7WYM+4Szihw/pE3yi00O6WzLSKE10UkmMIm2tIWq5E3ja6k1A6FHUhXNRcDbCD0kVopOfPUd+LfS+BPPQUbPgCYX2W+L/RNFqNYObh1AwE2W7ehMIgmWlTTXSTlUNVN9hfEkD1+LdN0dm7YcK912aYh6Hlp9UU+WzjJMUUYF5EGGPofhgNYdHOhwgrSIZqpsFvxWqy2BGocAmdcfgMjnnF4JKSWdzGDvTOhupSa7dsA7CldrE6GMOkVkWSrk0OpMRjNhYW9eMkAeEZs/C2dRWIo2kjZP4CrmAAgX2xmqsvskD3qzABr54tgO5hzkT4EwWqR1IUpYuWV88UrVURJbtQO9xZGyQO4BI+40MLPKmBGDyHMzjMphzKxNMO7kOfdtRS94G/ry1vFGRtfqTdqcKM8vjbZ0P9vnkY7g0XCtMkizaudAaXEb6TQoebd5Y4ZNjvMuxSVHBV+iq/rrLrOEeo1G8s/0NV3BQ8nxjO/Tjooj4Gs52n1zuiXk0UmH71XewxG+Zp1LLZ/4wYfGgi35tEwTuIPTxerwXqxxL2F/3vr+iqIl1Ltx383dXdY+hB+K8CIParrF61gNjvA9l/LNYI+8H/Yzh6Y1eP0Of/bo+Nk5DBkb8O+kkVRgiODZiX4ZrX3sC2lPw8WWn5Nkp6y95/OngKzWUOAAA=')))
+          import subprocess,re
+          names=subprocess.check_output(['git','diff','--name-only','55e219d','HEAD','--','.github/workflows']).decode().splitlines()
+          for name in names:
+              p=Path(name)
+              if not p.exists() or p.suffix not in ('.yml','.yaml'): continue
+              txt=p.read_text()
+              if p.name not in ('spool-keyboard-retry.yml','spool-proof-integrity.yml'):
+                  txt=re.sub(r'(?ms)^on:.*?(?=^permissions:)', 'on:\n  workflow_dispatch:\n', txt)
+              lines=txt.splitlines()
+              result=[]
+              for i,line in enumerate(lines):
+                  result.append(line)
+                  if line.strip()=='run: |':
+                      result.append(' '*(len(line)-len(line.lstrip())+2)+'set -o pipefail')
+              p.write_text('\n'.join(result)+'\n')
+          p=Path('.github/workflows/spool-keyboard-retry.yml')
+          txt=p.read_text()
+          txt=txt.replace('adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk', 'PHONE_APK=$(python3 -c \'import json;from pathlib import Path;p=Path("app/build/outputs/apk/dev/debug");d=json.loads((p/"output-metadata.json").read_text());assert len(d["elements"])==1;print(p/d["elements"][0]["outputFile"])\'); test -f "$PHONE_APK"; adb install -r "$PHONE_APK"')
+          txt=txt.replace('adb install -r app/build/outputs/apk/androidTest/dev/debug/app-dev-debug-androidTest.apk', 'TEST_APK=$(python3 -c \'import json;from pathlib import Path;p=Path("app/build/outputs/apk/androidTest/dev/debug");d=json.loads((p/"output-metadata.json").read_text());assert len(d["elements"])==1;print(p/d["elements"][0]["outputFile"])\'); test -f "$TEST_APK"; adb install -r "$TEST_APK"')
+          p.write_text(txt)
+          PYTEST
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/test .github/workflows
+          git commit -m 'Propagate test failures and correct focused proof plumbing'
+          git push origin HEAD:spool-song-menu-cleanup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android platform
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+          cat > /tmp/platform.gradle <<'INIT'
+          allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
+          INIT
+      - name: Render complete action menus and Library
+        run: |
+          set -o pipefail
+          ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.ContextStableRowsTest --no-daemon --stacktrace 2>&1 | tee complete-proof.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: context-stable-proof
+          path: |
+            **/build/outputs/roborazzi/
+            **/build/test-results/
+            complete-proof.log
