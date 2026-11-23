@@ -1,8 +1,5 @@
 name: Verify approved menu and Library changes (no release)
 on:
-  push:
-    branches: [spool-song-menu-cleanup]
-    paths: [.github/workflows/spool-approved-ui.yml]
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,6 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply approved presentation-only change
         run: |
+          set -o pipefail
           python3 - <<'PY'
           from pathlib import Path
           import gzip,base64,hashlib
@@ -43,12 +41,14 @@ jobs:
           java-version: '17'
       - name: Prepare Android platform
         run: |
+          set -o pipefail
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
           cat > /tmp/platform.gradle <<'INIT'
           allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
           INIT
       - name: Render actual Compose motion frames and regressions
         run: |
+          set -o pipefail
           ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.SparkRatingMotionTest --tests com.music.bitchord.OverflowScrollScreenshotTest --tests com.music.bitchord.DislikeSkipPolicyTest --tests com.music.bitchord.FloatingSearchFlowTest --tests com.music.bitchord.StableMenuRowsTest --tests com.music.bitchord.LibrarySpacingProofTest --no-daemon --stacktrace 2>&1 | tee motion-test.log
         shell: bash
       - uses: actions/upload-artifact@v4
