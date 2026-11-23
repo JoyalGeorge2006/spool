@@ -1,0 +1,49 @@
+name: Render complete menu actions and corrected Library proof
+on:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-complete-proof.yml]
+permissions:
+  contents: write
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update focused visual tests only
+        run: |
+          python3 - <<'PYTEST'
+          from pathlib import Path
+          import gzip,base64
+          Path('app/src/test/java/com/music/bitchord/SparkRatingMotionTest.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIAAMoBGsC/61W0XLiNhR95ys0njzYXapk093pThjPhEDSYTYJWWDbh04nI2zZqMiSV5ITCMO/90rGYAohbLsPGEs+V/fo6Nxr5ySakpSiSGY4KzSL8JiZaCJV3GiwLJfKICJiJVk8w4DJpaY4kYWIiWFSYE7msjD4p1exqhCGZfQAomD4TsYsYVQdwhiqzeFVHOLvQjDzAUeKEkM75cNBwWkVaPeZMjMpxtiQKZkwBRNKjqUiLy8MD+CO08goFnXpE4vol4Jwx00fuUJEclMoahfqZaBsPWxbYAwaEpzJmHJ8y6Z0aIgp9HH4oRTpASSo4YQRVBi9UW0/0kwoHNAVMx07M7KjKkCqtFQUt7WmymDi/q6/gSp6F1QXejM7gnPZnQVjCKogRPwBYtafq80Z1M/DLjNwQa+BiRDSlL7sSJGw9Ajgb4rkExZpsCBtNC5XdPy9eS8uIg4CBI3LepRfH2B3uW+Per9fA66k4et4ikL05y8f/mqib2tDwdQBu+EHNqP816DhcqJhTtR0AJxFeictc0sLLRroMqXmwgqPnghHq3KApXcqwA8aKFfsCWZRUghEZ1RFTFM/hpUvriQQISKwS6LhXBuaYU3Ng5I5HPjc9zYOd3WmaARm8ZrIM6qgHqwN+RVSjiEaz1FWGDLmztS0n/gbg+Pefbd3c3M9uL4fVWEcnurwrGXvY6ZXQ3hYlTdQAS0N2NkRRFtudTtwd6G9K/cAGDnzq86CE8b5HZkN2QsIUSFAVdj2AzQxqvpPVCVcPvtSdJnOmNbhYrkGIltw7cgKr++oKHwN49BO+p62R/NzrqRMvKY3UtBR4b+tDNPGa4qC86CpWSpo3BOhVavJ12KEpWDNVRYkhWVzT2cGsjelaMfxSH4paEHLMUQpMyAxk+W4K58FlyRePZ0QtQJ2ZD6/lWk5uJ2DwXQ/SUBGO6Mn8nnIKc1H0JpVyQlCiK6yFpCgX5i8WE8YmbGZ1eiJ0ecaN0uXsyqwn1PR5uMiqw2dDna82eNIpimn1hLhwp31u3etUoiQJf7qLqxZ5rb3+TpA+z2EKAfD/wu8m61b2ipcVP56K2e3N/yutCv8MigzLxvrq73Yn606kN74gmT0YghVL1Jw2NrkICnn99BAtM/0QAIwCGDyFs7FD3ZeLL43LhiPT6U7J326LtBTZ8jHkwXsq6wHz/55JWOPs3RivOXjiWWBc5F6gWNXsXgmzNxI1Ytty2g5vh6DgavxCpQRJjpcRlNMwBrt+ImIiIYJvBVoDSWF3Y1tqCNwtO9ZtbwAQ0dJpMo6nEVT25UQjHyGmEDvMf4EiuzJUmawfr2a++/PP1XM7FE+njAvWL6RN4bE5durp8ELuS362A8ORK0c84MJr+x3FOf/Sjn+P4E7m619yvXFVzaawJslRov6p4DvfRWxRBHhfAztD5o/vJwA7zXPm1W9Ba2tiP1V1SwLcUuZV0S9UeDfLYJbzn17Af/j2VnQOmR7+MyV3nEW+T659xZC600XfTw7cB6rFrZf1+WxcpQbV7I8SC/40Q7dLsWupPpemusZsy0OwrYsct7cZ5yao95sSPbN1rDd7dJ9LrkG7JqjbYh+EK6/gSww2IW5XlnHuQ4XNJaNfwD83+ENOA0AAA==')))
+          Path('app/src/test/java/com/music/bitchord/StableMenuRowsTest.kt').write_bytes(gzip.decompress(base64.b64decode('H4sIAAMoBGsC/7VWbW/jNgz+nl8hGPfB3gXqbjtgQAsDzfVlCNBLe0m2fRiGQrFpR4ss+fSSNBfkv4+S7SR9vRaHfXEsmqTIhw/J1CxbsBJIpipaOcMzOuM2myud93q8qpW2hMlcK57fUdSplQFaKCdzZrmSVLC1cpb+9KyudtLyCl7QcJx+VjkvOOiXdCwY+7KXoPGvk9x+pJkGZuGs+Th2AjpDn2fJ7dzNqGULNucaBVrNlGbfvnE6xjcBmdU8O4clz+CLYyLEZl7pIWO1dRq8o2GFyB6a3QeYIoaMVioHQa/4AiaWWWdepz9RsnxBE9EIwEiQ1uxRe1rTzgEL9InbMy+Z+lNnoHTZIEoHxoC2lIWfi6+IinmsdAj0XjrFujyWIjEkaDSRfyGYh9/1vgaH9fBuxsHoOWUmpbINL8+ULHj5CsXfNavnPDNIQej1Tttw4ifvPT7OBAKQ9E4PreLDAw2P0WA6/PMC9ZowYpMvSEr+/vXjP33ydUcoFL1AN3rD70D8lvTCnQTJMRPwGaQbq5XxMZFNj5yWYI896mTJBGl7IX1E/jjpkVrzJUpJ4STJ5pAt4pzpxfEnhQEwmXhvZLI2FipqwN5oVWOh13G0Z3boLw0ZkiTqR1Y7iNAv3qyJUCznsiSzNalciNSTGa6L2Kt1WkY9qeK5HEcmyNBxkympMFViNY4nlA205cZGfemESDp3TMxcZdKfT8IhaOAJP3YzAfPAAljsAbIh9/gdcg9vqX9rsieTGsG4wZEG+noJuhBqFSt5zk3FjUk321aN+IAHmaeP8QWJfV6pf/QNLyXkQ5n6tPti19Tpvr/pcHQ+vLy8GF+Mpn0NRoklInfF5cKkLYz9cAtR0scygjuLd/eVHOT5VH1x4KA5oz9tx2ihmvO5Wknvof06Z7pVPFP1+kqVzeFqjWQz10WB6HiJmavVRADUUxzTugkcTZjpbnV4wbWztdsJrKr4nUdoyWHVCKeqLAX4LA/PCJ3YiUL4PiPBG99dltc1yIGvZbppSvr+vdcP4lBVlDfVxQ+++GSLj214ejbP/DoycZJ6x8inyFs27EDqNIeWP5EvHeGyUFFCK1aTTccVJUfYub73pwh4zG1CC8AZOYGK4QbLjP8cJ7S5bCjHStkuAITQxvJ4gm0syyTduxwI4c1MzI3Xj5MEhVcILTp6uCfiaOa4yI9UgNoc7fruqOmM23cbXsQNWyP/ExEQBkgkeDm30fb2naS1LENLdhGsGLeXSg9zPwJO/IiYQaGQFh1kJyH0qOXdPdsHgByCmrRrYIig2Avpo8vj79s2NfiuMS6Ga+lDJps2rrTAbQPbZxM7XEpxk2G/y7BLUeIufJBfV519nCOv1HcG/pDYCyXkUw0QWqKL+gzddjf98kzUu3GAO7hexwGzYZ5GLSPDz4jh6IkC64nEdxQHeIJeC9SPJRz+pL29oruKUJz/6Lg6Exx3xdur+4Kje+F/aAAxD7L60AJi3gayXxAHCId98WM4Bme3T9Dn/26PA0vM4DSs/DBtmnHgRwDOvGaVt1v2kVKYDTut0EZJb9v7D1EyEdz1CwAA')))
+          Path('app/src/test/java/com/music/bitchord/LibrarySpacingProofTest.kt').write_bytes(gzip.decompress(base64.b64decode('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')))
+          PYTEST
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/test
+          git commit -m 'Show complete menu actions and themed Library in verification fixtures'
+          git push origin HEAD:spool-song-menu-cleanup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android platform
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+          cat > /tmp/platform.gradle <<'INIT'
+          allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
+          INIT
+      - name: Render complete action menus and Library
+        run: |
+          ./gradlew --init-script /tmp/platform.gradle :app:testDevDebugUnitTest --tests com.music.bitchord.SparkRatingMotionTest --tests com.music.bitchord.StableMenuRowsTest --tests com.music.bitchord.LibrarySpacingProofTest --no-daemon --stacktrace 2>&1 | tee complete-proof.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: complete-menu-library-proof
+          path: |
+            **/build/outputs/roborazzi/
+            **/build/test-results/
+            complete-proof.log
