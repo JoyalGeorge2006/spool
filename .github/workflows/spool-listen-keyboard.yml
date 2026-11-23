@@ -1,0 +1,71 @@
+name: Verify approved Listen search keyboard (no release)
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-song-menu-cleanup]
+    paths: [.github/workflows/spool-listen-keyboard.yml]
+permissions:
+  contents: write
+jobs:
+  keyboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply exact approved one-tap callback
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('app/src/main/java/com/music/bitchord/MainActivity.kt')
+          b=p.read_bytes()
+          assert hashlib.sha256(b).hexdigest() == '081acc99f630f44860e4997771fa9e1907ff26527852f26403d907ba136743a8'
+          s=b.decode()
+          old='onSearchClick = { selectedTab = TAB_SEARCH },'
+          new='onSearchClick = { searchFocusRequested = true; selectedTab = TAB_SEARCH },'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
+          import base64
+          Path('app/src/androidTest/java/com/music/bitchord/ListenSearchKeyboardTest.kt').write_bytes(base64.b64decode('cGFja2FnZSBjb20ubXVzaWMuYml0Y2hvcmQKCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLnVpLnRlc3QuKgppbXBvcnQgYW5kcm9pZHguY29tcG9zZS51aS50ZXN0Lmp1bml0NC5jcmVhdGVBbmRyb2lkQ29tcG9zZVJ1bGUKaW1wb3J0IGFuZHJvaWR4LmNvcmUudmlldy5WaWV3Q29tcGF0CmltcG9ydCBhbmRyb2lkeC5jb3JlLnZpZXcuV2luZG93SW5zZXRzQ29tcGF0CmltcG9ydCBhbmRyb2lkeC50ZXN0LmVzcHJlc3NvLkVzcHJlc3NvCmltcG9ydCBhbmRyb2lkeC50ZXN0LmV4dC5qdW5pdC5ydW5uZXJzLkFuZHJvaWRKVW5pdDQKaW1wb3J0IGFuZHJvaWR4LnRlc3QucGxhdGZvcm0uYXBwLkluc3RydW1lbnRhdGlvblJlZ2lzdHJ5CmltcG9ydCBjb20ubXVzaWMuYml0Y2hvcmQuZGF0YS5zZXR0aW5ncy5BcHBTZXR0aW5ncwppbXBvcnQgb3JnLmp1bml0LkFzc2VydC4qCmltcG9ydCBvcmcuanVuaXQuUnVsZQppbXBvcnQgb3JnLmp1bml0LlRlc3QKaW1wb3J0IG9yZy5qdW5pdC5ydW5uZXIuUnVuV2l0aAppbXBvcnQgamF2YS5pby5GaWxlCmltcG9ydCBhbmRyb2lkLmdyYXBoaWNzLkJpdG1hcAoKLyoqIFJlYWwgYXBwIG5hdmlnYXRpb24gYW5kIE9TIGtleWJvYXJkLiBObyBmaXh0dXJlIHN1YnN0aXR1dGVzIGZvciB0aGUgSG9tZSBjYWxsYmFjay4gKi8KQFJ1bldpdGgoQW5kcm9pZEpVbml0NDo6Y2xhc3MpCmNsYXNzIExpc3RlblNlYXJjaEtleWJvYXJkVGVzdCB7CiBAZ2V0OlJ1bGUgdmFsIGNvbXBvc2UgPSBjcmVhdGVBbmRyb2lkQ29tcG9zZVJ1bGU8TWFpbkFjdGl2aXR5PigKICBlZmZlY3RDb250ZXh0ID0ga290bGlueC5jb3JvdXRpbmVzLnRlc3QuU3RhbmRhcmRUZXN0RGlzcGF0Y2hlcigpKQogcHJpdmF0ZSBmdW4gaW1lKCk6IEJvb2xlYW4gewogIHZhciB2aXNpYmxlPWZhbHNlCiAgY29tcG9zZS5ydW5PblVpVGhyZWFkIHsgdmlzaWJsZT1WaWV3Q29tcGF0LmdldFJvb3RXaW5kb3dJbnNldHMoY29tcG9zZS5hY3Rpdml0eS53aW5kb3cuZGVjb3JWaWV3KT8uaXNWaXNpYmxlKFdpbmRvd0luc2V0c0NvbXBhdC5UeXBlLmltZSgpKT09dHJ1ZSB9CiAgcmV0dXJuIHZpc2libGUKIH0KIHByaXZhdGUgZnVuIHRhYihsYWJlbDpTdHJpbmcpIHsKICB2YWwgbWF0Y2hlcj1oYXNDbGlja0FjdGlvbigpIGFuZCAoaGFzQ29udGVudERlc2NyaXB0aW9uKGxhYmVsKSBvciBoYXNBbnlEZXNjZW5kYW50KGhhc0NvbnRlbnREZXNjcmlwdGlvbihsYWJlbCkpKQogIGNvbXBvc2Uud2FpdFVudGlsKDE1MDAwKSB7IGNvbXBvc2Uub25BbGxOb2RlcyhtYXRjaGVyLHVzZVVubWVyZ2VkVHJlZT10cnVlKS5mZXRjaFNlbWFudGljc05vZGVzKCkuaXNOb3RFbXB0eSgpIH0KICBjb21wb3NlLm9uQWxsTm9kZXMobWF0Y2hlcix1c2VVbm1lcmdlZFRyZWU9dHJ1ZSlbMF0ucGVyZm9ybUNsaWNrKCkKICBjb21wb3NlLndhaXRGb3JJZGxlKCkKIH0KIHByaXZhdGUgZnVuIHNob3QobmFtZTpTdHJpbmcpIHsKICB2YWwgaT1JbnN0cnVtZW50YXRpb25SZWdpc3RyeS5nZXRJbnN0cnVtZW50YXRpb24oKQogIHZhbCBibXA9cmVxdWlyZU5vdE51bGwoaS51aUF1dG9tYXRpb24udGFrZVNjcmVlbnNob3QoKSkKICBGaWxlKGkudGFyZ2V0Q29udGV4dC5nZXRFeHRlcm5hbEZpbGVzRGlyKG51bGwpLG5hbWUrIi5wbmciKS5vdXRwdXRTdHJlYW0oKS51c2UgeyBibXAuY29tcHJlc3MoQml0bWFwLkNvbXByZXNzRm9ybWF0LlBORywxMDAsaXQpIH0KICBibXAucmVjeWNsZSgpCiB9CiBAVGVzdCBmdW4gbGlzdGVuVGFwRm9jdXNlc09uY2VBbmRLZWVwc1F1ZXJ5T25SZXR1cm4oKSB7CiAgQXBwU2V0dGluZ3Muc2V0T25ib2FyZGluZ0NvbXBsZXRlKCk7QXBwU2V0dGluZ3Muc2V0RGl3YWxpR3JlZXRpbmdTaG93bigpCiAgY29tcG9zZS53YWl0Rm9ySWRsZSgpCiAgdGFiKCJMaXN0ZW4iKQogIC8vIEhvbWUgZXhwb3NlcyBhIGNsaWNrYWJsZSBzZWFyY2ggcGxhY2Vob2xkZXIgcmF0aGVyIHRoYW4gYW4gZWRpdGFibGUgZmllbGQuCiAgY29tcG9zZS5vbk5vZGVXaXRoVGV4dCgiU29uZ3MsIGFydGlzdHMsIGFsYnVtcyIpLnBlcmZvcm1DbGljaygpCiAgY29tcG9zZS5vbk5vZGUoaGFzU2V0VGV4dEFjdGlvbigpKS5hc3NlcnRJc0ZvY3VzZWQoKQogIGNvbXBvc2Uud2FpdFVudGlsKDEwMDAwKSB7IGltZSgpIH0KICBzaG90KCJsaXN0ZW5fc2VhcmNoX2ZpcnN0X2tleWJvYXJkIikKICBjb21wb3NlLm9uTm9kZShoYXNTZXRUZXh0QWN0aW9uKCkpLnBlcmZvcm1UZXh0SW5wdXQoImtleWJvYXJkIHByb29mIikKICBFc3ByZXNzby5wcmVzc0JhY2soKQogIGNvbXBvc2Uud2FpdFVudGlsKDEwMDAwKSB7ICFpbWUoKSB9CiAgY29tcG9zZS5tYWluQ2xvY2suYWR2YW5jZVRpbWVCeSgxNTAwKTtjb21wb3NlLndhaXRGb3JJZGxlKCkKICBhc3NlcnRGYWxzZSgiRGlzbWlzc2VkIGtleWJvYXJkIG11c3Qgc3RheSBkaXNtaXNzZWQiLGltZSgpKQogIHRhYigiTGlzdGVuIikKICBjb21wb3NlLm9uTm9kZVdpdGhUZXh0KCJTb25ncywgYXJ0aXN0cywgYWxidW1zIikucGVyZm9ybUNsaWNrKCkKICBjb21wb3NlLm9uTm9kZShoYXNTZXRUZXh0QWN0aW9uKCkpLmFzc2VydElzRm9jdXNlZCgpLmFzc2VydFRleHRDb250YWlucygia2V5Ym9hcmQgcHJvb2YiKQogIGNvbXBvc2Uud2FpdFVudGlsKDEwMDAwKSB7IGltZSgpIH0KICBzaG90KCJsaXN0ZW5fc2VhcmNoX3JlcGVhdF9wcmVzZXJ2ZWQiKQogIEVzcHJlc3NvLnByZXNzQmFjaygpO2NvbXBvc2Uud2FpdFVudGlsKDEwMDAwKSB7ICFpbWUoKSB9CiAgdGFiKCJMaXN0ZW4iKTt0YWIoIlNlYXJjaCIpCiAgY29tcG9zZS5vbk5vZGUoaGFzU2V0VGV4dEFjdGlvbigpKS5hc3NlcnRUZXh0Q29udGFpbnMoImtleWJvYXJkIHByb29mIikKICBjb21wb3NlLm1haW5DbG9jay5hZHZhbmNlVGltZUJ5KDE1MDApO2NvbXBvc2Uud2FpdEZvcklkbGUoKQogIGFzc2VydEZhbHNlKCJCb3R0b20gU2VhcmNoIHdpdGggbm9uYmxhbmsgcXVlcnkga2VlcHMgZXhpc3RpbmcgYmVoYXZpb3IiLGltZSgpKQogIHNob3QoImJvdHRvbV9zZWFyY2hfcXVlcnlfbm9fa2V5Ym9hcmQiKQogfQp9Cg=='))
+          PY
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/main/java/com/music/bitchord/MainActivity.kt app/src/androidTest/java/com/music/bitchord/ListenSearchKeyboardTest.kt
+          git commit -m 'Connect Listen search tap to existing one-shot keyboard focus'
+          git push origin HEAD:spool-song-menu-cleanup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android SDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+          cat > /tmp/platform.gradle <<'INIT'
+          allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
+          INIT
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_7
+          disable-animations: true
+          script: |
+            ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.ListenSearchKeyboardTest --no-daemon --stacktrace
+      - name: Retain actual screen evidence
+        if: always()
+        run: |
+          mkdir -p keyboard-screens
+          adb pull /sdcard/Android/data/app.spool.music.dev/files/. keyboard-screens/ || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: listen-search-keyboard-proof
+          path: |
+            keyboard-screens/
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
