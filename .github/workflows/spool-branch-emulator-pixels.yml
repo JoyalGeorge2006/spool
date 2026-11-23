@@ -178,7 +178,7 @@ jobs:
         for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,on_signal)
         status=1
         try:
-            gradle=subprocess.Popen(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest,com.music.bitchord.PartySheetsRuntimeTest','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],start_new_session=True)
+            gradle=subprocess.Popen(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],start_new_session=True)
             try:worker.start()
             except BaseException as e:note('mirror failed to start '+str(e))
             cancel_deadline=None
@@ -299,13 +299,68 @@ jobs:
             try:(Path('emulator-diagnostics')/'full24-reconciliation.json').write_text(json.dumps(evidence,indent=2))
             except BaseException:pass
         # A failing/cancelled suite always wins over post-suite diagnostics.
-        # Party runtime shots (PartySheetsRuntimeTest writes external-files/party-shots):
-        # best-effort pull into the uploaded artifact dir; never gates the suite.
-        try:
-            pull=subprocess.run(ADB+['pull','/sdcard/Android/data/app.spool.music.dev/files/party-shots','emulator-screens/party-shots'],capture_output=True,timeout=60)
-            note('party-shots pull rc=%s %s'%(pull.returncode,pull.stdout.decode(errors='replace')[:200]))
-        except BaseException as e:
-            note('party-shots pull failed '+repr(e))
+        # --- Independent diagnostics (2026-11-23, main-directed) ---
+        # One aborted suite must not erase evidence; every phase dumps XML +
+        # logcat. Independent-run results join the final exit code: validation
+        # is green only when the suite AND the independent runs pass.
+        # Checker-namespace bindings (helper's ADB/note live in r.*; this
+        # script's own imports lack subprocess) - reviewer-caught NameError fix.
+        import subprocess
+        ADB=getattr(r,'ADB',['adb','-s','emulator-5554'])
+        def note(message):
+            try: print('NOTE '+str(message))
+            except BaseException: pass
+        diag_status=[0]
+        def cat_failing_xml(tag):
+            try:
+                shown=0
+                for f in sorted(Path('app/build/outputs/androidTest-results').rglob('TEST-*.xml')):
+                    txt=f.read_text(errors='replace')
+                    if '<failure' in txt or '<error' in txt:
+                        print('DIAG-XML['+tag+'] '+str(f)+' bytes='+str(len(txt)))
+                        print(txt[:20000]); shown+=1
+                        if shown>=4: break
+                if shown==0: print('DIAG-XML['+tag+'] no failing TEST-*.xml found')
+            except BaseException as e: note('diag-xml '+tag+' failed '+repr(e))
+        def dump_logcat(tag):
+            try:
+                crash=subprocess.run(ADB+['logcat','-b','crash','-d'],capture_output=True,timeout=30).stdout.decode(errors='replace')
+                print('DIAG-LOGCAT-CRASH['+tag+'] bytes='+str(len(crash))); print(crash[-6000:])
+                main=subprocess.run(ADB+['logcat','-d'],capture_output=True,timeout=60).stdout.decode(errors='replace')
+                hits=[l for l in main.splitlines() if re.search(r'FATAL|AndroidRuntime|ANR |tombstone|was not released|DIAG|PartyShots',l)]
+                print('DIAG-LOGCAT-HITS['+tag+'] lines='+str(len(hits))); print('\n'.join(hits[-120:]))
+                Path('emulator-diagnostics').mkdir(exist_ok=True)
+                Path('emulator-diagnostics/logcat-'+tag+'.txt').write_text(main[-200000:])
+            except BaseException as e: note('logcat '+tag+' failed '+repr(e))
+        def run_isolated(tag, classarg, seconds):
+            print('DIAG-RUN['+tag+'] start class='+classarg)
+            rc=1
+            try:
+                rp=subprocess.run(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class='+classarg,'-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],capture_output=True,timeout=seconds)
+                rc=rp.returncode
+                print('DIAG-RUN['+tag+'] rc='+str(rc)+' tail:'); print(rp.stdout.decode(errors='replace')[-4000:])
+            except BaseException as e: print('DIAG-RUN['+tag+'] failed '+repr(e))
+            if rc: diag_status[0]=1
+            cat_failing_xml(tag); dump_logcat(tag)
+        def pull_dir(remote, localname, tag):
+            try:
+                pull=subprocess.run(ADB+['pull',remote,'emulator-screens/'+localname],capture_output=True,timeout=60)
+                note(tag+' pull rc=%s %s'%(pull.returncode,pull.stdout.decode(errors='replace')[:200]))
+            except BaseException as e: note(tag+' pull failed '+repr(e))
+        cat_failing_xml('suite'); dump_logcat('suite')
+        if test_status:
+            try:
+                cap=subprocess.run(ADB+['exec-out','screencap','-p'],capture_output=True,timeout=30)
+                if cap.returncode==0 and len(cap.stdout)>1000:
+                    Path('emulator-screens').mkdir(exist_ok=True)
+                    Path('emulator-screens/suite-failure-screen.png').write_bytes(cap.stdout)
+                    print('DIAG-SHOT suite-failure-screen.png bytes='+str(len(cap.stdout)))
+            except BaseException as e: note('failure screencap failed '+repr(e))
+        run_isolated('party','com.music.bitchord.PartySheetsRuntimeTest',600)
+        run_isolated('autoplay','com.music.bitchord.StatusStripEmulatorTest#defaultOnAutoplayDropsInflightPreviousListenerResponse',600)
+        pull_dir('/sdcard/Android/data/app.spool.music.dev/files/party-shots','party-shots','party-shots')
+        if diag_status[0]: print('DIAG-RESULT independent run(s) FAILED - validation NOT green')
+        if diag_status[0] and not test_status: test_status=1
         sys.exit(test_status if test_status else check_status)
         SPOOL_CHECK
     - name: Strip verification on a real emulator
