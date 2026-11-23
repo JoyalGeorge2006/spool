@@ -4195,6 +4195,7 @@ private fun BitChordApp(
                             )
                         }
                         if (floatingPageChrome) FloatingHistoryProfileCapsule(
+                            hazeState = hazeState,
                             account = account,
                             onHistory = { navigator.push(AppRoute.History); viewModel.loadHistory() },
                             onProfile = { navigator.openSettings() },

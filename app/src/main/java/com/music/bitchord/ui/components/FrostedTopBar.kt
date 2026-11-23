@@ -706,17 +706,17 @@ private val AVATAR_SIZE = 28.dp
 /** The Home title row's account circle, matched to the history button. */
 private val PLAIN_AVATAR_SIZE = 40.dp
 
-/** Approved Listen/Search controls. Opaque, no haze, no title, two separate 48dp targets. */
+/** Floating controls share page frost, keeping icons and photo outside the sampled backdrop. */
 @Composable
 fun FloatingHistoryProfileCapsule(
     account: Account?,
     onHistory: () -> Unit,
     onProfile: () -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
     Row(
-        modifier = modifier.clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        modifier = modifier.frostedCard(hazeState, MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(50), pageSourceKey = PageFrostSourceKey)
             .semantics { testTag = "floating-history-profile" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
