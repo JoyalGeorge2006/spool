@@ -63,8 +63,8 @@ fun QueueActionNoticeHost(
     ) { current ->
         if (current != null) {
             Surface(
-                // Transparent: the frost (or its solid fill) is the colour.
-                color = Color.Transparent,
+                // Readable opaque base, independent of the page artwork and blur switch.
+                color = NOTICE_COLOR,
                 contentColor = Color.White,
                 shape = NOTICE_SHAPE,
                 shadowElevation = 0.dp,
@@ -72,7 +72,6 @@ fun QueueActionNoticeHost(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 8.dp)
-                    .frostedCard(hazeState, NOTICE_COLOR, NOTICE_SHAPE)
                     .semantics { liveRegion = LiveRegionMode.Polite },
             ) {
                 Text(
