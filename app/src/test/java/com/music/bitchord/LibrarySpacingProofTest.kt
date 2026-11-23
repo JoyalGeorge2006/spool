@@ -66,6 +66,7 @@ class LibrarySpacingProofTest {
  @get:Rule val compose=createComposeRule()
  private fun shot(dark:Boolean) {
   System.setProperty("roborazzi.test.record","true")
+  V6ScreenshotTest().installUiHost()
   compose.setContent { BitChordTheme(darkTheme=dark) { LibrarySpacingFixture() } }
   compose.waitForIdle()
   compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/library_spacing_${if(dark) "dark" else "light"}.png")

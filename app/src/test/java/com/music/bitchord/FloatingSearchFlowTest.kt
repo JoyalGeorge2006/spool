@@ -30,6 +30,7 @@ import org.robolectric.annotation.GraphicsMode
 abstract class FloatingSearchFlowBase {
  @get:Rule val compose=createComposeRule()
  protected fun flow(dark:Boolean,material:Boolean) {
+  System.setProperty("roborazzi.test.record","true")
   V6ScreenshotTest().installUiHost()
   var query by mutableStateOf("");var source by mutableIntStateOf(0)
   var submitted by mutableStateOf(false);var reset by mutableIntStateOf(0)
