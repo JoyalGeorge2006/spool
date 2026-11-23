@@ -178,7 +178,7 @@ jobs:
         for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,on_signal)
         status=1
         try:
-            gradle=subprocess.Popen(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],start_new_session=True)
+            gradle=subprocess.Popen(['./gradlew','--init-script','/tmp/platform.gradle',':app:connectedDevDebugAndroidTest','-Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.StatusStripEmulatorTest,com.music.bitchord.PartySheetsRuntimeTest','-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true','--no-daemon'],start_new_session=True)
             try:worker.start()
             except BaseException as e:note('mirror failed to start '+str(e))
             cancel_deadline=None
@@ -299,6 +299,13 @@ jobs:
             try:(Path('emulator-diagnostics')/'full24-reconciliation.json').write_text(json.dumps(evidence,indent=2))
             except BaseException:pass
         # A failing/cancelled suite always wins over post-suite diagnostics.
+        # Party runtime shots (PartySheetsRuntimeTest writes external-files/party-shots):
+        # best-effort pull into the uploaded artifact dir; never gates the suite.
+        try:
+            pull=subprocess.run(ADB+['pull','/sdcard/Android/data/app.spool.music.dev/files/party-shots','emulator-screens/party-shots'],capture_output=True,timeout=60)
+            note('party-shots pull rc=%s %s'%(pull.returncode,pull.stdout.decode(errors='replace')[:200]))
+        except BaseException as e:
+            note('party-shots pull failed '+repr(e))
         sys.exit(test_status if test_status else check_status)
         SPOOL_CHECK
     - name: Strip verification on a real emulator
