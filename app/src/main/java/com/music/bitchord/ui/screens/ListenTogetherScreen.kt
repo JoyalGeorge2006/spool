@@ -54,10 +54,13 @@ import androidx.compose.material3.MaterialTheme
 import com.music.bitchord.ui.components.hiddenBehindSheet
 import com.music.bitchord.ui.components.InlineFrostSheet
 import com.music.bitchord.ui.components.IosSwitch
+import com.music.bitchord.ui.components.rememberFrostEnabled
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -130,7 +133,7 @@ internal fun ServerUrlError.toMessageRes(): Int = when (this) {
  * [ListenTogether.partyPositionMs][com.music.bitchord.data.listentogether.ListenTogether.partyPositionMs]
  * exists.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
 fun ListenTogetherScreen(
     signedIn: Boolean,
@@ -139,8 +142,6 @@ fun ListenTogetherScreen(
     onInviteHandled: () -> Unit = {},
     onSignIn: () -> Unit,
     contentPadding: PaddingValues,
-    /** The page's haze, so the party sheets frost over it; null stays solid. */
-    hazeState: HazeState? = null,
     /**
      * Opens the server editor, which is mounted at the root rather than here.
      *
@@ -166,6 +167,11 @@ fun ListenTogetherScreen(
     var maxMembers by remember { mutableIntStateOf(5) }
     var pendingServerSwitchInvite by remember { mutableStateOf<Pair<String, String>?>(null) }
     var sheet by remember { mutableStateOf<PartySheet?>(null) }
+    // Frost state for the party sheets is owned by this page, not passed in:
+    // the sheets frost over this page only, so their source is declared beside
+    // the content Column below and never mixes with the app-level haze.
+    val sheetHaze = remember { HazeState() }
+    val frostEnabled = rememberFrostEnabled()
     // The button a sheet was opened from, focused again when the sheet goes.
     val partyCreateFocus = remember { FocusRequester() }
     val partyJoinFocus = remember { FocusRequester() }
@@ -363,7 +369,7 @@ fun ListenTogetherScreen(
                 // sheet that is no longer there.
                 failure = null
             },
-            hazeState = hazeState,
+            hazeState = sheetHaze,
             restoreFocusTo = sheetOpener,
             paneTitle = stringResource(R.string.listen_together),
             containerColor = MaterialTheme.colorScheme.surface,
@@ -485,6 +491,11 @@ fun ListenTogetherScreen(
         }
     }
 
+    // The frost source the sheets above draw from. zIndex -1 keeps it below
+    // the app-level source (z 0) in Haze's compounding order, so the sheets'
+    // effect samples this page and nothing else; skipped entirely when frost
+    // is off, so the blur-off path adds no haze nodes.
+    Box(Modifier.then(if (frostEnabled) Modifier.hazeSource(sheetHaze, zIndex = -1f) else Modifier)) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -604,6 +615,7 @@ fun ListenTogetherScreen(
         }
 
         Spacer(Modifier.height(32.dp))
+    }
     }
     }
 }

@@ -3116,7 +3116,6 @@ private fun BitChordApp(
                                     webSession = WebSessionMode.SIGN_IN
                                 },
                                 contentPadding = listPadding,
-                                hazeState = hazeState,
                                 onEditServer = { editingPartyServer = true },
                             )
                         } else if (pageRoute == AppRoute.Equalizer) {
@@ -5789,6 +5788,7 @@ private fun BitChordApp(
         if (editingPartyServer) {
             PartyServerEditor(
                 hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { editingPartyServer = false },
             )
         }

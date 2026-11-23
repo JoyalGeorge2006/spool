@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
  * hoisting it cost one callback rather than half the screen's state.
  */
 @Composable
-fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit) {
+fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit, pageSourceKey: Any? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val customServer by ListenTogether.customServerUrl.collectAsStateWithLifecycle()
@@ -104,6 +104,7 @@ fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit) {
 
     AddonEditorAlert(
         hazeState = hazeState,
+        pageSourceKey = pageSourceKey,
         title = stringResource(R.string.listen_together_custom_server),
         description = stringResource(R.string.listen_together_custom_server_footer),
         urlValue = input,
