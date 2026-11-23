@@ -32,7 +32,7 @@ class StableMenuRowsTest {
   compose.setContent { BitChordTheme(darkTheme=dark) {
    SpoolPlayerOverflow(onDismiss={}) {
     SongActionsMenu(song=song,signedIn=true,likeStatus=LikeStatus.INDIFFERENT,resolvingLinks=loading,
-     onPlayNext={},onAddToQueue={},onStartRadio={},onDownload={},onToggleLike={},onToggleDislike={},onAddToPlaylist={},
+     onPlayNext={},onAddToQueue={},onStartRadio={},onDownload={},onShare={},onCopyLog={},onLyricsOffset={},showSleepTimer=true,onCast={},onAudioOutput={},onAutomixOverview={},onToggleLike={},onToggleDislike={},onAddToPlaylist={},
      onOpenAlbum={albums++},onOpenArtist={artists++})
    }
   } }

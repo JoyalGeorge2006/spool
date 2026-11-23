@@ -33,7 +33,7 @@ class SparkRatingMotionTest {
     Box(Modifier.fillMaxSize()) {
      SpoolPlayerOverflow(onDismiss={}) {
       SongActionsMenu(song=Song("spark-proof","Track","Artist",null),signedIn=true,likeStatus=rating,
-       onPlayNext={},onAddToQueue={},onStartRadio={},onDownload={},onAddToPlaylist={},onOpenAlbum={},onOpenArtist={},
+       onPlayNext={},onAddToQueue={},onStartRadio={},onDownload={},onShare={},onCopyLog={},onLyricsOffset={},showSleepTimer=true,onCast={},onAudioOutput={},onAutomixOverview={},onAddToPlaylist={},onOpenAlbum={},onOpenArtist={},
        onToggleLike={likes++;rating=if(rating==LikeStatus.LIKE) LikeStatus.INDIFFERENT else LikeStatus.LIKE},
        onToggleDislike={dislikes++;rating=if(rating==LikeStatus.DISLIKE) LikeStatus.INDIFFERENT else LikeStatus.DISLIKE})
      }

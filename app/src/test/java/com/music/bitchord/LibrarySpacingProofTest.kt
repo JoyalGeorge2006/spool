@@ -83,7 +83,7 @@ class LibrarySpacingProofTest {
             artist = "Nova Rae",
             thumbnailUrl = null,
         )
-        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             LibraryScreen(
                 signedIn = true,
                 state = UiState.Success(
