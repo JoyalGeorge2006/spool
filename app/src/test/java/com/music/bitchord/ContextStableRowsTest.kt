@@ -47,7 +47,7 @@ class ContextStableRowsTest {
   } } }
   compose.onNodeWithText("Stable menu track").performTouchInput { longClick() }
   compose.waitForIdle()
-  fun bounds()=listOf("Open album","Open artist","Song info").map {compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot}
+  fun bounds()=listOf("Open album","Open artist","Song Info").map {compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot}
   fun shot(n:String)=compose.onAllNodes(isRoot()).onLast().captureRoboImage("build/outputs/roborazzi/context_stable_${if(dark) "dark" else "light"}_$n.png")
   compose.waitForIdle();compose.onNodeWithText("Share").assertIsDisplayed();val before=bounds();shot("loading")
   compose.onNodeWithText("Open album").assertIsNotEnabled()
