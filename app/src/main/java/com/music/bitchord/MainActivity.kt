@@ -4291,6 +4291,7 @@ private fun BitChordApp(
                             isPlaying = player.isPlaying,
                             isLoading = playPauseBusy,
                             hazeState = hazeState,
+                            pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                             position = player.position,
                             durationMs = player.durationMs,
                             onPlayPause = {
