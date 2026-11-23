@@ -1,4 +1,4 @@
-name: Spool 2.1.4 release build, publish and OTA
+name: Spool 2.1.4 release candidate build (no publish)
 
 on:
   workflow_dispatch:
@@ -72,34 +72,6 @@ jobs:
       run: |
         set -o pipefail
         bash gradlew --no-daemon --console=plain --init-script /tmp/platform.gradle :app:assembleProdRelease -Pbitchord.bundleWear=false --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m' -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee /tmp/build.log
-    - name: Write release notes
-      run: |
-        cat > /tmp/release-notes.md <<'EOF'
-        ## Spool 2.1.4
-
-        - Restores the mini player's frosted backing, so it no longer reads as a bare strip over content.
-        - Audio output and Lyrics offset drawers now follow the live Material You palette, like the other panels.
-        - The Library's first card row now clears the floating title bar instead of sliding under it.
-        - Wider panel repairs: menus, dialogs and sheets across the app share the one reviewed frost treatment. The full player, status area, queue notice, DAC capsule, sign-in and quality chooser keep their approved tint-only look.
-
-        Install over the existing Spool app to preserve its data. Do not uninstall or clear app data.
-
-        ### Downloads
-
-        - `spool.apk`: universal phone APK and full in-app update fallback.
-        - `Spool-2.1.4-arm64-v8a.apk`: smaller full APK for arm64 phones.
-        - `spool-v2.1.4-source.tar.gz`: exact corresponding source.
-        - `SHA256SUMS.txt`: download checksums.
-        - `spool-ota-v1.json` and `.spdelta` files: updater transport files, not installable APKs.
-
-        ### Validation and limits
-
-        Both APKs use the existing Spool signer and package `app.spool.music`, with version 2.1.4/code 63 and minimum Android 8/API 26. Neither APK is debuggable or testOnly. Source is the reviewed test build plus the version metadata change only.
-
-        - The reviewed source compiled and its unit tests passed; the equivalent debug test APK installed over the previous app.
-        - Emulator and on-device visual confirmation of these panel repairs is still pending and continues after release.
-        - In-app update patches for recent published versions are generated and verified by exact-byte reconstruction before publication; installations without a matching patch base receive the full universal APK instead.
-        EOF
     - name: Verify and stage release files
       run: |
         python3 - <<'PY'
@@ -142,7 +114,6 @@ jobs:
             verified[dest] = dict(sha256=sha(out / dest), size=(out / dest).stat().st_size, abis=sorted(abis))
         subprocess.run(['git', 'archive', '--format=tar.gz', '-o', str(out / 'spool-v2.1.4-source.tar.gz'), 'HEAD'], check=True)
         verified['spool-v2.1.4-source.tar.gz'] = dict(sha256=sha(out / 'spool-v2.1.4-source.tar.gz'), size=(out / 'spool-v2.1.4-source.tar.gz').stat().st_size)
-        shutil.copyfile('/tmp/release-notes.md', out / 'release-notes.md')
         (out / 'SHA256SUMS.txt').write_text(''.join(verified[n]['sha256'] + '  ' + n + '\n' for n in sorted(verified)))
         manifest = dict(commit=os.environ['GITHUB_SHA'], tree=open('/tmp/source-tree.txt').read().strip(), version=NAME, code=CODE, package='app.spool.music', certificate_sha256=CERT, run_id=os.environ['GITHUB_RUN_ID'], run_attempt=os.environ['GITHUB_RUN_ATTEMPT'], files=verified)
         (out / 'manifest.json').write_text(json.dumps(manifest, indent=2))
@@ -158,117 +129,3 @@ jobs:
     - name: Cleanup signing material even on failure
       if: always()
       run: rm -f spool-debug.keystore keystore.properties
-
-  publish:
-    if: github.ref == 'refs/heads/spool-2.1.4-release'
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    outputs:
-      published: ${{ steps.gate.outputs.published }}
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: spool-214-release-${{ github.run_id }}-${{ github.run_attempt }}
-        path: release-output
-    - name: Re-verify candidate hashes and notes
-      run: |
-        set -euo pipefail
-        cd release-output
-        sha256sum -c SHA256SUMS.txt
-        test -f release-notes.md
-        ! grep -q DRAFT release-notes.md
-    - name: Guard repository state, tag, publish and verify
-      id: gate
-      run: |
-        set -euo pipefail
-        echo 'published=false' >> "$GITHUB_OUTPUT"
-        latest=$(gh api repos/$REPO/releases/latest)
-        test "$(jq -r .tag_name <<<"$latest")" = 'v2.1.3'
-        test "$(jq -r .draft <<<"$latest")" = 'false'
-        test "$(jq -r .prerelease <<<"$latest")" = 'false'
-        for path in "git/ref/tags/$TAG" "releases/tags/$TAG"; do
-          if gh api "repos/$REPO/$path" >/dev/null 2>&1; then
-            echo "Existing $path: stop for state reconciliation"
-            exit 1
-          fi
-        done
-        gh auth setup-git
-        git push "https://github.com/$REPO.git" "${{ github.sha }}:refs/tags/$TAG"
-        gh release create "$TAG" --repo "$REPO" --draft --title 'Spool 2.1.4' --notes-file release-output/release-notes.md \
-          release-output/spool.apk \
-          release-output/Spool-2.1.4-arm64-v8a.apk \
-          release-output/spool-v2.1.4-source.tar.gz \
-          release-output/SHA256SUMS.txt
-        gh release edit "$TAG" --repo "$REPO" --draft=false --prerelease=false --latest
-        now=$(gh api repos/$REPO/releases/latest)
-        test "$(jq -r .tag_name <<<"$now")" = "$TAG"
-        test "$(jq -r .draft <<<"$now")" = 'false'
-        test "$(jq -r .prerelease <<<"$now")" = 'false'
-        jq -r .html_url <<<"$now"
-        echo "$now" > published-release.json
-        echo 'published=true' >> "$GITHUB_OUTPUT"
-    - name: Upload publication evidence
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: spool-214-publication-${{ github.run_id }}-${{ github.run_attempt }}
-        path: published-release.json
-        if-no-files-found: warn
-        retention-days: 7
-
-  ota:
-    if: github.ref == 'refs/heads/spool-2.1.4-release' && needs.publish.outputs.published == 'true'
-    needs: publish
-    uses: JoyalGeorge2006/spool/.github/workflows/ota-delta-publish.yml@d55ff585f5886c93162c3e65d414ac5c0f53049c
-    with:
-      release_tag: v2.1.4
-
-  postverify:
-    if: github.ref == 'refs/heads/spool-2.1.4-release' && needs.publish.outputs.published == 'true'
-    needs: [publish, ota]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: spool-214-release-${{ github.run_id }}-${{ github.run_attempt }}
-        path: release-output
-    - name: Verify live public release, assets and OTA catalog binding
-      run: |
-        set -euo pipefail
-        python3 - <<'PY'
-        import json, subprocess, urllib.request
-        REPO = 'JoyalGeorge2006/spool'
-        TAG = 'v2.1.4'
-        def gh(*a):
-            return subprocess.check_output(['gh', *a], text=True)
-        latest = json.loads(gh('api', 'repos/' + REPO + '/releases/latest'))
-        assert latest['tag_name'] == TAG and not latest['draft'] and not latest['prerelease']
-        assets = {a['name']: a for a in latest['assets']}
-        for n in ['spool.apk', 'Spool-2.1.4-arm64-v8a.apk', 'spool-v2.1.4-source.tar.gz', 'SHA256SUMS.txt', 'spool-ota-v1.json']:
-            assert n in assets and assets[n]['state'] == 'uploaded', n
-        patches = [n for n in assets if n.endswith('.spdelta')]
-        assert patches, 'no delta patches attached'
-        catalog = json.loads(urllib.request.urlopen(assets['spool-ota-v1.json']['browser_download_url'], timeout=60).read())
-        manifest = json.loads(open('release-output/manifest.json').read())
-        expect = manifest['files']['spool.apk']
-        matched = False
-        for p in catalog['patches']:
-            assert p['target_version'] == '2.1.4' and p['target_sha256'] == expect['sha256'] and p['target_size'] == expect['size']
-            matched = True
-        assert matched, 'catalog has no patches for this target'
-        sums = urllib.request.urlopen(assets['SHA256SUMS.txt']['browser_download_url'], timeout=60).read().decode()
-        for n, v in manifest['files'].items():
-            assert v['sha256'] + '  ' + n in sums, n
-            assert assets[n]['digest'] == 'sha256:' + v['sha256'], n
-            assert assets[n]['size'] == v['size'], n
-        for n in ['spool.apk', 'Spool-2.1.4-arm64-v8a.apk']:
-            req = urllib.request.Request(assets[n]['browser_download_url'], method='HEAD')
-            status = urllib.request.urlopen(req, timeout=60).status
-            assert status == 200, (n, status)
-        print('LIVE PUBLIC VERIFICATION PASSED:', latest['html_url'])
-        print('assets:', sorted(assets))
-        print('patches:', patches)
-        PY
