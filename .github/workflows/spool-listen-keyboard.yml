@@ -1,9 +1,6 @@
 name: Verify approved Listen search keyboard (no release)
 on:
   workflow_dispatch:
-  push:
-    branches: [spool-song-menu-cleanup]
-    paths: [.github/workflows/spool-listen-keyboard.yml]
 permissions:
   contents: write
 jobs:
@@ -14,6 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply exact approved one-tap callback
         run: |
+          set -o pipefail
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
@@ -40,6 +38,7 @@ jobs:
           java-version: '17'
       - name: Prepare Android SDK
         run: |
+          set -o pipefail
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
           cat > /tmp/platform.gradle <<'INIT'
           allprojects { afterEvaluate { p -> def a = p.extensions.findByName('android'); if(a != null) a.compileSdkVersion('android-37.0') } }
@@ -59,6 +58,7 @@ jobs:
       - name: Retain actual screen evidence
         if: always()
         run: |
+          set -o pipefail
           mkdir -p keyboard-screens
           adb pull /sdcard/Android/data/app.spool.music.dev/files/. keyboard-screens/ || true
       - uses: actions/upload-artifact@v4
