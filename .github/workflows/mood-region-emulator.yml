@@ -49,12 +49,12 @@ jobs:
         #!/bin/bash
         export PATH=$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
         mkdir -p proof
-        APK0=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" 2>/dev/null | head -1)
+        APK0=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" 2>/dev/null | sort | grep -E "x86_64|universal" | head -1)
         TAPK0=$(find app/build/outputs/apk/androidTest -name "*.apk" 2>/dev/null | head -1)
         if [ -n "$APK0" ] && [ -n "$TAPK0" ]; then echo "reused APKs" > /tmp/build.log; else
         timeout -k 20 1200 ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --console=plain > /tmp/build.log 2>&1; fi
         echo "BUILD_STATUS=$?" > proof/build-status.txt
-        APK=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" | head -1)
+        APK=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" | sort | grep -E "x86_64|universal" | head -1)
         TAPK=$(find app/build/outputs/apk/androidTest -name "*.apk" | head -1)
         IMG="system-images;android-34;default;x86_64"
         yes | sdkmanager --licenses > /dev/null 2>&1
@@ -139,4 +139,4 @@ jobs:
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
         git push -f origin HEAD:refs/heads/spool-mood-proof-${GITHUB_RUN_ID}
-# v18
+# v19
