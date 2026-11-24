@@ -1,0 +1,146 @@
+name: Mood region test APK (GitHub prerelease only, no stable release, no OTA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-mood-region]
+    paths: [.github/workflows/mood-region-test-apk.yml]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: mood-region-test-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/spool-mood-region'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+    - uses: actions/checkout@v4
+    - name: Record exact source identity
+      run: |
+        set -euo pipefail
+        git rev-parse HEAD | tee /tmp/source-commit.txt
+        git rev-parse 'HEAD^{tree}' | tee /tmp/source-tree.txt
+        test -z "$(git status --porcelain)"
+    - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+      with:
+        packages: platform-tools
+        log-accepted-android-sdk-licenses: false
+    - name: Prepare exact compatible Android SDK
+      run: sdkmanager 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+    - name: Write bounded JVM init script
+      run: |
+        cat > /tmp/platform.gradle <<'EOF'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) {
+              android.compileSdkVersion('android-37.0')
+              if (p.path == ':app') {
+                android.productFlavors.getByName('dev').buildConfigField('boolean', 'SEPARATELY_PROVIDED_UPDATES', 'true')
+                android.buildTypes.getByName('release').versionNameSuffix = '-test-mood-region'
+              }
+            }
+          }
+        }
+        EOF
+    - name: Restore accepted signing material
+      env:
+        SPOOL_DEBUG_KEYSTORE_B64: ${{ secrets.SPOOL_DEBUG_KEYSTORE_B64 }}
+        SPOOL_DEBUG_STORE_PASSWORD: ${{ secrets.SPOOL_DEBUG_STORE_PASSWORD }}
+        SPOOL_DEBUG_KEY_PASSWORD: ${{ secrets.SPOOL_DEBUG_KEY_PASSWORD }}
+      run: |
+        python3 - <<'PY'
+        import base64,os,pathlib
+        def esc(s):
+            return s.replace('\\','\\\\').replace('\n','\\n').replace('\r','\\r').replace('=','\\=').replace(':','\\:').replace(' ','\\ ')
+        for name in ['SPOOL_DEBUG_KEYSTORE_B64','SPOOL_DEBUG_STORE_PASSWORD','SPOOL_DEBUG_KEY_PASSWORD']:
+            assert os.environ.get(name), 'Required existing signing input unavailable'
+        key = pathlib.Path('spool-debug.keystore')
+        key.write_bytes(base64.b64decode(os.environ['SPOOL_DEBUG_KEYSTORE_B64'], validate=True))
+        key.chmod(0o600)
+        props = pathlib.Path('keystore.properties')
+        props.write_text('storeFile=spool-debug.keystore\nkeyAlias=spooldebug\nstorePassword=' + esc(os.environ['SPOOL_DEBUG_STORE_PASSWORD']) + '\nkeyPassword=' + esc(os.environ['SPOOL_DEBUG_KEY_PASSWORD']) + '\n')
+        props.chmod(0o600)
+        PY
+    - name: Build signed separate test APKs
+      run: |
+        set -o pipefail
+        bash gradlew --no-daemon --console=plain --init-script /tmp/platform.gradle :app:assembleDevRelease -Pbitchord.bundleWear=false --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m' -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee /tmp/build.log
+    - name: Verify and stage separate test APK
+      run: |
+        set -euo pipefail
+        python3 - <<'PYCODE'
+        import hashlib,json,os,pathlib,re,shutil,subprocess
+        root=pathlib.Path('app/build')
+        candidates=[]
+        for p in root.rglob('output-metadata.json'):
+            x=json.loads(p.read_text())
+            if x.get('artifactType',{}).get('type')=='APK' and x.get('variantName')=='devRelease':
+                for e in x.get('elements',[]):
+                    if any(f.get('filterType')=='ABI' and f.get('value')=='arm64-v8a' for f in e.get('filters',[])):
+                        apk=p.parent/e['outputFile']
+                        if apk.is_file(): candidates.append(apk)
+        assert len(candidates)==1,candidates
+        apk=candidates[0]
+        tools=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
+        def cmd(*a):return subprocess.check_output([str(v) for v in a],text=True,stderr=subprocess.STDOUT)
+        cert=cmd(tools/'apksigner','verify','--verbose','--print-certs',apk)
+        bad=cmd(tools/'aapt','dump','badging',apk)
+        expected='a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+        assert re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)$',cert,re.M)==[expected],cert
+        assert "package: name='app.spool.music.dev' versionCode='64' versionName='2.1.5-test-mood-region'" in bad,bad[:500]
+        assert 'application-debuggable' not in bad
+        assert "native-code: 'arm64-v8a'" in bad
+        assert "sdkVersion:'26'" in bad
+        out=pathlib.Path('test-apk-output');out.mkdir()
+        name='Spool-test-mood-region-arm64-v8a.apk'
+        shutil.copyfile(apk,out/name)
+        digest=hashlib.sha256((out/name).read_bytes()).hexdigest()
+        manifest=dict(commit=os.environ['GITHUB_SHA'],tree=pathlib.Path('/tmp/source-tree.txt').read_text().strip(),package='app.spool.music.dev',version='2.1.5-test-mood-region',code=64,certificate_sha256=expected,sha256=digest,size=(out/name).stat().st_size,filename=name,production_replaced=False,ota_published=False)
+        (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
+        (out/'SHA256SUMS.txt').write_text(digest+'  '+name+'\n')
+        print(json.dumps(manifest,indent=2))
+        PYCODE
+    - name: Publish as a GitHub prerelease only
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        TAG="test-mood-region-${GITHUB_SHA:0:7}"
+        BEFORE=$(gh api "repos/$REPO/releases/latest" --jq .tag_name)
+        echo "stable latest before: $BEFORE"
+        cat > /tmp/notes.md <<'NOTES'
+        TEST BUILD, NOT A STABLE RELEASE. Not offered by the in-app updater, no OTA patches.
+
+        Separate app (package app.spool.music.dev), signed with the same CI key as the 2.1.5 release. It installs next to your 2.1.5 and does not touch it. Sign in again inside this test app.
+
+        What to check: Find Your Mood with a country and language chosen (Energy, Relax, Party, Love, Sleep). Do tracks start playing and is sound audible, and are the songs in your chosen languages? CI could only confirm queue contents (signed out, anonymous CI network is blocked by YouTube's bot check), not playback.
+
+        Known limits: regional steering ranks shelves and search by title and artist words, not a per-track language filter, so some other-language songs can appear. Sleep prefers real songs over generic sleep, baby and meditation channels.
+        NOTES
+        gh release create "$TAG" test-apk-output/Spool-test-mood-region-arm64-v8a.apk test-apk-output/SHA256SUMS.txt test-apk-output/manifest.json --prerelease --target "$GITHUB_SHA" --title "Mood region TEST build (not stable)" --notes-file /tmp/notes.md
+        python3 - <<'PYCODE'
+        import json,os,subprocess
+        repo=os.environ['REPO'];tag="test-mood-region-"+os.environ['GITHUB_SHA'][:7]
+        r=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/tags/{tag}'],text=True))
+        assert r['prerelease'] is True and r['draft'] is False, r
+        latest=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/latest'],text=True))
+        print('latest stable after:',latest['tag_name'],'prerelease flag',latest['prerelease'])
+        assert latest['tag_name']!=tag and not latest['prerelease']
+        for a in r['assets']: print(a['name'],a['size'],a.get('digest'),a['browser_download_url'])
+        print('release page',r['html_url'])
+        PYCODE
+    - name: Remove signing material
+      if: always()
+      run: rm -f spool-debug.keystore keystore.properties
