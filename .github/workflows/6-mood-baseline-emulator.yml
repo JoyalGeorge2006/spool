@@ -1,0 +1,141 @@
+name: Baseline 2.1.5 mood control (no APK release)
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-mood-baseline]
+    paths: [".github/workflows/mood-baseline-emulator.yml", "app/src/androidTest/java/com/music/bitchord/BaselineMoodProbeTest.kt"]
+permissions:
+  contents: write
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+        cache: gradle
+    - name: Restore built APKs
+      id: apks
+      uses: actions/cache/restore@v4
+      with:
+        path: app/build/outputs/apk
+        key: apks-${{ hashFiles('app/src/**', 'shared/src/**', 'sharedUi/src/**', 'wearos/src/**', '**/build.gradle.kts', 'gradle/libs.versions.toml') }}
+    - name: Android platform, NDK and compileSdk remap (same as the 2.1.1 build)
+      shell: bash
+      run: |
+        set -euo pipefail
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Test script
+      run: |
+        cat > /tmp/run-mood.sh <<'RUNMOOD'
+        #!/bin/bash
+        export PATH=$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        mkdir -p proof
+        APK0=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" 2>/dev/null | head -1)
+        TAPK0=$(find app/build/outputs/apk/androidTest -name "*.apk" 2>/dev/null | head -1)
+        if [ -n "$APK0" ] && [ -n "$TAPK0" ]; then echo "reused APKs" > /tmp/build.log; else
+        timeout -k 20 1200 ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --console=plain > /tmp/build.log 2>&1; fi
+        echo "BUILD_STATUS=$?" > proof/build-status.txt
+        APK=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" | head -1)
+        TAPK=$(find app/build/outputs/apk/androidTest -name "*.apk" | head -1)
+        IMG="system-images;android-34;default;x86_64"
+        yes | sdkmanager --licenses > /dev/null 2>&1
+        sdkmanager --install "$IMG" emulator > /tmp/sdk-install.log 2>&1
+        tail -3 /tmp/sdk-install.log > proof/sdk-install.txt
+        AVDH=${ANDROID_AVD_HOME:-$HOME/.android/avd}; mkdir -p $AVDH
+        echo no | avdmanager --verbose create avd -n test -k "$IMG" -d pixel_6 --force > proof/avd-create.txt 2>&1; echo "avdmanager exit=$?" >> proof/avd-create.txt
+        if [ ! -f $AVDH/test.ini ]; then
+          echo "avdmanager did not create the AVD; writing it by hand" >> proof/avd-create.txt
+          mkdir -p $AVDH/test.avd
+          printf 'avd.ini.encoding=UTF-8\npath=%s/test.avd\npath.rel=avd/test.avd\ntarget=android-34\n' "$AVDH" > $AVDH/test.ini
+          printf 'AvdId=test\navd.ini.displayname=test\nPlayStore.enabled=false\nabi.type=x86_64\nhw.cpu.arch=x86_64\nhw.device.name=pixel_6\nhw.gpu.enabled=yes\nhw.gpu.mode=auto\nhw.lcd.density=420\nhw.lcd.height=2400\nhw.lcd.width=1080\nhw.sdCard=no\ndisk.dataPartition.size=6G\nimage.sysdir.1=system-images/android-34/default/x86_64/\ntag.id=default\n' > $AVDH/test.avd/config.ini
+        fi
+        printf 'hw.ramSize=4096\nhw.cpu.ncore=3\nvm.heapSize=576\nhw.keyboard=yes\n' >> $AVDH/test.avd/config.ini
+        emulator -list-avds >> proof/avd-create.txt 2>&1
+        attempt() {
+          N=$1; GPU=$2; P=proof/attempt-$N; mkdir -p $P
+          echo "gpu=$GPU" > $P/config.txt
+          adb kill-server > /dev/null 2>&1; adb start-server > /dev/null 2>&1
+          nohup emulator -port 5554 -avd test -no-window -gpu $GPU -no-snapshot -noaudio -no-boot-anim -verbose -show-kernel > /tmp/emu-$N.log 2>&1 &
+          EPID=$!
+          BOOT=no
+          for i in $(seq 1 90); do sleep 4; if [ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then BOOT=yes; break; fi; done
+          echo "boot=$BOOT" >> $P/config.txt
+          [ "$BOOT" = yes ] || { tail -80 /tmp/emu-$N.log | cut -c1-300 > $P/emulator-stderr-tail.txt; return; }
+          adb shell input keyevent 82; adb shell settings put global window_animation_scale 0; adb shell settings put global transition_animation_scale 0; adb shell settings put global animator_duration_scale 0
+          timeout -k 5 150 adb install -r -t "$APK" > $P/install.txt 2>&1
+          timeout -k 5 150 adb install -r -t "$TAPK" >> $P/install.txt 2>&1
+          RUNNER=$(adb shell pm list instrumentation 2>/dev/null | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p' | grep -i spool | head -1)
+          echo "runner=$RUNNER" >> $P/config.txt
+          ( adb logcat -v time > /tmp/logcat-stream-$N.txt 2>&1 & )
+          ( while true; do sleep 5; { date -u +%T; free -m | sed -n 2p; ps -eo pid,stat,pcpu,rss,etimes,args --sort=-rss | head -3 | cut -c1-110; } >> $P/host-state.txt 2>&1; done ) &
+          MEMPID=$!
+          timeout -k 5 840 adb shell am instrument -w -r -e class com.music.bitchord.BaselineMoodProbeTest "$RUNNER" > $P/instrument.txt 2>&1
+          echo "INSTRUMENT_STATUS=$?" > $P/status.txt
+          kill $MEMPID 2>/dev/null
+          { echo "-- adb devices"; adb devices; echo "-- qemu procs"; ps -eo pid,stat,pcpu,rss,etimes,args | grep -E "qemu-system|emulator" | grep -v grep | cut -c1-150; echo "-- launcher alive?"; kill -0 $EPID 2>&1 && echo alive; } > $P/emu-state.txt 2>&1
+          { echo "-- dmesg"; (dmesg 2>&1 || sudo dmesg 2>&1) | tail -40; } > $P/kernel.txt 2>&1
+          tail -120 /tmp/emu-$N.log | cut -c1-300 > $P/emulator-stderr-tail.txt
+          mkdir -p $P/crashdb; find /tmp/android-runner -type f -size -300k 2>/dev/null | head -40 | while read f; do cp "$f" "$P/crashdb/$(echo $f | tr / _)" 2>/dev/null; done; find /tmp/android-runner -type f 2>/dev/null | head -60 > $P/crashdb-list.txt
+          grep -iE "kernel panic|Oops|BUG:|hung task|soft lockup|rcu|out of memory|killed process|watchdog|lowmemory|crash|abort|SIGSEGV|fatal" /tmp/emu-$N.log | cut -c1-250 | head -40 > $P/kernel-grep.txt
+          timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. $P/ > $P/pull-log.txt 2>&1
+          grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|am_crash|am_anr|ANR in|has died|am_kill|TestRunner|lowmemorykiller" /tmp/logcat-stream-$N.txt | cut -c1-300 | tail -150 > $P/logcat-mood.txt
+          tail -30 /tmp/logcat-stream-$N.txt | cut -c1-300 > $P/logcat-tail.txt
+          grep -iE "exoplayer|playbackservice|bitchord|spool|datasource|httpdatasource|extractor|loadeventinfo|playerError|PlaybackException|sabr|innertube|signature|403|410|429|unplayable|UnknownHost|SocketTimeout|SSLException|Couldn" /tmp/logcat-stream-$N.txt | grep -v "TestRunner" | cut -c1-320 | tail -400 > $P/playback-errors.txt
+          gzip -c /tmp/logcat-stream-$N.txt > $P/logcat-full.txt.gz
+          if grep -q "^INSTRUMENTATION_CODE" $P/instrument.txt; then touch proof/done; fi
+          timeout 20 adb emu kill > /dev/null 2>&1; sleep 3; kill $EPID 2>/dev/null; pkill -f qemu-system 2>/dev/null; sleep 2
+        }
+        attempt 1 guest
+        [ -f proof/done ] || attempt 2 swangle_indirect
+        exit 0
+        RUNMOOD
+        chmod +x /tmp/run-mood.sh
+    - name: Mood region on a real emulator, own emulator with logs
+      run: bash /tmp/run-mood.sh
+    - name: Save built APKs for reuse
+      if: always() && steps.apks.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: app/build/outputs/apk
+        key: apks-${{ hashFiles('app/src/**', 'shared/src/**', 'sharedUi/src/**', 'wearos/src/**', '**/build.gradle.kts', 'gradle/libs.versions.toml') }}
+    - name: Keep APK artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mood-region-apks
+        path: |
+          app/build/outputs/apk/dev/debug/*.apk
+          app/build/outputs/apk/androidTest/dev/debug/*.apk
+        retention-days: 7
+    - name: Publish proof files to a proof branch
+      if: always()
+      run: |
+        ls -la proof || true
+        git config user.name spool-ci
+        git config user.email spool-ci@users.noreply.github.com
+        git checkout --orphan spool-mood-proof-baseline
+        git rm -rf --cached . > /dev/null 2>&1 || true
+        find . -mindepth 1 -maxdepth 1 ! -name proof ! -name .git -exec rm -rf {} + || true
+        git add -f proof
+        git commit -qm "Emulator proof for ${GITHUB_SHA}"
+        git push -f origin HEAD:refs/heads/spool-mood-proof-baseline-${GITHUB_RUN_ID}
+# baseline v1
