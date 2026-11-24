@@ -1,0 +1,30 @@
+11-24 20:33:38.837 I/ImeTracker(  518): app.spool.music.dev:947a28c4: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 20:33:38.843 I/Zygote  (  339): Process 2473 exited due to signal 9 (Killed)
+11-24 20:33:38.839 I/binder  (    0): undelivered TRANSACTION_COMPLETE
+11-24 20:33:38.843 I/binder  (    0): undelivered transaction 125523, process died.
+11-24 20:33:38.854 D/ConnectivityService(  518): releasing NetworkRequest [ REQUEST id=54, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 20:33:38.854 D/ConnectivityService(  518): releasing NetworkRequest [ REQUEST id=56, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 20:33:38.854 D/ConnectivityService(  518): releasing NetworkRequest [ REQUEST id=60, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 20:33:38.971 I/OpenGLRenderer( 1094): Davey! duration=788ms; Flags=1, FrameTimelineVsyncId=5092, IntendedVsync=63213185452, Vsync=63213185452, InputEventId=0, HandleInputStart=63218368319, AnimationStart=63218368911, PerformTraversalsStart=63218369522, DrawStart=63651057934, FrameDeadline=6322
+11-24 20:33:39.139 V/WindowManager(  518): Sent Transition #9 createdAt=11-24 20:33:37.643 via request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=9 displayId=0 isRunning=false baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] 
+11-24 20:33:39.139 V/WindowManager(  518):     startWCT=WindowContainerTransaction { changes = {} hops = [] errorCallbackToken=null taskFragmentOrganizer=null }
+11-24 20:33:39.139 V/WindowManager(  518):     info={id=9 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{cbb9d79 Task{142650f #1 type=home}}} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x3da1ba2 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0},{WCT{RemoteToken{9f028
+11-24 20:33:39.140 V/WindowManagerShell(  833): onTransitionReady android.os.BinderProxy@c038052: {id=9 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@e9aca4c} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x4610c20 sb=Rect(0, 0 - 1080, 2400) 
+11-24 20:33:39.140 V/WindowManagerShell(  833): Playing animation for (#9)android.os.BinderProxy@c038052@0
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.transition.DefaultMixedHandler@fc43f33
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.keyguard.KeyguardTransitionHandler@642a2f0
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.activityembedding.ActivityEmbeddingController@da4b069
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.recents.RecentsTransitionHandler@7154aee
+11-24 20:33:39.140 V/ShellRecents(  833): RecentsTransitionHandler.startAnimation: no controller found
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.pip.PipTransition@2f99b8f
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.splitscreen.StageCoordinator@146fe1c
+11-24 20:33:39.140 V/WindowManagerShell(  833):  try handler com.android.wm.shell.transition.RemoteTransitionHandler@24eea25
+11-24 20:33:39.140 V/WindowManagerShell(  833): Transition doesn't have explicit remote, search filters for match for {id=9 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@e9aca4c} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x4610c20 sb=Rect
+11-24 20:33:39.140 V/WindowManagerShell(  833):  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLaunch
+11-24 20:33:39.140 D/RemoteTransitionHandler(  833): Found filterPair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLaunch
+11-24 20:33:39.140 V/WindowManagerShell(  833):  Delegate animation for #9 to RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@97f5a78, appThread = android.app.IApplicationThread$Stub$Proxy@99a4551, debugName = QuickstepLaunchHome }
+11-24 20:33:39.142 V/WindowManagerShell(  833):  animated by com.android.wm.shell.transition.RemoteTransitionHandler@24eea25
+11-24 20:33:39.171 V/WindowManagerShell(  833): Transition animation finished (aborted=false), notifying core (#9)android.os.BinderProxy@c038052@0
+11-24 20:33:39.178 V/WindowManager(  518): Finish Transition #9: created at 11-24 20:33:37.643 collect-started=0.024ms request-sent=0.062ms started=15.666ms ready=508.274ms sent=1494.972ms finished=1534.013ms
+11-24 20:33:39.180 V/WindowManagerShell(  833): Track 0 became idle
+11-24 20:33:39.181 V/WindowManagerShell(  833): All active transition animations finished

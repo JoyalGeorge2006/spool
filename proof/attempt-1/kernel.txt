@@ -1,0 +1,41 @@
+-- dmesg
+[    5.719687] audit: type=1400 audit(1795552247.576:9): apparmor="STATUS" operation="profile_load" profile="unconfined" name="bfdd" pid=490 comm="apparmor_parser"
+[    5.723498] audit: type=1400 audit(1795552247.578:10): apparmor="STATUS" operation="profile_load" profile="unconfined" name="brave" pid=492 comm="apparmor_parser"
+[    5.723505] audit: type=1400 audit(1795552247.579:11): apparmor="STATUS" operation="profile_load" profile="unconfined" name="bgpd" pid=491 comm="apparmor_parser"
+[    5.927842] /dev/sr0: Can't lookup blockdev
+[    6.039310] mlx5_core 7db0:00:02.0 enP32176s1: Link up
+[    6.066465] hv_netvsc 000d3a31-a6b7-000d-3a31-a6b7000d3a31 eth0: Data path switched to VF: enP32176s1
+[    6.067738] mlx5_core 7db0:00:02.0 mlx5_0: Port: 1 Link ACTIVE
+[    6.090822] 8021q: 802.1Q VLAN Support v1.8
+[    6.155118] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    6.155487] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    6.155679] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    6.155760] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    6.155766] cfg80211: failed to load regulatory.db
+[    7.380597] hv_netvsc 000d3a31-a6b7-000d-3a31-a6b7000d3a31 eth0: Data path switched from VF: enP32176s1
+[    7.408958] mlx5_core 7db0:00:02.0 mlx5_0: Port: 1 Link DOWN
+[    8.085038] mlx5_core 7db0:00:02.0 enP32176s1: Link up
+[    8.113418] hv_netvsc 000d3a31-a6b7-000d-3a31-a6b7000d3a31 eth0: Data path switched to VF: enP32176s1
+[    8.114174] mlx5_core 7db0:00:02.0 mlx5_0: Port: 1 Link ACTIVE
+[    8.815290] EXT4-fs (sda1): resizing filesystem from 19370235 to 39031035 blocks
+[    9.757171] EXT4-fs (sda1): resized filesystem to 39031035
+[    9.774059] ephemeral0: Can't lookup blockdev
+[    9.829518] systemd-fstab-generator[1070]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   10.655716] ephemeral0: Can't lookup blockdev
+[   10.905111] kauditd_printk_skb: 174 callbacks suppressed
+[   10.905116] audit: type=1400 audit(1795552252.761:186): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/journal/socket" pid=1342 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[   10.905268] audit: type=1400 audit(1795552252.761:187): apparmor="DENIED" operation="capable" class="cap" profile="systemd-detect-virt" pid=1342 comm="systemd-detect-" capability=38  capname="perfmon"
+[   10.909784] audit: type=1400 audit(1795552252.766:188): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/notify" pid=1342 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[   10.931544] audit: type=1400 audit(1795552252.788:189): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="rsyslogd" pid=1239 comm="apparmor_parser"
+[   11.158555] loop0: detected capacity change from 0 to 8
+[   11.284790] NET: Registered PF_QIPCRTR protocol family
+[   11.429458] audit: type=1400 audit(1795552253.285:190): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/lib/snapd/snap-confine" pid=1472 comm="apparmor_parser"
+[   11.890657] audit: type=1400 audit(1795552253.747:191): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1615 comm="apparmor_parser"
+[   11.907501] Adding 3145724k swap on /swapfile.  Priority:-1 extents:4 across:4440060k 
+[   12.138324] Initializing XFRM netlink socket
+[   12.157024] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   12.254913] systemd-fstab-generator[1875]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   13.532002] systemd-fstab-generator[2083]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   13.862973] systemd-fstab-generator[2159]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   49.066226] hv_balloon: Max. dynamic memory size: 16384 MB
+[  113.557394] kvm: kvm [2853]: vcpu0, guest rIP: 0xffffffff8ae03a51 Unhandled WRMSR(0xc0010007) = 0xffff
