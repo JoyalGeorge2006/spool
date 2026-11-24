@@ -1,0 +1,71 @@
+name: Mood region emulator proof (no APK release)
+on:
+  workflow_dispatch:
+  push:
+    branches: [spool-mood-region]
+    paths: [".github/workflows/mood-region-emulator.yml", "app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt"]
+permissions:
+  contents: write
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: temurin
+    - name: Android platform, NDK and compileSdk remap (same as the 2.1.1 build)
+      shell: bash
+      run: |
+        set -euo pipefail
+        SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+        "$SM" 'platforms;android-37.0' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+        cat > /tmp/platform.gradle <<'INIT'
+        allprojects {
+          afterEvaluate { p ->
+            def android = p.extensions.findByName('android')
+            if (android != null) android.compileSdkVersion('android-37.0')
+          }
+        }
+        INIT
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Test script
+      run: |
+        cat > /tmp/run-mood.sh <<'RUNMOOD'
+        #!/bin/bash
+        set +e
+        ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.MoodRegionEmulatorTest --no-daemon --console=plain 2>&1 | tee /tmp/emu-gradle.log
+        echo "GRADLE_STATUS=${PIPESTATUS[0]}" > /tmp/status.txt
+        mkdir -p proof
+        adb pull /sdcard/Android/data/app.spool.music.dev/files/. proof/ || true
+        adb logcat -d | grep -E "MOOD-PROOF|FATAL EXCEPTION" > proof/logcat-mood.txt || true
+        cp /tmp/emu-gradle.log proof/gradle.log
+        cp /tmp/status.txt proof/status.txt
+        RUNMOOD
+        chmod +x /tmp/run-mood.sh
+    - name: Mood region on a real emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        profile: pixel_6
+        script: /tmp/run-mood.sh
+    - name: Publish proof files to a proof branch
+      if: always()
+      run: |
+        ls -la proof || true
+        git config user.name spool-ci
+        git config user.email spool-ci@users.noreply.github.com
+        git checkout --orphan spool-mood-proof
+        git rm -rf --cached . > /dev/null 2>&1 || true
+        find . -mindepth 1 -maxdepth 1 ! -name proof ! -name .git -exec rm -rf {} + || true
+        git add -f proof
+        git commit -qm "Emulator proof for ${GITHUB_SHA}"
+        git push -f origin spool-mood-proof
