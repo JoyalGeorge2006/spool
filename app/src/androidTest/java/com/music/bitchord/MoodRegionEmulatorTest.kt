@@ -129,6 +129,7 @@ class MoodRegionEmulatorTest {
         val c = future.get(20, java.util.concurrent.TimeUnit.SECONDS)
         say("STEP controller connected")
         var played = 0
+        val problems = ArrayList<String>()
         for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) {
             runCatching {
                 compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(label))
@@ -149,7 +150,7 @@ class MoodRegionEmulatorTest {
             }.onFailure { say("$label: bounds/nudge failed: ${it.message}") }
             compose.runOnUiThread { c.clearMediaItems() }
             val tile = compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().size
-            if (tile == 0) { say("$label: no such tile on the page"); continue }
+            if (tile == 0) { say("$label: no such tile on the page"); problems.add("$label: no such tile"); continue }
             compose.onAllNodesWithText(label, useUnmergedTree = true)[0].performClick()
             var queued = false
             try {
@@ -187,11 +188,14 @@ class MoodRegionEmulatorTest {
             val advanced = ok && p2 - p1 >= 3000
             say("STEP $label tapped")
             say("$label queued=$count playbackState=$state(3=READY) playerError=$err readyAndPlaying=$ok positionAdvancedMs=${p2 - p1} (position moving is not proof of audible audio) volume=$vol titles=" + items.joinToString(" ;; "))
+            if (count == 0) problems.add("$label: nothing queued")
+            if (!ok) problems.add("$label: queued but never READY+playing")
             if (advanced) played++
             settle(1500)
             shot("region-07-mood-${label.lowercase()}-playing")
             compose.runOnUiThread { c.pause() }
         }
-        say("SUMMARY moods with advancing position: $played of 5")
+        say("SUMMARY moods with advancing position: $played of 5; problems=$problems")
+        assertTrue("release gate: every mood must queue and play (position advancing) but: $problems", problems.isEmpty() && played == 5)
     }
 }
