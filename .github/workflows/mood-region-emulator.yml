@@ -16,6 +16,7 @@ jobs:
       with:
         java-version: '17'
         distribution: temurin
+        cache: gradle
     - name: Android platform, NDK and compileSdk remap (same as the 2.1.1 build)
       shell: bash
       run: |
@@ -75,4 +76,4 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v3
+# v4
