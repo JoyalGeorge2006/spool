@@ -52,3 +52,4 @@ jobs:
           shared/build/reports/tests
           app/build/reports/tests
         if-no-files-found: ignore
+# rerun after locale baseline
