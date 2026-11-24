@@ -29,12 +29,23 @@ class MoodRegionEmulatorTest {
     )
 
     private val log = StringBuilder()
+    /** Copy the proof files somewhere the host shell can still read after the test app is uninstalled. */
+    private fun keep() {
+        runCatching {
+            val dir = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
+            val pfd = InstrumentationRegistry.getInstrumentation().uiAutomation
+                .executeShellCommand("sh -c 'mkdir -p /data/local/tmp/mood && cp -f ${dir}/* /data/local/tmp/mood/ && chmod -R a+rw /data/local/tmp/mood'")
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
+        }
+    }
+
     private fun say(s: String) {
         println("MOOD-PROOF $s"); log.appendLine(s)
         runCatching {
             val dir = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
             File(dir, "mood-proof.txt").appendText(s + "\n")
         }
+        keep()
     }
 
     private fun shot(name: String) {
@@ -47,6 +58,7 @@ class MoodRegionEmulatorTest {
         val out = File(dir, "$name.png")
         FileOutputStream(out).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         println("SHOT-SAVED ${out.absolutePath} bytes=${out.length()}")
+        keep()
     }
 
     private fun settle(ms: Long = 1200) { compose.waitForIdle(); Thread.sleep(ms); compose.waitForIdle() }
