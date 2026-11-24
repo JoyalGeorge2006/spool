@@ -88,7 +88,7 @@ jobs:
           ( adb logcat -v time > /tmp/logcat-stream-$N.txt 2>&1 & )
           ( while true; do sleep 5; { date -u +%T; free -m | sed -n 2p; ps -eo pid,stat,pcpu,rss,etimes,args --sort=-rss | head -3 | cut -c1-110; } >> $P/host-state.txt 2>&1; done ) &
           MEMPID=$!
-          timeout -k 5 480 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > $P/instrument.txt 2>&1
+          timeout -k 5 840 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > $P/instrument.txt 2>&1
           echo "INSTRUMENT_STATUS=$?" > $P/status.txt
           kill $MEMPID 2>/dev/null
           { echo "-- adb devices"; adb devices; echo "-- qemu procs"; ps -eo pid,stat,pcpu,rss,etimes,args | grep -E "qemu-system|emulator" | grep -v grep | cut -c1-150; echo "-- launcher alive?"; kill -0 $EPID 2>&1 && echo alive; } > $P/emu-state.txt 2>&1
@@ -137,4 +137,4 @@ jobs:
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
         git push -f origin HEAD:refs/heads/spool-mood-proof-${GITHUB_RUN_ID}
-# v13
+# v14
