@@ -1,0 +1,400 @@
+11-24 22:35:11.192 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver$newPipeStream$1.invokeSuspend(Unknown Source:15)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:798)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+11-24 22:35:11.192 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+11-24 22:35:16.195 D/BitChord( 2437): ITX InnerTubeExtractor: stream extraction started [wantVideo=false]
+11-24 22:35:16.195 D/BitChord( 2437): ITX InnerTubeExtractor: player extraction pass [signatureTimestamp=false, visitorDataPresent=true]
+11-24 22:35:16.198 D/BitChord( 2437): ITX PlayerClientDirector: player client selection [candidateCount=2, rejectedCount=10, wantVideo=false]
+11-24 22:35:16.198 D/BitChord( 2437): ITX PlayerClientDirector: player response batch started [candidateCount=2, excludedCount=0, directAudioOnly=true, wantVideo=false]
+11-24 22:35:16.198 D/BitChord( 2437): ITX InnerTube: player request client=VISIONOS version=0.1 poToken=false sts=false loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:16.244 D/BitChord( 2437): ITX InnerTube: player response client=VISIONOS elapsed=46ms
+11-24 22:35:16.245 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=VISIONOS, streamingPresent=false, formatCount=0, elapsedMs=47]
+11-24 22:35:16.246 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=VISIONOS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:16.246 D/BitChord( 2437): ITX InnerTube: player request client=VISIONOS version=1.02 poToken=false sts=false loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:16.577 D/BitChord( 2437): ITX InnerTube: player response client=VISIONOS elapsed=331ms
+11-24 22:35:16.579 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=VISIONOS, streamingPresent=false, formatCount=0, elapsedMs=333]
+11-24 22:35:16.579 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=VISIONOS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:16.579 D/BitChord( 2437): ITX PlayerClientDirector: player response batch completed [resultCount=0, elapsedMs=384]
+11-24 22:35:16.580 D/BitChord( 2437): ITX InnerTubeExtractor: player responses received [count=0, elapsedMs=384]
+11-24 22:35:16.580 W/BitChord( 2437): ITX InnerTubeExtractor: no playable clients
+11-24 22:35:16.580 D/BitChord( 2437): ITX InnerTubeExtractor: watch page cache hit [authenticated=false, ageMs=11859]
+11-24 22:35:16.580 D/BitChord( 2437): ITX InnerTubeExtractor: player extraction pass [signatureTimestamp=true, visitorDataPresent=true]
+11-24 22:35:16.584 D/BitChord( 2437): ITX PlayerClientDirector: player client selection [candidateCount=6, rejectedCount=6, wantVideo=false]
+11-24 22:35:16.584 D/BitChord( 2437): ITX PlayerClientDirector: player response batch started [candidateCount=6, excludedCount=0, directAudioOnly=false, wantVideo=false]
+11-24 22:35:16.585 D/BitChord( 2437): ITX InnerTube: player request client=VISIONOS version=0.1 poToken=false sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:16.634 D/BitChord( 2437): ITX InnerTube: player response client=VISIONOS elapsed=49ms
+11-24 22:35:16.635 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=VISIONOS, streamingPresent=false, formatCount=0, elapsedMs=50]
+11-24 22:35:16.635 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=VISIONOS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:16.636 D/BitChord( 2437): ITX InnerTube: player request client=WEB_EMBEDDED_PLAYER version=2.20261123.08.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:16.718 D/BitChord( 2437): ITX InnerTube: player response client=WEB_EMBEDDED_PLAYER elapsed=82ms
+11-24 22:35:16.720 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_EMBEDDED_PLAYER, streamingPresent=false, formatCount=0, elapsedMs=84]
+11-24 22:35:16.720 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_EMBEDDED_PLAYER, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:16.721 D/BitChord( 2437): ITX InnerTube: player request client=WEB_REMIX version=1.20260707.12.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:16.794 D/BitChord( 2437): ITX InnerTube: player response client=WEB_REMIX elapsed=73ms
+11-24 22:35:16.795 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_REMIX, streamingPresent=false, formatCount=0, elapsedMs=74]
+11-24 22:35:16.795 D/BitChord( 2437): ITX PlayerClientDirector: token fetch skipped [client=WEB_REMIX, playable=false]
+11-24 22:35:16.795 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_REMIX, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:16.796 D/BitChord( 2437): ITX PlayerClientDirector: tokenized request selected [client=TVHTML5_SIMPLY]
+11-24 22:35:16.800 D/BitChord( 2437): ITX PlayerClientDirector: token fetch completed [client=TVHTML5_SIMPLY, tokenPresent=true, elapsedMs=4]
+11-24 22:35:16.801 D/BitChord( 2437): ITX InnerTube: player request client=TVHTML5_SIMPLY version=1.0 poToken=true sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:17.104 D/BitChord( 2437): ITX InnerTube: player response client=TVHTML5_SIMPLY elapsed=303ms
+11-24 22:35:17.106 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=TVHTML5_SIMPLY, streamingPresent=false, formatCount=0, elapsedMs=305]
+11-24 22:35:17.106 D/BitChord( 2437): ITX PlayerClientDirector: tokenized response unavailable [client=TVHTML5_SIMPLY]
+11-24 22:35:17.106 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=TVHTML5_SIMPLY, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:17.107 D/BitChord( 2437): ITX InnerTube: player request client=WEB_REMIX version=1.20260707.12.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:17.382 D/BitChord( 2437): ITX InnerTube: player response client=WEB_REMIX elapsed=276ms
+11-24 22:35:17.384 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_REMIX, streamingPresent=false, formatCount=0, elapsedMs=278]
+11-24 22:35:17.384 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_REMIX, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:17.384 D/BitChord( 2437): ITX InnerTube: player request client=VISIONOS version=1.02 poToken=false sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:17.429 D/BitChord( 2437): ITX InnerTube: player response client=VISIONOS elapsed=45ms
+11-24 22:35:17.430 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=VISIONOS, streamingPresent=false, formatCount=0, elapsedMs=46]
+11-24 22:35:17.431 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=VISIONOS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:17.431 D/BitChord( 2437): ITX PlayerClientDirector: player response batch completed [resultCount=0, elapsedMs=851]
+11-24 22:35:17.431 D/BitChord( 2437): ITX InnerTubeExtractor: player responses received [count=0, elapsedMs=851]
+11-24 22:35:17.431 W/BitChord( 2437): ITX InnerTubeExtractor: no playable clients
+11-24 22:35:17.431 W/BitChord( 2437): ITX InnerTubeExtractor: watch page cache unusable [authenticated=false]
+11-24 22:35:18.341 D/BitChord( 2437): ITX YtConfigParser: fetchConfig parsed page=watch htmlSize=1323547 hasSts=true hasVisitorData=true hasEncryptedHostFlags=false
+11-24 22:35:18.351 D/BitChord( 2437): ITX InnerTubeExtractor: watch page config ready [fetched=true, authenticated=false, elapsedMs=920]
+11-24 22:35:18.352 D/BitChord( 2437): ITX InnerTubeExtractor: player extraction pass [signatureTimestamp=true, visitorDataPresent=true]
+11-24 22:35:18.355 D/BitChord( 2437): ITX PlayerClientDirector: player client selection [candidateCount=6, rejectedCount=6, wantVideo=false]
+11-24 22:35:18.355 D/BitChord( 2437): ITX PlayerClientDirector: player response batch started [candidateCount=6, excludedCount=0, directAudioOnly=false, wantVideo=false]
+11-24 22:35:18.355 D/BitChord( 2437): ITX InnerTube: player request client=VISIONOS version=0.1 poToken=false sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:18.418 D/BitChord( 2437): ITX InnerTube: player response client=VISIONOS elapsed=62ms
+11-24 22:35:18.419 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=VISIONOS, streamingPresent=false, formatCount=0, elapsedMs=64]
+11-24 22:35:18.420 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=VISIONOS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:18.420 D/BitChord( 2437): ITX InnerTube: player request client=WEB_EMBEDDED_PLAYER version=2.20261123.08.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:18.691 D/BitChord( 2437): ITX InnerTube: player response client=WEB_EMBEDDED_PLAYER elapsed=271ms
+11-24 22:35:18.692 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_EMBEDDED_PLAYER, streamingPresent=false, formatCount=0, elapsedMs=272]
+11-24 22:35:18.693 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_EMBEDDED_PLAYER, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:18.693 D/BitChord( 2437): ITX InnerTube: player request client=WEB_REMIX version=1.20260707.12.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:18.968 D/BitChord( 2437): ITX InnerTube: player response client=WEB_REMIX elapsed=275ms
+11-24 22:35:18.969 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_REMIX, streamingPresent=false, formatCount=0, elapsedMs=276]
+11-24 22:35:18.970 D/BitChord( 2437): ITX PlayerClientDirector: token fetch skipped [client=WEB_REMIX, playable=false]
+11-24 22:35:18.970 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_REMIX, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:18.970 D/BitChord( 2437): ITX PlayerClientDirector: tokenized request selected [client=TVHTML5_SIMPLY]
+11-24 22:35:18.975 D/BitChord( 2437): ITX PlayerClientDirector: token fetch completed [client=TVHTML5_SIMPLY, tokenPresent=true, elapsedMs=5]
+11-24 22:35:18.975 D/BitChord( 2437): ITX InnerTube: player request client=TVHTML5_SIMPLY version=1.0 poToken=true sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:19.256 D/BitChord( 2437): ITX InnerTube: player response client=TVHTML5_SIMPLY elapsed=281ms
+11-24 22:35:19.257 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=TVHTML5_SIMPLY, streamingPresent=false, formatCount=0, elapsedMs=282]
+11-24 22:35:19.257 D/BitChord( 2437): ITX PlayerClientDirector: tokenized response unavailable [client=TVHTML5_SIMPLY]
+11-24 22:35:19.258 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=TVHTML5_SIMPLY, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:19.258 D/BitChord( 2437): ITX InnerTube: player request client=WEB_REMIX version=1.20260707.12.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:19.326 D/BitChord( 2437): ITX InnerTube: player response client=WEB_REMIX elapsed=68ms
+11-24 22:35:19.327 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_REMIX, streamingPresent=false, formatCount=0, elapsedMs=69]
+11-24 22:35:19.327 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_REMIX, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:19.328 D/BitChord( 2437): ITX InnerTube: player request client=VISIONOS version=1.02 poToken=false sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:19.616 D/BitChord( 2437): ITX InnerTube: player response client=VISIONOS elapsed=289ms
+11-24 22:35:19.617 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=VISIONOS, streamingPresent=false, formatCount=0, elapsedMs=290]
+11-24 22:35:19.618 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=VISIONOS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:19.618 D/BitChord( 2437): ITX PlayerClientDirector: player response batch completed [resultCount=0, elapsedMs=1266]
+11-24 22:35:19.618 D/BitChord( 2437): ITX InnerTubeExtractor: player responses received [count=0, elapsedMs=1266]
+11-24 22:35:19.618 W/BitChord( 2437): ITX InnerTubeExtractor: no playable clients
+11-24 22:35:19.949 I/System.out( 2437): MOOD-PROOF Love queued=58 playbackState=1(3=READY) playerError=Source error readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Kandaangi Kandaangi | Vijay, Sherya Ghosal ;; Ee Kaattu | Karthik ;; Mellinamae | Harish Raghav
+11-24 22:35:20.115 D/BitChord( 2437): ITX YtConfigParser: fetchConfig parsed page=embed htmlSize=156303 hasSts=true hasVisitorData=true hasEncryptedHostFlags=true
+11-24 22:35:20.119 D/BitChord( 2437): ITX InnerTubeExtractor: embedded config ready [elapsedMs=499]
+11-24 22:35:20.120 D/BitChord( 2437): ITX InnerTubeExtractor: player extraction pass [signatureTimestamp=true, visitorDataPresent=true]
+11-24 22:35:20.121 D/BitChord( 2437): ITX PlayerClientDirector: player client selection [candidateCount=1, rejectedCount=0, wantVideo=false]
+11-24 22:35:20.121 D/BitChord( 2437): ITX PlayerClientDirector: player response batch started [candidateCount=1, excludedCount=0, directAudioOnly=false, wantVideo=false]
+11-24 22:35:20.121 D/BitChord( 2437): ITX InnerTube: player request client=WEB_EMBEDDED_PLAYER version=2.20261124.00.00 poToken=false sts=true loginSupported=true loginRequired=false hasCookie=false hasSapisid=false authEligible=true hasDataSync=false
+11-24 22:35:20.196 D/BitChord( 2437): ITX InnerTube: player response client=WEB_EMBEDDED_PLAYER elapsed=75ms
+11-24 22:35:20.198 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_EMBEDDED_PLAYER, streamingPresent=false, formatCount=0, elapsedMs=76]
+11-24 22:35:20.199 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_EMBEDDED_PLAYER, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:20.199 D/BitChord( 2437): ITX PlayerClientDirector: player response batch completed [resultCount=0, elapsedMs=79]
+11-24 22:35:20.199 D/BitChord( 2437): ITX InnerTubeExtractor: player responses received [count=0, elapsedMs=79]
+11-24 22:35:20.199 W/BitChord( 2437): ITX InnerTubeExtractor: no playable clients
+11-24 22:35:20.200 D/BitChord( 2437): ITX InnerTubeExtractor: kids fallback attempted [fallback=kids]
+11-24 22:35:20.200 D/BitChord( 2437): ITX InnerTubeExtractor: player extraction pass [signatureTimestamp=true, visitorDataPresent=true]
+11-24 22:35:20.201 D/BitChord( 2437): ITX PlayerClientDirector: player client selection [candidateCount=1, rejectedCount=0, wantVideo=false]
+11-24 22:35:20.201 D/BitChord( 2437): ITX PlayerClientDirector: player response batch started [candidateCount=1, excludedCount=0, directAudioOnly=false, wantVideo=false]
+11-24 22:35:20.202 D/BitChord( 2437): ITX InnerTube: player request client=WEB_KIDS version=2.20260205.00.00 poToken=false sts=true loginSupported=false loginRequired=false hasCookie=false hasSapisid=false authEligible=false hasDataSync=false
+11-24 22:35:20.470 D/BitChord( 2437): ITX InnerTube: player response client=WEB_KIDS elapsed=269ms
+11-24 22:35:20.471 D/BitChord( 2437): ITX PlayerClientDirector: player response decoded [client=WEB_KIDS, streamingPresent=false, formatCount=0, elapsedMs=270]
+11-24 22:35:20.472 W/BitChord( 2437): ITX PlayerClientDirector: client response unavailable [client=WEB_KIDS, profilePresent=true, tokenUnavailable=false, requestFailure=false, failurePresent=true]
+11-24 22:35:20.472 D/BitChord( 2437): ITX PlayerClientDirector: player response batch completed [resultCount=0, elapsedMs=272]
+11-24 22:35:20.472 D/BitChord( 2437): ITX InnerTubeExtractor: player responses received [count=0, elapsedMs=272]
+11-24 22:35:20.472 W/BitChord( 2437): ITX InnerTubeExtractor: no playable clients
+11-24 22:35:20.473 W/BitChord( 2437): InnerTubeX failed for i4NhQRUt3Kc: StreamResolveException: This track is unavailable.
+11-24 22:35:20.473 D/BitChord( 2437): TIMING i4NhQRUt3Kc InnerTubeX: 4279ms
+11-24 22:35:20.473 W/BitChord( 2437): InnerTubeX found no usable stream for i4NhQRUt3Kc; falling back to extraction
+11-24 22:35:20.501 D/BitChord( 2437): extractor fetch 27ms POST https://youtubei.googleapis.com/youtubei/v1/visitor_id?prettyPrint=false
+11-24 22:35:20.595 D/BitChord( 2437): extractor fetch 92ms POST https://youtubei.googleapis.com/youtubei/v1/reel/reel_item_watch?prettyPrint=false&t=FVZXk5uNT4VW&id=i4NhQRUt3Kc&$fields=playerResponse
+11-24 22:35:20.598 W/BitChord( 2437): extraction attempt 1 of 3 failed for i4NhQRUt3Kc: YouTube probably temporarily blocked anonymous watch access with this IP , got error LOGIN_REQUIRED: "Sign in to confirm that you're not a bot"
+11-24 22:35:21.624 D/BitChord( 2437): extractor fetch 24ms POST https://youtubei.googleapis.com/youtubei/v1/visitor_id?prettyPrint=false
+11-24 22:35:21.729 D/BitChord( 2437): extractor fetch 102ms POST https://youtubei.googleapis.com/youtubei/v1/reel/reel_item_watch?prettyPrint=false&t=LSOPDIw6BBaS&id=i4NhQRUt3Kc&$fields=playerResponse
+11-24 22:35:21.730 W/BitChord( 2437): extraction attempt 2 of 3 failed for i4NhQRUt3Kc: YouTube probably temporarily blocked anonymous watch access with this IP , got error LOGIN_REQUIRED: "Sign in to confirm that you're not a bot"
+11-24 22:35:22.627 I/System.out( 2437): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-love-playing.png bytes=161346
+11-24 22:35:23.625 I/System.out( 2437): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-failure.png bytes=161346
+11-24 22:35:23.634 D/CompatibilityChangeReporter(  523): Compat change id reported: 174042980; UID 10142; state: DISABLED
+11-24 22:35:23.634 D/CompatibilityChangeReporter(  523): Compat change id reported: 174042936; UID 10142; state: DISABLED
+11-24 22:35:23.643 I/ActivityTaskManager(  523): START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} with LAUNCH_MULTIPLE from uid 10141 (BAL_ALLOW_VISIBLE_WINDOW) result code=0
+11-24 22:35:23.644 V/WindowManagerShell(  833): Transition requested: android.os.BinderProxy@4dba33b TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=9 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=app.s
+11-24 22:35:23.655 D/LifecycleMonitor( 2437): Lifecycle status change: com.music.bitchord.MainActivity@4a6991a in: PAUSED
+11-24 22:35:23.656 V/ActivityScenario( 2437): Update currentActivityStage to PAUSED, currentActivity=com.music.bitchord.MainActivity@4a6991a
+11-24 22:35:23.664 I/ActivityManager(  523): Start proc 3501:app.spool.music.dev.test/u0a142 for next-top-activity {app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity}
+11-24 22:35:23.684 D/CoreBackPreview(  523): Window{ab5d052 u0 Splash Screen app.spool.music.dev.test}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@696a9d9, mPriority=0, mIsAnimationCallback=false}
+11-24 22:35:23.796 D/BitChord( 2437): extractor fetch 59ms POST https://youtubei.googleapis.com/youtubei/v1/visitor_id?prettyPrint=false
+11-24 22:35:23.847 V/WindowManager(  523): Sent Transition #8 createdAt=11-24 22:35:23.635 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=9 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=app
+11-24 22:35:23.848 V/WindowManager(  523):     info={id=8 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{fdf0f9b Task{e1e44d8 #9 type=standard A=10142:app.spool.music.dev.test}}} m=OPEN f=NONE leash=Surface(name=Task=9)/@0x7264a7f sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0},{WCT{RemoteToken{fba
+11-24 22:35:23.848 V/WindowManagerShell(  833): onTransitionReady android.os.BinderProxy@4dba33b: {id=8 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@9d410b} m=OPEN f=NONE leash=Surface(name=Task=9)/@0x3235bfc sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0},{WCT
+11-24 22:35:23.849 V/WindowManagerShell(  833): Transition doesn't have explicit remote, search filters for match for {id=8 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@9d410b} m=OPEN f=NONE leash=Surface(name=Task=9)/@0x3235bfc sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1
+11-24 22:35:23.850 V/WindowManagerShell(  833): start default transition animation, info = {id=8 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@9d410b} m=OPEN f=NONE leash=Surface(name=Task=9)/@0x3235bfc sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0},{WCT{androi
+11-24 22:35:23.919 D/nativeloader( 3501): Configuring clns-6 for other apk /system/framework/android.test.mock.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/app
+11-24 22:35:23.919 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d77f62d com.android.cts.priv.ctsshim/10137} BLOCKED
+11-24 22:35:23.919 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{ce3b762 com.android.uwb.resources/10132} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6a120f3 com.android.internal.display.cutout.emulation.corner/10035} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{99741b0 com.android.internal.display.cutout.emulation.double/10007} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{98ac829 com.android.healthconnect.controller/10139} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{1c9e7ae com.android.health.connect.backuprestore/10140} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{622d94f com.android.internal.systemui.navbar.gestural_wide_back/10045} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d26c8dc com.android.virtualmachine.res/10124} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{debde5 com.android.carrierconfig.auto_generated_rro_vendor__/10052} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d0d0ba com.android.systemui.emulation.pixel_3_xl/10015} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{25dbb6b com.android.systemui.emulation.pixel_4_xl/10039} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c596c8 com.android.systemui.emulation.pixel_fold/10013} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{ec25361 com.android.htmlviewer/10090} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c2b3e86 com.android.quicksearchbox/10106} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d1aa347 com.android.federatedcompute.services/10120} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{2015774 com.android.networkstack.tethering.emulator/10028} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{aefc49d com.android.internal.emulation.pixel_3a_xl/10003} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{46cbd12 com.android.internal.emulation.pixel_6_pro/10017} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{1d42ce3 com.android.internal.emulation.pixel_7_pro/10040} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{79676e0 com.android.internal.emulation.pixel_8_pro/10036} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4890d99 com.android.internal.emulation.pixel_3a/10047} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{dd5985e com.android.internal.emulation.pixel_4a/10019} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f12b43f com.android.internal.emulation.pixel_6a/10044} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{59c210c com.android.internal.emulation.pixel_7a/10024} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d3ea55 com.android.safetycenter.resources/10121} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e5edc6a com.android.simappdialog/10077} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{988555b com.android.connectivity.resources/10133} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{87041f8 com.android.internal.display.cutout.emulation.hole/10018} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9b5d6d1 com.android.internal.display.cutout.emulation.tall/10038} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{865536 com.android.modulemetadata/10097} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4ecec37 com.android.internal.systemui.navbar.threebutton/10037} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{26385a4 com.android.wifi.dialog/10130} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7f00f0d com.android.contacts/10095} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6da8ec2 com.android.camera2/10104} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e9a14d3 com.android.launcher3/10112} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{8255810 com.android.systemui.auto_generated_rro_vendor__/10056} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{51b8f09 com.android.internal.systemui.navbar.twobutton/10030} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c46d50e com.android.settings.intelligence/10093} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{5e72b2f com.android.calendar/10100} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7efe53c com.android.internal.systemui.navbar.gestural_extra_wide_back/10009} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{16512c5 com.android.systemui.emulation.pixel_3/10048} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d1f341a com.android.systemui.emulation.pixel_4/10049} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e454b4b com.android.systemui.emulation.pixel_5/10046} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7741928 com.android.systemui.emulation.pixel_6/10005} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9091641 com.android.systemui.emulation.pixel_7/10034} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4ec77e6 com.android.systemui.emulation.pixel_8/10043} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{71b5127 com.android.printspooler/10078} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4859fd4 com.android.dreams.basic/10087} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{58fd57d com.android.webview/10103} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{cf82c72 com.android.rkpdapp/10125} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{561d8c3 com.android.internal.emulation.pixel_3/10008} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{486e540 com.android.internal.emulation.pixel_4/10021} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6c94c79 com.android.internal.emulation.pixel_5/10006} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7989dbe com.android.internal.emulation.pixel_6/10014} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{aff3e1f com.android.internal.emulation.pixel_7/10001} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e95156c com.android.internal.emulation.pixel_8/10000} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f893735 com.android.musicfx/10075} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{43cd7ca com.android.providers.settings.auto_generated_rro_vendor__/10051} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7e39d3b com.android.printservice.recommendation/10081} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c741c58 com.android.dialer/10096} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{22311b1 com.android.gallery3d/10107} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{838a696 com.android.wifi.resources/10128} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e4d217 com.android.theme.font.notoserifsource/10033} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e3aa604 com.android.internal.display.cutout.emulation.waterfall/10042} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{8a617ed com.android.nearby.halfsheet/10134} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{8509622 com.android.inputmethod.latin/10108} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{85a78b3 com.android.internal.systemui.navbar.transparent/10031} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{cbe1e70 org.chromium.webview_shell/10099} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4d945e9 com.android.systemui.emulation.pixel_3a_xl/10027} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f05f26e com.android.systemui.emulation.pixel_6_pro/10050} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{479ed0f com.android.systemui.emulation.pixel_7_pro/10020} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6beb19c com.android.systemui.emulation.pixel_8_pro/10025} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{3f757a5 com.android.dreams.phototable/10098} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{ba2c77a com.android.providers.partnerbookmarks/10084} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f724b2b com.android.wallpaper.livepicker/10068} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4d34b88 com.android.cellbroadcastreceiver.module/10131} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{22ac921 com.android.phone.auto_generated_rro_vendor__/10053} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{605e146 com.android.apps.tag/10072} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d486f07 com.android.imsserviceentitlement/10094} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{159834 com.android.internal.emulation.pixel_2_xl/10041} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9c9d65d com.android.internal.emulation.pixel_3_xl/10004} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{32ecbd2 com.android.internal.emulation.pixel_4_xl/10011} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{372f4a3 com.android.internal.emulation.pixel_fold/10029} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{78e03a0 com.android.bookmarkprovider/10091} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{a527b59 com.android.systemui.emulation.pixel_3a/10023} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{689d31e com.android.systemui.emulation.pixel_4a/10022} BLOCKED
+11-24 22:35:23.920 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e3637ff com.android.systemui.emulation.pixel_6a/10026} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{5fb9cc com.android.systemui.emulation.pixel_7a/10012} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{3a2f2ad com.android.cts.ctsshim/10138} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{3267415 com.android.connectivity.resources.goldfish.overlay/10055} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{bfc032a com.android.music/10102} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{fc0551b com.android.hotspot2.osulogin/10129} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{cb4a6b8 com.android.internal.systemui.navbar.gestural/10016} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e073c91 com.android.deskclock/10105} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6af27f6 com.android.bluetoothmidiservice/10088} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{50527f7 com.android.wallpaperpicker/10101} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{5697664 com.android.captiveportallogin/10079} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{55210cd com.android.internal.systemui.navbar.gestural_narrow_back/10002} BLOCKED
+11-24 22:35:23.924 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9dcd82 android.auto_generated_rro_vendor__/10054} BLOCKED
+11-24 22:35:23.926 D/nativeloader( 3501): Configuring clns-7 for other apk /system/framework/android.test.runner.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/a
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d77f62d com.android.cts.priv.ctsshim/10137} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{ce3b762 com.android.uwb.resources/10132} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6a120f3 com.android.internal.display.cutout.emulation.corner/10035} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{99741b0 com.android.internal.display.cutout.emulation.double/10007} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{98ac829 com.android.healthconnect.controller/10139} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{1c9e7ae com.android.health.connect.backuprestore/10140} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{622d94f com.android.internal.systemui.navbar.gestural_wide_back/10045} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d26c8dc com.android.virtualmachine.res/10124} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{debde5 com.android.carrierconfig.auto_generated_rro_vendor__/10052} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d0d0ba com.android.systemui.emulation.pixel_3_xl/10015} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{25dbb6b com.android.systemui.emulation.pixel_4_xl/10039} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c596c8 com.android.systemui.emulation.pixel_fold/10013} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{ec25361 com.android.htmlviewer/10090} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c2b3e86 com.android.quicksearchbox/10106} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d1aa347 com.android.federatedcompute.services/10120} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{2015774 com.android.networkstack.tethering.emulator/10028} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{aefc49d com.android.internal.emulation.pixel_3a_xl/10003} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{46cbd12 com.android.internal.emulation.pixel_6_pro/10017} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{1d42ce3 com.android.internal.emulation.pixel_7_pro/10040} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{79676e0 com.android.internal.emulation.pixel_8_pro/10036} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4890d99 com.android.internal.emulation.pixel_3a/10047} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{dd5985e com.android.internal.emulation.pixel_4a/10019} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f12b43f com.android.internal.emulation.pixel_6a/10044} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{59c210c com.android.internal.emulation.pixel_7a/10024} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d3ea55 com.android.safetycenter.resources/10121} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e5edc6a com.android.simappdialog/10077} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{988555b com.android.connectivity.resources/10133} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{87041f8 com.android.internal.display.cutout.emulation.hole/10018} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9b5d6d1 com.android.internal.display.cutout.emulation.tall/10038} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{865536 com.android.modulemetadata/10097} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4ecec37 com.android.internal.systemui.navbar.threebutton/10037} BLOCKED
+11-24 22:35:23.926 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{26385a4 com.android.wifi.dialog/10130} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7f00f0d com.android.contacts/10095} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6da8ec2 com.android.camera2/10104} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e9a14d3 com.android.launcher3/10112} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{8255810 com.android.systemui.auto_generated_rro_vendor__/10056} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{51b8f09 com.android.internal.systemui.navbar.twobutton/10030} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c46d50e com.android.settings.intelligence/10093} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{5e72b2f com.android.calendar/10100} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7efe53c com.android.internal.systemui.navbar.gestural_extra_wide_back/10009} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{16512c5 com.android.systemui.emulation.pixel_3/10048} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d1f341a com.android.systemui.emulation.pixel_4/10049} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e454b4b com.android.systemui.emulation.pixel_5/10046} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7741928 com.android.systemui.emulation.pixel_6/10005} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9091641 com.android.systemui.emulation.pixel_7/10034} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4ec77e6 com.android.systemui.emulation.pixel_8/10043} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{71b5127 com.android.printspooler/10078} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4859fd4 com.android.dreams.basic/10087} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{58fd57d com.android.webview/10103} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{cf82c72 com.android.rkpdapp/10125} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{561d8c3 com.android.internal.emulation.pixel_3/10008} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{486e540 com.android.internal.emulation.pixel_4/10021} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6c94c79 com.android.internal.emulation.pixel_5/10006} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7989dbe com.android.internal.emulation.pixel_6/10014} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{aff3e1f com.android.internal.emulation.pixel_7/10001} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e95156c com.android.internal.emulation.pixel_8/10000} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f893735 com.android.musicfx/10075} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{43cd7ca com.android.providers.settings.auto_generated_rro_vendor__/10051} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{7e39d3b com.android.printservice.recommendation/10081} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{c741c58 com.android.dialer/10096} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{22311b1 com.android.gallery3d/10107} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{838a696 com.android.wifi.resources/10128} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e4d217 com.android.theme.font.notoserifsource/10033} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e3aa604 com.android.internal.display.cutout.emulation.waterfall/10042} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{8a617ed com.android.nearby.halfsheet/10134} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{8509622 com.android.inputmethod.latin/10108} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{85a78b3 com.android.internal.systemui.navbar.transparent/10031} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{cbe1e70 org.chromium.webview_shell/10099} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4d945e9 com.android.systemui.emulation.pixel_3a_xl/10027} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f05f26e com.android.systemui.emulation.pixel_6_pro/10050} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{479ed0f com.android.systemui.emulation.pixel_7_pro/10020} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6beb19c com.android.systemui.emulation.pixel_8_pro/10025} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{3f757a5 com.android.dreams.phototable/10098} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{ba2c77a com.android.providers.partnerbookmarks/10084} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{f724b2b com.android.wallpaper.livepicker/10068} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{4d34b88 com.android.cellbroadcastreceiver.module/10131} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{22ac921 com.android.phone.auto_generated_rro_vendor__/10053} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{605e146 com.android.apps.tag/10072} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{d486f07 com.android.imsserviceentitlement/10094} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{159834 com.android.internal.emulation.pixel_2_xl/10041} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9c9d65d com.android.internal.emulation.pixel_3_xl/10004} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{32ecbd2 com.android.internal.emulation.pixel_4_xl/10011} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{372f4a3 com.android.internal.emulation.pixel_fold/10029} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{78e03a0 com.android.bookmarkprovider/10091} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{a527b59 com.android.systemui.emulation.pixel_3a/10023} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{689d31e com.android.systemui.emulation.pixel_4a/10022} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e3637ff com.android.systemui.emulation.pixel_6a/10026} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{5fb9cc com.android.systemui.emulation.pixel_7a/10012} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{3a2f2ad com.android.cts.ctsshim/10138} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{3267415 com.android.connectivity.resources.goldfish.overlay/10055} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{bfc032a com.android.music/10102} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{fc0551b com.android.hotspot2.osulogin/10129} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{cb4a6b8 com.android.internal.systemui.navbar.gestural/10016} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{e073c91 com.android.deskclock/10105} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{6af27f6 com.android.bluetoothmidiservice/10088} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{50527f7 com.android.wallpaperpicker/10101} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{5697664 com.android.captiveportallogin/10079} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{55210cd com.android.internal.systemui.navbar.gestural_narrow_back/10002} BLOCKED
+11-24 22:35:23.927 I/AppsFilter(  523): interaction: PackageSetting{545d713 app.spool.music.dev.test/10142} -> PackageSetting{9dcd82 android.auto_generated_rro_vendor__/10054} BLOCKED
+11-24 22:35:23.928 W/ziparchive( 3501): Unable to open '/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/base.dm': No such file or directory
+11-24 22:35:23.928 W/ziparchive( 3501): Unable to open '/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/base.dm': No such file or directory
+11-24 22:35:23.960 D/nativeloader( 3501): Configuring clns-8 for other apk /data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/lib/x86_
+11-24 22:35:23.967 V/GraphicsEnvironment( 3501): ANGLE GameManagerService for app.spool.music.dev.test: false
+11-24 22:35:23.967 V/GraphicsEnvironment( 3501): app.spool.music.dev.test is not listed in per-application setting
+11-24 22:35:24.136 D/CoreBackPreview(  523): Window{2cbdfb2 u0 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@1908998, mPriority=0, mIsAnimationCallback=false}
+11-24 22:35:24.137 D/BitChord( 2437): extractor fetch 336ms POST https://youtubei.googleapis.com/youtubei/v1/reel/reel_item_watch?prettyPrint=false&t=XsrapDLYVByE&id=i4NhQRUt3Kc&$fields=playerResponse
+11-24 22:35:24.142 W/BitChord( 2437): extraction attempt 3 of 3 failed for i4NhQRUt3Kc: YouTube probably temporarily blocked anonymous watch access with this IP , got error LOGIN_REQUIRED: "Sign in to confirm that you're not a bot"
+11-24 22:35:24.145 W/BitChord( 2437): resolve failed for i4NhQRUt3Kc after 7948ms: org.schabi.newpipe.extractor.exceptions.SignInConfirmNotBotException: YouTube probably temporarily blocked anonymous watch access with this IP , got error LOGIN_REQUIRED: "Sign in to confirm that you're not a bot"
+11-24 22:35:24.145 W/BitChord( 2437): org.schabi.newpipe.extractor.exceptions.SignInConfirmNotBotException: YouTube probably temporarily blocked anonymous watch access with this IP , got error LOGIN_REQUIRED: "Sign in to confirm that you're not a bot"
+11-24 22:35:24.145 W/BitChord( 2437): 	at org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor.checkPlayabilityStatus(YoutubeStreamExtractor.java:894)
+11-24 22:35:24.145 W/BitChord( 2437): 	at org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor.fetchAndroidClient(YoutubeStreamExtractor.java:944)
+11-24 22:35:24.145 W/BitChord( 2437): 	at org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor.onFetchPage(YoutubeStreamExtractor.java:849)
+11-24 22:35:24.145 W/BitChord( 2437): 	at org.schabi.newpipe.extractor.Extractor.fetchPage(Extractor.java:65)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver$extractStream$2$1.invokeSuspend(StreamResolver.kt:1141)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver$extractStream$2$1.invoke(Unknown Source:8)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver$extractStream$2$1.invoke(Unknown Source:4)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatched(Undispatched.kt:66)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:43)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:497)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver.extractStream(StreamResolver.kt:1136)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver.newPipeStream(StreamResolver.kt:980)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver.access$newPipeStream(StreamResolver.kt:60)
+11-24 22:35:24.145 W/BitChord( 2437): 	at com.music.bitchord.data.innertube.StreamResolver$newPipeStream$1.invokeSuspend(Unknown Source:15)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:798)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+11-24 22:35:24.145 W/BitChord( 2437): 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+11-24 22:35:24.272 D/LifecycleMonitor( 2437): Lifecycle status change: com.music.bitchord.MainActivity@4a6991a in: STOPPED
+11-24 22:35:24.273 V/ActivityScenario( 2437): Update currentActivityStage to STOPPED, currentActivity=com.music.bitchord.MainActivity@4a6991a
+11-24 22:35:24.345 I/MediaController( 2437): Release f5e874b [AndroidXMedia3/1.11.0] [emu64x, Android SDK built for x86_64, unknown, 34] [media3.common, media3.database, media3.session, media3.exoplayer, media3.decoder, media3.datasource, media3.datasource.okhttp]
+11-24 22:35:24.369 D/LifecycleMonitor( 2437): Lifecycle status change: com.music.bitchord.MainActivity@4a6991a in: DESTROYED
+11-24 22:35:24.370 D/CoreBackPreview(  523): Window{99c6ec u0 app.spool.music.dev/com.music.bitchord.MainActivity}: Setting back callback null
+11-24 22:35:24.436 W/InputManager-JNI(  523): Input channel object '99c6ec app.spool.music.dev/com.music.bitchord.MainActivity (client)' was disposed without first being removed with the input manager!
+11-24 22:35:24.597 I/ActivityManager(  523): Force stopping app.spool.music.dev appid=10141 user=0: finished inst
+11-24 22:35:24.617 I/ActivityManager(  523): Killing 2437:app.spool.music.dev/u0a141 (adj 0): stop app.spool.music.dev due to finished inst
+11-24 22:35:24.620 W/ForegroundServiceTypeLoggerModule(  523): Logger should be tracking FGS types correctly for UID 10141 in package app.spool.music.dev
+11-24 22:35:24.700 D/MediaDataManager(  833): Converting 0|app.spool.music.dev|1001|null|10141 to resume
+11-24 22:35:24.709 D/MediaDataManager(  833): migrating? true from 0|app.spool.music.dev|1001|null|10141 -> app.spool.music.dev
+11-24 22:35:24.830 V/ActivityManager(  523): Got obituary of 2437:app.spool.music.dev
+11-24 22:35:24.830 I/ImeTracker(  523): app.spool.music.dev:ef70f54d: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-24 22:35:24.830 I/ImeTracker(  523): app.spool.music.dev:ef70f54d: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 22:35:24.831 I/MediaSessionStack(  523): removeSession | record: app.spool.music.dev/androidx.media3.session.id.BitChordPlayback (userId=0)
+11-24 22:35:24.833 D/ConnectivityService(  523): releasing NetworkRequest [ REQUEST id=54, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:35:24.836 D/ConnectivityService(  523): releasing NetworkRequest [ REQUEST id=56, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:35:24.836 D/ConnectivityService(  523): releasing NetworkRequest [ REQUEST id=60, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:35:24.996 V/WindowManagerShell(  833): Transition requested: android.os.BinderProxy@2252e33 TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=9 displayId=0 isRunning=false baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=app
+11-24 22:35:24.998 W/ziparchive(  523): Unable to open '/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/base.dm': No such file or directory
+11-24 22:35:24.998 I/ActivityTaskManager(  523): Displayed app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity for user 0: +1s363ms
+11-24 22:35:25.012 I/OpenGLRenderer( 3501): Davey! duration=936ms; Flags=1, FrameTimelineVsyncId=23326, IntendedVsync=355876026608, Vsync=355909359940, InputEventId=0, HandleInputStart=355917296352, AnimationStart=355917308244, PerformTraversalsStart=355917311600, DrawStart=356562432856, FrameDeadline=355892693274, Fra

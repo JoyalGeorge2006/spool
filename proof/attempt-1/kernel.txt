@@ -1,0 +1,41 @@
+-- dmesg
+[   10.608385] kauditd_printk_skb: 175 callbacks suppressed
+[   10.608390] audit: type=1400 audit(1795558870.398:186): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="rsyslogd" pid=1202 comm="apparmor_parser"
+[   10.647693] audit: type=1400 audit(1795558870.437:187): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/journal/socket" pid=1280 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[   10.647757] audit: type=1400 audit(1795558870.437:188): apparmor="DENIED" operation="capable" class="cap" profile="systemd-detect-virt" pid=1280 comm="systemd-detect-" capability=38  capname="perfmon"
+[   10.647824] audit: type=1400 audit(1795558870.437:189): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/notify" pid=1280 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[   11.010136] loop0: detected capacity change from 0 to 8
+[   11.157533] NET: Registered PF_QIPCRTR protocol family
+[   11.323518] audit: type=1400 audit(1795558871.113:190): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/lib/snapd/snap-confine" pid=1447 comm="apparmor_parser"
+[   11.479530] Adding 3145724k swap on /swapfile.  Priority:-1 extents:4 across:4440060k 
+[   11.775880] audit: type=1400 audit(1795558871.565:191): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1619 comm="apparmor_parser"
+[   12.119855] Initializing XFRM netlink socket
+[   12.139050] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   12.269903] systemd-fstab-generator[1860]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   12.731228] hv_netvsc 000d3a1e-db99-000d-3a1e-db99000d3a1e eth0: VF slot 1 added
+[   12.732690] hv_pci fd0b2597-7bdb-4e1c-9c40-84da78669e34: PCI VMBus probing: Using version 0x10004
+[   12.734279] hv_pci fd0b2597-7bdb-4e1c-9c40-84da78669e34: PCI host bridge to bus 7bdb:00
+[   12.734284] pci_bus 7bdb:00: root bus resource [mem 0xfc0000000-0xfc00fffff window]
+[   12.734289] pci_bus 7bdb:00: No busn resource found for root bus, will use [bus 00-ff]
+[   12.737478] pci 7bdb:00:02.0: [15b3:1016] type 00 class 0x020000 PCIe Endpoint
+[   12.742280] pci 7bdb:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]
+[   12.743152] pci 7bdb:00:02.0: enabling Extended Tags
+[   12.752320] pci 7bdb:00:02.0: 0.000 Gb/s available PCIe bandwidth, limited by Unknown x0 link at 7bdb:00:02.0 (capable of 63.008 Gb/s with 8.0 GT/s PCIe x8 link)
+[   12.760422] pci_bus 7bdb:00: busn_res: [bus 00-ff] end is updated to 00
+[   12.760434] pci 7bdb:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]: assigned
+[   13.039894] mlx5_core 7bdb:00:02.0: enabling device (0000 -> 0002)
+[   13.043151] mlx5_core 7bdb:00:02.0: firmware version: 14.30.5032
+[   13.177185] mlx5_core 7bdb:00:02.0: Flow counters bulk query buffer size increased, bulk_query_len(8)
+[   13.259965] hv_netvsc 000d3a1e-db99-000d-3a1e-db99000d3a1e eth0: VF registering: eth1
+[   13.260016] mlx5_core 7bdb:00:02.0 eth1: joined to eth0
+[   13.260764] mlx5_core 7bdb:00:02.0: MLX5E: StrdRq(0) RqSz(1024) StrdSz(256) RxCqeCmprss(0 basic)
+[   13.289402] mlx5_core 7bdb:00:02.0 enP31707s1: renamed from eth1
+[   13.356868] MACsec IEEE 802.1AE
+[   13.446918] mlx5_core 7bdb:00:02.0 enP31707s1: Link up
+[   13.481301] hv_netvsc 000d3a1e-db99-000d-3a1e-db99000d3a1e eth0: Data path switched to VF: enP31707s1
+[   14.199047] systemd-fstab-generator[2083]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   14.544676] systemd-fstab-generator[2156]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   15.232229] workqueue: drm_fb_helper_damage_work hogged CPU for >10000us 7 times, consider switching to WQ_UNBOUND
+[   49.009177] hv_balloon: Max. dynamic memory size: 16384 MB
+[   74.989429] /proc/cgroups lists only v1 controllers, use cgroup.controllers of root cgroup for v2 info
+[  508.850691] kvm: kvm [4313]: vcpu0, guest rIP: 0xffffffff91403a51 Unhandled WRMSR(0xc0010007) = 0xffff

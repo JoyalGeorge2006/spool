@@ -1,0 +1,120 @@
+[   29.382749] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   29.402790] AidlLazyServiceRegistrar: Unregistered all clients and exiting
+[   29.519230] init: Service 'apexd' (pid 211) exited with status 0 oneshot service took 21.730000 seconds in background
+[   29.529751] init: Sending signal 9 to service 'apexd' (pid 211) process group...
+[   29.536802] libprocessgroup: Successfully killed process cgroup uid 0 pid 211 in 0ms
+DEBUG   | ColorBuffer 67, 42x42, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 8448, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 69, 42x42, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 8448, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 70, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 72, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 73, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 74, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 76, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 77, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 79, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 80, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 81, 1080x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 278528, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 83, 1080x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 278528, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 84, 1080x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 278528, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 85, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+[   31.781069] servicemanager: Found android.hardware.security.keymint.IRemotelyProvisionedComponent/default in device VINTF manifest.
+[   31.889158] servicemanager: Since 'android.hardware.drm.IDrmFactory/clearkey' could not be found, trying to start it as a lazy AIDL service. (if it's not configured to be a lazy service, it may be stuck starting or still starting).
+[   31.902215] init: starting service 'vendor.drm-clearkey-service'...
+[   31.906287] init: ... started service 'vendor.drm-clearkey-service' has pid 2347
+[   31.908172] init: Control message: Processed ctl.interface_start for 'aidl/android.hardware.drm.IDrmFactory/clearkey' from pid: 141 (/system/bin/servicemanager)
+[   31.935282] servicemanager: Found android.hardware.drm.IDrmFactory/clearkey in device VINTF manifest.
+[   31.936933] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   32.083129] type=1400 audit(1795559400.244:11): avc:  denied  { getopt } for  comm="binder:523_2" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+DEBUG   | ColorBuffer 86, 63x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 16384, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 87, 63x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 16384, type: 0, props: 15 / 1]
+[   33.605446] type=1400 audit(1795559401.768:12): avc:  denied  { getopt } for  comm="binder:523_2" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   33.609620] type=1400 audit(1795559401.772:13): avc:  denied  { getopt } for  comm="binder:523_2" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   33.616415] type=1400 audit(1795559401.776:14): avc:  denied  { getopt } for  comm="binder:523_2" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   33.628183] type=1400 audit(1795559401.788:15): avc:  denied  { getopt } for  comm="binder:523_3" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   33.628251] audit: audit_lost=1 audit_rate_limit=5 audit_backlog_limit=64
+[   33.645175] audit: rate limit exceeded
+[   33.646795] type=1400 audit(1795559401.788:16): avc:  denied  { getopt } for  comm="binder:523_3" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   34.248140] logd: logdr: UID=2000 GID=2000 PID=2420 b tail=0 logMask=99 pid=0 start=0ns deadline=0ns
+[   36.155631] servicemanager: Notifying android.hardware.drm.IDrmFactory/clearkey they do (previously: don't) have clients when service is guaranteed to be in use
+[   36.158477] servicemanager: Notifying android.hardware.drm.IDrmFactory/clearkey they don't (previously: do) have clients when we now have no record of a client
+[   36.161406] servicemanager: Unregistering android.hardware.drm.IDrmFactory/clearkey
+[   36.163117] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   36.166022] init: Service 'vendor.drm-clearkey-service' (pid 2347) exited with status 0 oneshot service took 4.260000 seconds in background
+[   36.168711] init: Sending signal 9 to service 'vendor.drm-clearkey-service' (pid 2347) process group...
+[   36.170489] libprocessgroup: Successfully killed process cgroup uid 1013 pid 2347 in 0ms
+DEBUG   | ColorBuffer 88, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 90, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 91, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 18
+DEBUG   | Started new RenderThread (total 18) @0x5a947583fa40
+DEBUG   | ColorBuffer 94, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+[   39.100609] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 19
+DEBUG   | Started new RenderThread (total 19) @0x5a948907d2c0
+DEBUG   | ColorBuffer 95, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 97, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 98, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[   40.852592] init: Sending signal 9 to service 'idmap2d' (pid 446) process group...
+[   40.859602] libprocessgroup: Successfully killed process cgroup uid 1000 pid 446 in 5ms
+[   40.861226] init: Control message: Processed ctl.stop for 'idmap2d' from pid: 523 (system_server)
+[   40.863010] init: Service 'idmap2d' (pid 446) received signal 9
+[   44.805423] SELinux: avc:  denied  { find } for pid=2625 uid=99000 name=content_capture scontext=u:r:isolated_app:s0:c512,c768 tcontext=u:object_r:content_capture_service:s0 tclass=service_manager permissive=0
+VERBOSE | Created RenderThread. Active RenderThreads: 20
+DEBUG   | Started new RenderThread (total 20) @0x5a948907d680
+DEBUG   | ColorBuffer 100, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 103, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+DEBUG   | Waiting for exit signal RenderThread @0x5a947e06c780
+DEBUG   | ColorBuffer 106, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[   53.085674] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 21
+DEBUG   | Exited a RenderThread @0x5a947e06c780
+VERBOSE | Destroyed RenderThread. Active RenderThreads: 20
+DEBUG   | Started new RenderThread (total 20) @0x5a9473afc5a0
+VERBOSE | Created RenderThread. Active RenderThreads: 21
+DEBUG   | Started new RenderThread (total 21) @0x5a947e06c780
+DEBUG   | ColorBuffer 109, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 110, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 111, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 112, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 113, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[   70.714111] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | ColorBuffer 114, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 115, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 116, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 117, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 118, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[  130.714316] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | ColorBuffer 119, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | Waiting for exit signal RenderThread @0x5a9475af21e0
+DEBUG   | ColorBuffer 120, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[  190.713920] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | ColorBuffer 121, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 122, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 123, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[  250.714026] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | ColorBuffer 124, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 125, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 126, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[  310.714072] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | ColorBuffer 127, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 128, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 129, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 131, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 132, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 133, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 22
+DEBUG   | Exited a RenderThread @0x5a9475af21e0
+VERBOSE | Destroyed RenderThread. Active RenderThreads: 21
+DEBUG   | Started new RenderThread (total 21) @0x5a94962f1e00
+VERBOSE | Created RenderThread. Active RenderThreads: 22
+DEBUG   | Started new RenderThread (total 22) @0x5a9476621860
+DEBUG   | ColorBuffer 136, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 139, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+[  356.434650] binder: 523:2078 ioctl 400c620e 7eafb0c8a930 returned -11
+[  356.437070] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 23
+DEBUG   | Started new RenderThread (total 23) @0x5a9475af23c0
+[  356.440369] binder: 523:2078 ioctl 400c620e 7eafb0c8a930 returned -11
+DEBUG   | Waiting for exit signal RenderThread @0x5a9473afc5a0
+DEBUG   | Waiting for exit signal RenderThread @0x5a947e06c780
+DEBUG   | ColorBuffer 140, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]

@@ -1,0 +1,30 @@
+11-24 22:35:24.830 V/ActivityManager(  523): Got obituary of 2437:app.spool.music.dev
+11-24 22:35:24.830 I/ImeTracker(  523): app.spool.music.dev:ef70f54d: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-24 22:35:24.830 I/ImeTracker(  523): app.spool.music.dev:ef70f54d: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 22:35:24.831 I/MediaSessionStack(  523): removeSession | record: app.spool.music.dev/androidx.media3.session.id.BitChordPlayback (userId=0)
+11-24 22:35:24.833 D/ConnectivityService(  523): releasing NetworkRequest [ REQUEST id=54, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:35:24.836 D/ConnectivityService(  523): releasing NetworkRequest [ REQUEST id=56, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:35:24.836 D/ConnectivityService(  523): releasing NetworkRequest [ REQUEST id=60, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:35:24.840 V/MediaPlayerList( 1027): onActiveSessionsChanged: number of controllers: 0
+11-24 22:35:24.844 V/MediaPlayerList( 1027): onActiveSessionsChanged: number of controllers: 0
+11-24 22:35:24.844 D/AvrcpTargetJni( 1027): sendPlayerSettingsNative
+11-24 22:35:24.844 I/bt_stack( 1027): [INFO:avrcp_service.cc(551)] virtual void bluetooth::avrcp::AvrcpService::SendPlayerSettingsChanged(std::vector<PlayerAttribute>, std::vector<uint8_t>)
+11-24 22:35:24.844 I/bt_stack( 1027): [INFO:avrcp_service.cc(565)] attribute=PlayerAttribute::REPEAT : value=PlayerRepeatValue::OFF
+11-24 22:35:24.844 I/bt_stack( 1027): attribute=PlayerAttribute::SHUFFLE : value=PlayerShuffleValue::OFF
+11-24 22:35:24.844 I/bt_stack( 1027): 
+11-24 22:35:24.855 W/ActivityManager(  523): setHasOverlayUi called on unknown pid: 2437
+11-24 22:35:24.857 I/Zygote  (  340): Process 2437 exited due to signal 9 (Killed)
+11-24 22:35:24.965 D/MediaDeviceManager(  833): Can not get LocalBluetoothLeBroadcast
+11-24 22:35:24.993 W/ServiceManagerCppClient(  523): Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
+11-24 22:35:24.993 D/PermissionCache(  523): checking android.permission.ROTATE_SURFACE_FLINGER for uid=10142 => denied (107 us)
+11-24 22:35:24.993 W/ServiceManagerCppClient(  523): Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
+11-24 22:35:24.993 D/PermissionCache(  523): checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10142 => denied (27 us)
+11-24 22:35:24.993 W/ServiceManagerCppClient(  523): Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
+11-24 22:35:24.993 D/PermissionCache(  523): checking android.permission.ACCESS_SURFACE_FLINGER for uid=10142 => denied (20 us)
+11-24 22:35:24.996 V/WindowManagerShell(  833): Transition requested: android.os.BinderProxy@2252e33 TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=9 displayId=0 isRunning=false baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] fl
+11-24 22:35:24.998 W/ziparchive(  523): Unable to open '/data/app/~~Yguv1dy1vqKS2IfdV468nA==/app.spool.music.dev.test-NzB1P4KTfxJ4o0oqgMBfNw==/base.dm': No such file or directory
+11-24 22:35:24.998 I/Choreographer( 3501): Skipped 48 frames!  The application may be doing too much work on its main thread.
+11-24 22:35:24.998 I/ActivityTaskManager(  523): Displayed app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity for user 0: +1s363ms
+11-24 22:35:25.012 I/OpenGLRenderer( 3501): Davey! duration=936ms; Flags=1, FrameTimelineVsyncId=23326, IntendedVsync=355876026608, Vsync=355909359940, InputEventId=0, HandleInputStart=355917296352, AnimationStart=355917308244, PerformTraversalsStart=355917311600, DrawStart=356562432856, FrameDeadli
+11-24 22:35:25.089 E/OpenGLRenderer( 1107): Unable to match the desired swap behavior.
+11-24 22:35:25.104 I/BpBinder(  404): onLastStrongRef automatically unlinking death recipients: 
