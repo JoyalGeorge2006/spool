@@ -57,6 +57,7 @@ jobs:
         echo "INSTRUMENT_STATUS=$?" >> proof/status.txt
         timeout 30 adb devices >> proof/adb-info.txt 2>&1
         timeout 60 adb pull /data/local/tmp/mood/. proof/ > proof/pull-log.txt 2>&1
+        timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. proof/ >> proof/pull-log.txt 2>&1
         timeout 60 adb logcat -d -v time > /tmp/logcat-full.txt 2>&1
         grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|AndroidRuntime|am_crash|am_anr|ANR in|Process .* has died|INSTRUMENTATION|TestRunner" /tmp/logcat-full.txt | cut -c1-400 > proof/logcat-mood.txt
         tail -150 /tmp/logcat-full.txt | grep -E " E | F " | cut -c1-250 | tail -60 > proof/logcat-errors-tail.txt
@@ -82,4 +83,4 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v7
+# v8
