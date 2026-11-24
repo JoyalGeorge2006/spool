@@ -1,0 +1,120 @@
+[   29.100143] apexd: Didn't generate uevent for [com.android.i18n] removal
+[   29.101308] apexd: Failed to delete dm-device com.android.i18n
+[   29.102199] apexd: Deleting unused dm device com.android.os.statsd
+[   29.103564] apexd: Didn't generate uevent for [com.android.os.statsd] removal
+[   29.104782] apexd: Failed to delete dm-device com.android.os.statsd
+[   29.105690] apexd: Deleting unused dm device com.android.rkpd
+[   29.106976] apexd: Didn't generate uevent for [com.android.rkpd] removal
+[   29.108007] apexd: Failed to delete dm-device com.android.rkpd
+[   29.108887] apexd: Deleting unused dm device com.android.runtime
+[   29.110493] apexd: Didn't generate uevent for [com.android.runtime] removal
+[   29.112833] apexd: Failed to delete dm-device com.android.runtime
+[   29.114153] apexd: Deleting unused dm device com.android.sdkext
+[   29.116612] apexd: Didn't generate uevent for [com.android.sdkext] removal
+[   29.118045] apexd: Failed to delete dm-device com.android.sdkext
+[   29.119374] apexd: Deleting unused dm device com.android.tzdata
+[   29.120920] apexd: Didn't generate uevent for [com.android.tzdata] removal
+[   29.122408] apexd: Failed to delete dm-device com.android.tzdata
+[   29.123658] apexd: Deleting unused dm device com.android.virt
+[   29.125965] apexd: Didn't generate uevent for [com.android.virt] removal
+[   29.128661] apexd: Failed to delete dm-device com.android.virt
+[   29.129919] apexd: Deleting unused dm device com.android.vndk.v34
+[   29.133483] apexd: Didn't generate uevent for [com.android.vndk.v34] removal
+[   29.134969] apexd: Failed to delete dm-device com.android.vndk.v34
+[   29.136228] AidlLazyServiceRegistrar: Trying to shut down the service. No clients in use for any service in process.
+[   29.138805] servicemanager: Unregistering apexservice
+[   29.139572] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   29.140710] AidlLazyServiceRegistrar: Unregistered all clients and exiting
+[   29.143175] init: Service 'apexd' (pid 211) exited with status 0 oneshot service took 21.559999 seconds in background
+[   29.145017] init: Sending signal 9 to service 'apexd' (pid 211) process group...
+[   29.146147] libprocessgroup: Successfully killed process cgroup uid 0 pid 211 in 0ms
+[   29.196927] servicemanager: Found android.hardware.security.keymint.IRemotelyProvisionedComponent/default in device VINTF manifest.
+[   29.240845] servicemanager: Since 'android.hardware.drm.IDrmFactory/clearkey' could not be found, trying to start it as a lazy AIDL service. (if it's not configured to be a lazy service, it may be stuck starting or still starting).
+[   29.283993] init: starting service 'vendor.drm-clearkey-service'...
+[   29.307149] init: ... started service 'vendor.drm-clearkey-service' has pid 2359
+[   29.308737] init: Control message: Processed ctl.interface_start for 'aidl/android.hardware.drm.IDrmFactory/clearkey' from pid: 142 (/system/bin/servicemanager)
+[   29.330850] type=1400 audit(1795556896.445:11): avc:  denied  { getopt } for  comm="binder:516_F" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   29.356512] servicemanager: Found android.hardware.drm.IDrmFactory/clearkey in device VINTF manifest.
+[   29.358759] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+DEBUG   | ColorBuffer 85, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 557056, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 86, 63x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 16384, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 87, 63x63, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 16384, type: 0, props: 15 / 1]
+[   30.992614] servicemanager: Notifying android.hardware.drm.IDrmFactory/clearkey they do (previously: don't) have clients when service is guaranteed to be in use
+[   31.003047] servicemanager: Notifying android.hardware.drm.IDrmFactory/clearkey they don't (previously: do) have clients when we now have no record of a client
+[   31.008941] servicemanager: Unregistering android.hardware.drm.IDrmFactory/clearkey
+[   31.013668] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   31.018141] init: Service 'vendor.drm-clearkey-service' (pid 2359) exited with status 0 oneshot service took 1.730000 seconds in background
+[   31.023919] init: Sending signal 9 to service 'vendor.drm-clearkey-service' (pid 2359) process group...
+[   31.028201] libprocessgroup: Successfully killed process cgroup uid 1013 pid 2359 in 0ms
+[   31.350819] type=1400 audit(1795556898.461:12): avc:  denied  { getopt } for  comm="binder:516_F" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   31.361173] type=1400 audit(1795556898.461:13): avc:  denied  { getopt } for  comm="binder:516_F" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   31.368110] type=1400 audit(1795556898.461:14): avc:  denied  { getopt } for  comm="binder:516_F" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   31.368726] audit: audit_lost=1 audit_rate_limit=5 audit_backlog_limit=64
+[   31.372638] type=1400 audit(1795556898.481:15): avc:  denied  { getopt } for  comm="binder:516_5" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   31.374567] audit: rate limit exceeded
+[   31.377740] type=1400 audit(1795556898.481:16): avc:  denied  { getopt } for  comm="binder:516_5" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   31.850934] logd: logdr: UID=2000 GID=2000 PID=2432 b tail=0 logMask=99 pid=0 start=0ns deadline=0ns
+[   32.385398] type=1400 audit(1795556899.497:22): avc:  denied  { read } for  comm="main" name="u:object_r:build_attestation_prop:s0" dev="tmpfs" ino=86 scontext=u:r:shell:s0 tcontext=u:object_r:build_attestation_prop:s0 tclass=file permissive=0
+[   32.399144] type=1400 audit(1795556899.505:23): avc:  denied  { read } for  comm="main" name="u:object_r:build_attestation_prop:s0" dev="tmpfs" ino=86 scontext=u:r:shell:s0 tcontext=u:object_r:build_attestation_prop:s0 tclass=file permissive=0
+[   32.409642] type=1400 audit(1795556899.505:24): avc:  denied  { read } for  comm="main" name="u:object_r:build_attestation_prop:s0" dev="tmpfs" ino=86 scontext=u:r:shell:s0 tcontext=u:object_r:build_attestation_prop:s0 tclass=file permissive=0
+DEBUG   | ColorBuffer 88, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 90, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 91, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 18
+DEBUG   | Started new RenderThread (total 18) @0x5868db8f4f00
+DEBUG   | ColorBuffer 94, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+[   37.238962] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 19
+DEBUG   | Started new RenderThread (total 19) @0x5868d014ef00
+DEBUG   | ColorBuffer 95, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 97, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 98, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[   39.737076] init: Sending signal 9 to service 'idmap2d' (pid 442) process group...
+[   39.744477] libprocessgroup: Successfully killed process cgroup uid 1000 pid 442 in 5ms
+[   39.746549] init: Control message: Processed ctl.stop for 'idmap2d' from pid: 516 (system_server)
+[   39.748747] init: Service 'idmap2d' (pid 442) received signal 9
+[   42.931072] SELinux: avc:  denied  { find } for pid=2651 uid=99000 name=content_capture scontext=u:r:isolated_app:s0:c512,c768 tcontext=u:object_r:content_capture_service:s0 tclass=service_manager permissive=0
+VERBOSE | Created RenderThread. Active RenderThreads: 20
+DEBUG   | Started new RenderThread (total 20) @0x5868da6c3e00
+DEBUG   | ColorBuffer 100, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 103, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+DEBUG   | Waiting for exit signal RenderThread @0x5868d03d05a0
+DEBUG   | ColorBuffer 106, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[   50.295184] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 21
+DEBUG   | Exited a RenderThread @0x5868d03d05a0
+VERBOSE | Destroyed RenderThread. Active RenderThreads: 20
+DEBUG   | Started new RenderThread (total 20) @0x5868d8fdcd20
+VERBOSE | Created RenderThread. Active RenderThreads: 21
+DEBUG   | Started new RenderThread (total 21) @0x5868d03d05a0
+DEBUG   | ColorBuffer 109, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+[   70.384570] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | ColorBuffer 110, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[  130.385016] healthd: battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+DEBUG   | Waiting for exit signal RenderThread @0x5868df500000
+DEBUG   | ColorBuffer 111, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 112, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 114, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 115, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 116, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 22
+DEBUG   | Exited a RenderThread @0x5868df500000
+VERBOSE | Destroyed RenderThread. Active RenderThreads: 21
+DEBUG   | Started new RenderThread (total 21) @0x5868d853ed20
+DEBUG   | ColorBuffer 119, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 22
+DEBUG   | Started new RenderThread (total 22) @0x5868d00cbc20
+DEBUG   | ColorBuffer 122, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 256, type: 0, props: 15 / 1]
+[  148.956980] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 23
+DEBUG   | Started new RenderThread (total 23) @0x5868d00caf00
+DEBUG   | ColorBuffer 123, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 125, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 126, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10444800, type: 0, props: 15 / 1]
+[  149.073844] binder: 516:990 ioctl 400c620e 7de09469c930 returned -11
+[  149.077833] binder: 516:990 ioctl 400c620e 7de09469c930 returned -11
+[  149.136501] binder: undelivered transaction 143768, process died.
+[  149.142815] binder: undelivered transaction 143769, process died.
+[  149.144193] binder: undelivered transaction 143774, process died.
+DEBUG   | Waiting for exit signal RenderThread @0x5868d8fdcd20
+DEBUG   | Waiting for exit signal RenderThread @0x5868d03d05a0

@@ -1,0 +1,5 @@
+BASELINE 2.1.5 build (no region feature): Find Your Mood page open
+Energy: queued but not READY+playing within 40s
+Energy queued=70 playbackState=2(3=READY) readyAndPlaying=false positionAdvancedMs=0 titles=El Efecto | Rauw Alejandro & Chencho ;; Flor Pálida | Marc Anthony ;; Se Preparó | Ozuna ;; Fabricando Fantasías (Salsa Version) | Tito Nieves ;; LALA | Myke Towers ;; Sin Sentimiento. Canta Javier Vásquez con Grupo Niche. | Javier Vásquez ;; Talento de Televisión | Willie Colón ;; Ginza | J. Balvin ;; No Me Conoce (Remix) | Jhay Cortez, J Balvin & Bad Bunny ;; Si Se Da (Remix) | Myke Towers, Farruko, Arcangel & Sech
+Relax: queued but not READY+playing within 40s
+Relax queued=70 playbackState=2(3=READY) readyAndPlaying=false positionAdvancedMs=0 titles=Nature Boy | David Hazeltine ;; Thinking out Loud | Ed Sheeran ;; Halo | Beyoncé ;; Deniz Üstü Köpürür | Kerim Yağcı ;; Seher Yıldızı | Arif Sağ, Belkıs Akkale ;; Jandarma | Mahmut Tuncer ;; Kendim Ettim, Kendim Buldum | Neşet Ertaş ;; Sen Gel Diyorsun (Öf Öf) | Ali Kızıltuğ ;; Ceora | Lee Morgan ;; Just Give Me A Reason (feat. Nate Ruess) | P!nk

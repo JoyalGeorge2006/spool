@@ -1,0 +1,30 @@
+11-24 21:50:16.199 I/ActivityManager(  516): Killing 2458:app.spool.music.dev/u0a141 (adj 0): stop app.spool.music.dev due to finished inst
+11-24 21:50:16.202 W/ForegroundServiceTypeLoggerModule(  516): Logger should be tracking FGS types correctly for UID 10141 in package app.spool.music.dev
+11-24 21:50:16.203 I/ActivityManager(  516): Killing 2651:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a141i0 (adj 0): isolated not needed
+11-24 21:50:16.216 I/libprocessgroup(  516): Successfully killed process cgroup uid 99000 pid 2651 in 10ms
+11-24 21:50:16.226 I/app_process( 2434): System.exit called, status: 0
+11-24 21:50:16.226 I/AndroidRuntime( 2434): VM exiting with result code 0.
+11-24 21:50:16.262 I/binder  (    0): undelivered transaction 143768, process died.
+11-24 21:50:16.268 I/binder  (    0): undelivered transaction 143769, process died.
+11-24 21:50:16.270 I/binder  (    0): undelivered transaction 143774, process died.
+11-24 21:50:16.266 I/Zygote  (  982): Process 2651 exited due to signal 9 (Killed)
+11-24 21:50:16.266 D/BatterySaverPolicy(  516): accessibility changed to false, updating policy.
+11-24 21:50:16.268 D/DisplayManagerService(  516): Drop pending events for gone uid 99000
+11-24 21:50:16.274 W/KernelCpuProcStringReader(  516): File not found. It's normal if not implemented: /proc/uid_concurrent_policy_time
+11-24 21:50:16.276 D/MediaDataManager(  835): Converting 0|app.spool.music.dev|1001|null|10141 to resume
+11-24 21:50:16.300 W/ActivityTaskManager(  516): Activity top resumed state loss timeout for ActivityRecord{2f3bfbf u0 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity t9 f}}
+11-24 21:50:16.300 W/ActivityTaskManager(  516): Activity pause timeout for ActivityRecord{2f3bfbf u0 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity t9 f}}
+11-24 21:50:16.309 D/MediaDataManager(  835): migrating? true from 0|app.spool.music.dev|1001|null|10141 -> app.spool.music.dev
+11-24 21:50:16.312 W/ConstraintSet(  835): id unknown center_vertical_guideline
+11-24 21:50:16.314 W/ConstraintSet(  835): id unknown action_button_guideline
+11-24 21:50:16.314 W/ConstraintSet(  835): id unknown icon
+11-24 21:50:16.314 W/ConstraintSet(  835): id unknown media_seamless
+11-24 21:50:16.315 W/ConstraintSet(  835): id unknown media_action_barrier_start
+11-24 21:50:16.315 W/ConstraintSet(  835): id unknown media_action_barrier_end
+11-24 21:50:16.315 W/ConstraintSet(  835): id unknown media_action_barrier_top
+11-24 21:50:16.328 W/ConstraintSet(  835): id unknown remove_text
+11-24 21:50:16.329 W/ConstraintSet(  835): id unknown settings
+11-24 21:50:16.329 W/ConstraintSet(  835): id unknown dismiss
+11-24 21:50:16.329 W/ConstraintSet(  835): id unknown cancel
+11-24 21:50:16.379 E/OpenGLRenderer( 1089): Unable to match the desired swap behavior.
+11-24 21:50:16.462 I/MR2ServiceImpl(  516): stopScan | manager: 1

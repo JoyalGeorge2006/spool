@@ -1,0 +1,1 @@
+/sdcard/Android/data/app.spool.music.dev/files/./: 4 files pulled, 0 skipped. 10.5 MB/s (452688 bytes in 0.041s)

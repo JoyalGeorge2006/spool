@@ -1,0 +1,3 @@
+gpu=guest
+boot=yes
+runner=app.spool.music.dev.test/androidx.test.runner.AndroidJUnitRunner
