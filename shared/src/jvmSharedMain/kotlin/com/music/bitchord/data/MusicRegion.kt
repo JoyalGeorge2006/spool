@@ -208,7 +208,7 @@ object MusicRegion {
         TopPickMood.FOCUS, TopPickMood.WORK -> "focus"
         TopPickMood.HEARTBREAK -> "heartbreak"
         TopPickMood.LOVE -> "romantic"
-        TopPickMood.SLEEP -> "soft lullaby"
+        TopPickMood.SLEEP -> "soft melody"
         TopPickMood.PARTY, TopPickMood.SOCIAL, TopPickMood.WEEKEND -> "party"
         TopPickMood.FITNESS, TopPickMood.OUTDOORS, TopPickMood.SPORTS -> "workout"
         TopPickMood.COMMUTING -> "travel"
@@ -218,4 +218,30 @@ object MusicRegion {
     /** The search that finds a language's songs for a mood when no shelf names it. */
     fun searchQuery(language: Language, mood: TopPickMood): String =
         "${language.label} ${moodTerm(mood)} songs"
+
+    // ---- Sleep: songs, not generic sleep channels ------------------------------
+
+    private val GENERIC_SLEEP_ARTIST = listOf(
+        "baby", "lullaby", "lullabies", "meditation", "sleep music", "zen zone", "zen master", "therapy", "sounds of", "asmr", "relaxing music",
+    )
+    private val GENERIC_SLEEP_TITLE = listOf(
+        "affirmation", "meditation", "sleep music", "sleep therapy", "delta waves", "binaural", "white noise", "baby sleep", "baby lullab",
+    )
+
+    /** A generic sleep, baby or meditation channel's upload rather than a song in the listener's language. */
+    fun isGenericSleepFiller(title: String, artist: String): Boolean {
+        val t = title.lowercase(Locale.ROOT)
+        val a = artist.lowercase(Locale.ROOT)
+        return GENERIC_SLEEP_ARTIST.any { it in a } || GENERIC_SLEEP_TITLE.any { it in t }
+    }
+
+    /**
+     * Real songs first: generic filler only fills up to [minimum] when too few
+     * songs came back. This is a title and artist heuristic, not a per-track
+     * language filter, so other-language songs can still appear.
+     */
+    fun <T> preferSongs(items: List<T>, minimum: Int, title: (T) -> String, artist: (T) -> String): List<T> {
+        val (filler, songs) = items.partition { isGenericSleepFiller(title(it), artist(it)) }
+        return if (songs.size >= minimum) songs else songs + filler.take(minimum - songs.size)
+    }
 }

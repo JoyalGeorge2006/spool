@@ -69,6 +69,29 @@ class MusicRegionTest {
     @Test
     fun searchQueryNamesLanguageAndMood() {
         val q = MusicRegion.searchQuery(MusicRegion.languages.getValue("tamil"), TopPickMood.SLEEP)
-        assertEquals("Tamil soft lullaby songs", q)
+        assertEquals("Tamil soft melody songs", q)
+    }
+
+    @Test
+    fun sleepSetAvoidsGenericChannelsButKeepsFilmSongs() {
+        assertTrue(MusicRegion.isGenericSleepFiller("Go to Sleep", "Beautiful Lullaby Academy"))
+        assertTrue(MusicRegion.isGenericSleepFiller("I Am Affirmations for Children While They Sleep", "Rising Higher Meditation"))
+        assertTrue(MusicRegion.isGenericSleepFiller("Sleep Therapy in Veena", "Raag Music Therapy"))
+        assertTrue(!MusicRegion.isGenericSleepFiller("Kunjikkavil Meghame", "Johnpaul George, Vinayak Sasikumar"))
+        assertTrue(!MusicRegion.isGenericSleepFiller("Innum Konjam Neram", "A.R. Rahman, Vijay Prakash"))
+        // Sadhana Sargam is a singer, not a generic channel.
+        assertTrue(!MusicRegion.isGenericSleepFiller("Snehidhane", "Sadhana Sargam, Srinivas"))
+    }
+
+    @Test
+    fun preferSongsOrdersSongsFirstAndOnlyPadsWithFillerWhenShort() {
+        val songs = (1..14).map { "Song $it" to "Singer" }
+        val filler = (1..5).map { "Baby $it" to "Baby Lullaby" }
+        val enough = MusicRegion.preferSongs(filler + songs, 12, { it.first }, { it.second })
+        assertEquals(14, enough.size)
+        assertTrue(enough.none { it.second == "Baby Lullaby" })
+        val few = MusicRegion.preferSongs(filler + songs.take(10), 12, { it.first }, { it.second })
+        assertEquals(12, few.size)
+        assertEquals(10, few.count { it.second == "Singer" })
     }
 }

@@ -674,6 +674,10 @@ object TopPicks {
                 // A row YouTube couldn't pair stays the video, and plays as one;
                 // the player menu's version switch turns it into the song.
                 .distinctBy { it.videoId }
+                .let { all ->
+                    if (mood == TopPickMood.SLEEP && langs.isNotEmpty())
+                        MusicRegion.preferSongs(all, MIN_SEARCHED_QUEUE, { it.title }, { it.artist }) else all
+                }
                 .shuffled()
                 .take(MOOD_QUEUE)
         }
@@ -713,6 +717,10 @@ object TopPicks {
                         }
                     }
                     .filterNot { it.isVideo }
+                    .let { all ->
+                        if (mood == TopPickMood.SLEEP)
+                            MusicRegion.preferSongs(all, MIN_SEARCHED_QUEUE, { it.title }, { it.artist }) else all
+                    }
                     .take(MOOD_QUEUE)
             }
         }.awaitAll().flatten().distinctBy { it.videoId }.shuffled().take(MOOD_QUEUE)
