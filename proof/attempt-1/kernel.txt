@@ -1,0 +1,41 @@
+-- dmesg
+[    3.934349] mana 7870:00:00.0 ens1: Configured vPort 0 PD 18 DB 16
+[    3.940961] mana 7870:00:00.0 ens1: Configured steering vPort 0 entries 64
+[    3.941601] hv_netvsc f8615163-0000-1000-2000-7c1e52258f08 eth0: Data path switched to VF: ens1
+[    3.942035] mana 7870:00:00.0 mana_0: Port: 1 Link ACTIVE
+[    3.959451] 8021q: 802.1Q VLAN Support v1.8
+[    4.010445] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    4.012051] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    4.012172] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    4.012227] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    4.012231] cfg80211: failed to load regulatory.db
+[    4.500156] hv_netvsc f8615163-0000-1000-2000-7c1e52258f08 eth0: Data path switched from VF: ens1
+[    4.500346] mana 7870:00:00.0 ens1: Configured steering vPort 0 entries 64
+[    4.527525] mana 7870:00:00.0 mana_0: Port: 1 Link DOWN
+[    4.974779] mana 7870:00:00.0 ens1: Configured vPort 0 PD 18 DB 16
+[    4.981323] mana 7870:00:00.0 ens1: Configured steering vPort 0 entries 64
+[    4.982157] hv_netvsc f8615163-0000-1000-2000-7c1e52258f08 eth0: Data path switched to VF: ens1
+[    4.982340] mana 7870:00:00.0 mana_0: Port: 1 Link ACTIVE
+[    6.764768] EXT4-fs (nvme0n1p1): resizing filesystem from 19370235 to 39031035 blocks
+[    7.687439] EXT4-fs (nvme0n1p1): resized filesystem to 39031035
+[    7.730375] ephemeral0: Can't lookup blockdev
+[    7.775015] systemd-fstab-generator[859]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[    8.327940] ephemeral0: Can't lookup blockdev
+[    8.454982] kauditd_printk_skb: 175 callbacks suppressed
+[    8.454988] audit: type=1400 audit(1795557794.812:186): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/journal/socket" pid=1095 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[    8.458121] audit: type=1400 audit(1795557794.815:187): apparmor="DENIED" operation="capable" class="cap" profile="systemd-detect-virt" pid=1095 comm="systemd-detect-" capability=38  capname="perfmon"
+[    8.459275] audit: type=1400 audit(1795557794.816:188): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/notify" pid=1095 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[    8.479302] audit: type=1400 audit(1795557794.836:189): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="rsyslogd" pid=1037 comm="apparmor_parser"
+[    8.629827] block nvme0n1: No UUID available providing old NGUID
+[    8.708536] loop0: detected capacity change from 0 to 8
+[    8.710387] NET: Registered PF_QIPCRTR protocol family
+[    8.870238] audit: type=1400 audit(1795557795.227:190): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/lib/snapd/snap-confine" pid=1260 comm="apparmor_parser"
+[    9.247469] audit: type=1400 audit(1795557795.604:191): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1405 comm="apparmor_parser"
+[    9.252657] Adding 3145724k swap on /swapfile.  Priority:-1 extents:4 across:4440060k SS
+[    9.420642] Initializing XFRM netlink socket
+[    9.434073] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[    9.508024] systemd-fstab-generator[1665]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   10.381273] systemd-fstab-generator[1878]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   10.609691] systemd-fstab-generator[1944]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   49.183236] hv_balloon: Max. dynamic memory size: 16384 MB
+[  169.212291] kvm: kvm [2662]: vcpu0, guest rIP: 0xffffffffa0603a51 Unhandled WRMSR(0xc0010007) = 0xffff

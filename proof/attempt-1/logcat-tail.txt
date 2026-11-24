@@ -1,0 +1,30 @@
+11-24 22:11:18.764 D/ConnectivityService(  518): releasing NetworkRequest [ REQUEST id=56, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:11:18.764 D/ConnectivityService(  518): releasing NetworkRequest [ REQUEST id=58, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 22:11:18.772 I/Zygote  (  337): Process 2429 exited due to signal 9 (Killed)
+11-24 22:11:18.773 W/LocalMediaManager(  828): BluetoothAdapter is null or muting expected device not exist
+11-24 22:11:18.775 D/MediaDeviceManager(  828): Can not get LocalBluetoothLeBroadcast
+11-24 22:11:18.777 W/ConstraintSet(  828): id unknown center_vertical_guideline
+11-24 22:11:18.779 W/ConstraintSet(  828): id unknown action_button_guideline
+11-24 22:11:18.779 W/ConstraintSet(  828): id unknown icon
+11-24 22:11:18.779 W/ConstraintSet(  828): id unknown media_seamless
+11-24 22:11:18.780 W/ConstraintSet(  828): id unknown media_action_barrier_start
+11-24 22:11:18.781 W/ConstraintSet(  828): id unknown media_action_barrier_end
+11-24 22:11:18.781 W/ConstraintSet(  828): id unknown media_action_barrier_top
+11-24 22:11:18.781 W/ConstraintSet(  828): id unknown remove_text
+11-24 22:11:18.782 W/ConstraintSet(  828): id unknown settings
+11-24 22:11:18.782 W/ConstraintSet(  828): id unknown dismiss
+11-24 22:11:18.782 W/ConstraintSet(  828): id unknown cancel
+11-24 22:11:18.832 W/ActivityTaskManager(  518): Activity top resumed state loss timeout for ActivityRecord{329fed6 u0 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity t9 f}}
+11-24 22:11:18.833 W/ActivityTaskManager(  518): Activity pause timeout for ActivityRecord{329fed6 u0 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity t9 f}}
+11-24 22:11:18.890 W/OpenGLRenderer( 1088): Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+11-24 22:11:18.890 D/MediaDeviceManager(  828): Can not get LocalBluetoothLeBroadcast
+11-24 22:11:18.890 W/OpenGLRenderer( 1088): Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-24 22:11:18.923 W/ServiceManagerCppClient(  518): Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
+11-24 22:11:18.923 D/PermissionCache(  518): checking android.permission.ROTATE_SURFACE_FLINGER for uid=10142 => denied (91 us)
+11-24 22:11:18.923 W/ServiceManagerCppClient(  518): Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
+11-24 22:11:18.923 D/PermissionCache(  518): checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10142 => denied (11 us)
+11-24 22:11:18.923 W/ServiceManagerCppClient(  518): Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
+11-24 22:11:18.923 D/PermissionCache(  518): checking android.permission.ACCESS_SURFACE_FLINGER for uid=10142 => denied (8 us)
+11-24 22:11:18.924 I/Choreographer( 3419): Skipped 31 frames!  The application may be doing too much work on its main thread.
+11-24 22:11:18.962 E/OpenGLRenderer( 1088): Unable to match the desired swap behavior.
+11-24 22:11:18.996 I/ndroid.systemui(  828): Background young concurrent copying GC freed 680831(14MB) AllocSpace objects, 11(1148KB) LOS objects, 32% free, 23MB/34MB, paused 181us,105us total 101.507ms
