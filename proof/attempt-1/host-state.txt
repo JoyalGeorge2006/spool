@@ -1,0 +1,35 @@
+21:39:49
+Mem:           15983        4870        1835          55        9677       11112
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    242 4103256    39 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.6 147008    535 /tmp/provjobd3685214740
+21:39:54
+Mem:           15983        5142        1556          55        9685       10840
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    252 4383608    44 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.5 147132    540 /tmp/provjobd3685214740
+21:39:59
+Mem:           15983        5168        1528          55        9685       10814
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    257 4410820    49 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.5 147152    545 /tmp/provjobd3685214740
+21:40:04
+Mem:           15983        5256        1438          55        9688       10726
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    261 4502836    54 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.4 137844    550 /tmp/provjobd3685214740
+21:40:09
+Mem:           15983        5329        1361          55        9693       10654
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    262 4563088    59 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.3 137844    555 /tmp/provjobd3685214740
+21:40:14
+Mem:           15983        5342        1401          55        9639       10640
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    255 4592468    64 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.3 137868    560 /tmp/provjobd3685214740
+21:40:19
+Mem:           15983        5447        1295          55        9640       10535
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4391 Sl    248 4691444    69 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2173 Sl    9.2 137868    565 /tmp/provjobd3685214740

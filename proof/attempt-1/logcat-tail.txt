@@ -1,0 +1,30 @@
+11-24 21:40:19.864 V/WindowManagerShell(  831):  try handler com.android.wm.shell.pip.PipTransition@84345de
+11-24 21:40:19.864 V/WindowManagerShell(  831):  try handler com.android.wm.shell.splitscreen.StageCoordinator@ba293bf
+11-24 21:40:19.864 V/WindowManagerShell(  831):  try handler com.android.wm.shell.transition.RemoteTransitionHandler@1f74a8c
+11-24 21:40:19.864 V/WindowManagerShell(  831): Transition doesn't have explicit remote, search filters for match for {id=8 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@b3eda4} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x30a29f8 sb=Rect(
+11-24 21:40:19.864 V/WindowManagerShell(  831):  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLaunch
+11-24 21:40:19.865 D/RemoteTransitionHandler(  831): Found filterPair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLaunch
+11-24 21:40:19.865 V/WindowManagerShell(  831):  Delegate animation for #8 to RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@e3ebad8, appThread = android.app.IApplicationThread$Stub$Proxy@8b38e31, debugName = QuickstepLaunchHome }
+11-24 21:40:19.867 V/WindowManagerShell(  831):  animated by com.android.wm.shell.transition.RemoteTransitionHandler@1f74a8c
+11-24 21:40:19.868 W/WindowMagnificationMgr(  516): requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+11-24 21:40:19.868 D/AccessibilityManagerService(  516): restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
+11-24 21:40:19.869 D/BatterySaverPolicy(  516): accessibility changed to false, updating policy.
+11-24 21:40:19.879 I/ActivityManager(  516): Force stopping app.spool.music.dev appid=10141 user=0: finished inst
+11-24 21:40:19.880 I/app_process( 2448): System.exit called, status: 0
+11-24 21:40:19.880 I/AndroidRuntime( 2448): VM exiting with result code 0.
+11-24 21:40:19.892 E/ActivityManager(  516): Unable to freeze binder for 2469: -11
+11-24 21:40:19.893 I/ActivityManager(  516): Killing 2469:app.spool.music.dev/u0a141 (adj 0): stop app.spool.music.dev due to finished inst
+11-24 21:40:19.895 I/cr_ChildProcessService( 2672): Destroying ChildProcessService pid=2672
+11-24 21:40:19.895 I/ActivityManager(  516): Killing 2672:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a141i0 (adj 0): isolated not needed
+11-24 21:40:19.900 I/binder  (    0): 516:907 ioctl 400c620e 7ed4a78dc930 returned -11
+11-24 21:40:19.904 I/binder  (    0): 516:907 ioctl 400c620e 7ed4a78dc930 returned -11
+11-24 21:40:19.903 D/DisplayManagerService(  516): Drop pending events for gone uid 10141
+11-24 21:40:19.925 V/WindowManagerShell(  831): Transition animation finished (aborted=false), notifying core (#8)android.os.BinderProxy@edc846a@0
+11-24 21:40:19.939 V/WindowManager(  516): Finish Transition #8: created at 11-24 21:40:18.946 collect-started=0.021ms request-sent=0.055ms started=2.26ms ready=450.855ms sent=915.992ms finished=992.175ms
+11-24 21:40:19.946 V/WindowManagerShell(  831): Track 0 became idle
+11-24 21:40:19.947 V/WindowManagerShell(  831): All active transition animations finished
+11-24 21:40:19.963 I/libprocessgroup(  516): Successfully killed process cgroup uid 99000 pid 2672 in 64ms
+11-24 21:40:19.987 D/DisplayManagerService(  516): Drop pending events for gone uid 99000
+11-24 21:40:19.995 I/Zygote  (  978): Process 2672 exited due to signal 9 (Killed)
+11-24 21:40:19.995 W/KernelCpuProcStringReader(  516): File not found. It's normal if not implemented: /proc/uid_concurrent_policy_time
+11-24 21:40:20.047 D/EGL_emulation(  831): app_time_stats: avg=509.10ms min=86.04ms max=932.17ms count=2
