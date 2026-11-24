@@ -60,13 +60,21 @@ jobs:
         yes | sdkmanager --licenses > /dev/null 2>&1
         sdkmanager --install "$IMG" emulator > /tmp/sdk-install.log 2>&1
         tail -3 /tmp/sdk-install.log > proof/sdk-install.txt
-        echo no | avdmanager create avd -n test -k "$IMG" -d pixel_6 --force > proof/avd-create.txt 2>&1
-        printf 'hw.ramSize=4096\nhw.cpu.ncore=3\nvm.heapSize=576\nhw.keyboard=yes\n' >> $HOME/.android/avd/test.avd/config.ini
+        AVDH=${ANDROID_AVD_HOME:-$HOME/.android/avd}; mkdir -p $AVDH
+        echo no | avdmanager --verbose create avd -n test -k "$IMG" -d pixel_6 --force > proof/avd-create.txt 2>&1; echo "avdmanager exit=$?" >> proof/avd-create.txt
+        if [ ! -f $AVDH/test.ini ]; then
+          echo "avdmanager did not create the AVD; writing it by hand" >> proof/avd-create.txt
+          mkdir -p $AVDH/test.avd
+          printf 'avd.ini.encoding=UTF-8\npath=%s/test.avd\npath.rel=avd/test.avd\ntarget=android-34\n' "$AVDH" > $AVDH/test.ini
+          printf 'AvdId=test\navd.ini.displayname=test\nPlayStore.enabled=false\nabi.type=x86_64\nhw.cpu.arch=x86_64\nhw.device.name=pixel_6\nhw.gpu.enabled=yes\nhw.gpu.mode=auto\nhw.lcd.density=420\nhw.lcd.height=2400\nhw.lcd.width=1080\nhw.sdCard=no\ndisk.dataPartition.size=6G\nimage.sysdir.1=system-images/android-34/default/x86_64/\ntag.id=default\n' > $AVDH/test.avd/config.ini
+        fi
+        printf 'hw.ramSize=4096\nhw.cpu.ncore=3\nvm.heapSize=576\nhw.keyboard=yes\n' >> $AVDH/test.avd/config.ini
+        emulator -list-avds >> proof/avd-create.txt 2>&1
         attempt() {
           N=$1; GPU=$2; P=proof/attempt-$N; mkdir -p $P
           echo "gpu=$GPU" > $P/config.txt
           adb kill-server > /dev/null 2>&1; adb start-server > /dev/null 2>&1
-          nohup emulator -port 5554 -avd test -no-window -gpu $GPU -no-snapshot -noaudio -no-boot-anim -verbose > /tmp/emu-$N.log 2>&1 &
+          nohup emulator -port 5554 -avd test -no-window -gpu $GPU -no-snapshot -noaudio -no-boot-anim -verbose -show-kernel > /tmp/emu-$N.log 2>&1 &
           EPID=$!
           BOOT=no
           for i in $(seq 1 90); do sleep 4; if [ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then BOOT=yes; break; fi; done
@@ -86,6 +94,8 @@ jobs:
           { echo "-- adb devices"; adb devices; echo "-- qemu procs"; ps -eo pid,stat,pcpu,rss,etimes,args | grep -E "qemu-system|emulator" | grep -v grep | cut -c1-150; echo "-- launcher alive?"; kill -0 $EPID 2>&1 && echo alive; } > $P/emu-state.txt 2>&1
           { echo "-- dmesg"; (dmesg 2>&1 || sudo dmesg 2>&1) | tail -40; } > $P/kernel.txt 2>&1
           tail -120 /tmp/emu-$N.log | cut -c1-300 > $P/emulator-stderr-tail.txt
+          mkdir -p $P/crashdb; find /tmp/android-runner -type f -size -300k 2>/dev/null | head -40 | while read f; do cp "$f" "$P/crashdb/$(echo $f | tr / _)" 2>/dev/null; done; find /tmp/android-runner -type f 2>/dev/null | head -60 > $P/crashdb-list.txt
+          grep -iE "kernel panic|Oops|BUG:|hung task|soft lockup|rcu|out of memory|killed process|watchdog|lowmemory|crash|abort|SIGSEGV|fatal" /tmp/emu-$N.log | cut -c1-250 | head -40 > $P/kernel-grep.txt
           timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. $P/ > $P/pull-log.txt 2>&1
           grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|am_crash|am_anr|ANR in|has died|am_kill|TestRunner|lowmemorykiller" /tmp/logcat-stream-$N.txt | cut -c1-300 | tail -150 > $P/logcat-mood.txt
           tail -30 /tmp/logcat-stream-$N.txt | cut -c1-300 > $P/logcat-tail.txt
@@ -126,4 +136,5 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v11
+        git push -f origin HEAD:refs/heads/spool-mood-proof-${GITHUB_RUN_ID}
+# v12
