@@ -9,6 +9,7 @@ permissions:
 jobs:
   emulator:
     runs-on: ubuntu-latest
+    timeout-minutes: 32
     timeout-minutes: 75
     steps:
     - uses: actions/checkout@v4
@@ -42,17 +43,23 @@ jobs:
         cat > /tmp/run-mood.sh <<'RUNMOOD'
         #!/bin/bash
         mkdir -p proof
-        D=/sdcard/Android/data/app.spool.music.dev/files
-        timeout 1700 ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.MoodRegionEmulatorTest --no-daemon --console=plain > /tmp/emu-gradle.log 2>&1
-        echo "GRADLE_STATUS=$?" > proof/status.txt
-        sleep 5
-        timeout 30 adb devices > proof/adb-devices.txt 2>&1
+        timeout -k 20 1200 ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --console=plain > /tmp/build.log 2>&1
+        echo "BUILD_STATUS=$?" > proof/status.txt
+        tail -40 /tmp/build.log | grep -vE "^\s+at |^w: " | cut -c1-300 > proof/build-tail.txt
+        APK=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" | head -1)
+        TAPK=$(find app/build/outputs/apk/androidTest -name "*.apk" | head -1)
+        { echo "app=$APK"; echo "test=$TAPK"; which adb; adb version; adb devices; } > proof/adb-info.txt 2>&1
+        timeout -k 5 150 adb install -r -t "$APK" > proof/install.txt 2>&1
+        timeout -k 5 150 adb install -r -t "$TAPK" >> proof/install.txt 2>&1
+        timeout 30 adb shell pm list instrumentation > proof/instr.txt 2>&1
+        RUNNER=$(sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p' proof/instr.txt | grep -i spool | head -1)
+        echo "runner=$RUNNER" >> proof/adb-info.txt
+        timeout -k 5 480 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > proof/instrument.txt 2>&1
+        echo "INSTRUMENT_STATUS=$?" >> proof/status.txt
+        timeout 30 adb devices >> proof/adb-info.txt 2>&1
         timeout 60 adb pull /data/local/tmp/mood/. proof/ > proof/pull-log.txt 2>&1
         timeout 60 adb logcat -d -v time > /tmp/logcat-full.txt 2>&1
-        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|AndroidRuntime|am_crash|am_anr|ANR in|Process .* has died|INSTRUMENTATION|TestRunner" /tmp/logcat-full.txt > proof/logcat-mood.txt 2>/dev/null
-        tail -400 /tmp/emu-gradle.log | grep -vE "^\s+at |^w: " > proof/gradle-tail.txt
-        { ls -la /tmp/emu-gradle.log; wc -l /tmp/emu-gradle.log; grep -n -E "FAILED|failed|What went wrong|BUILD|Tests |tests completed|INSTRUMENTATION|Expected|Exception|Killed|OutOfMemory" /tmp/emu-gradle.log | cut -c1-300 | tail -60; echo ---RAWTAIL; tail -40 /tmp/emu-gradle.log | cut -c1-300; echo ---OOM; (dmesg 2>/dev/null || sudo dmesg 2>/dev/null) | grep -i -E "killed process|out of memory" | tail -5; free -m; } > proof/gradle-diagnosis.txt 2>&1
-        for x in $(find app/build -name "TEST-*.xml" 2>/dev/null | head -2); do grep -v "^\s*at " "$x" | cut -c1-500 | head -80 > proof/test-result-$(basename $x).txt; done
+        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|AndroidRuntime|am_crash|am_anr|ANR in|Process .* has died|INSTRUMENTATION|TestRunner" /tmp/logcat-full.txt | cut -c1-400 > proof/logcat-mood.txt
         tail -150 /tmp/logcat-full.txt | grep -E " E | F " | cut -c1-250 | tail -60 > proof/logcat-errors-tail.txt
         exit 0
         RUNMOOD
@@ -76,4 +83,4 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v6
+# v7
