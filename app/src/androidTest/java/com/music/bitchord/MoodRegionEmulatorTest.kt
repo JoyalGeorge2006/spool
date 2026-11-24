@@ -106,25 +106,47 @@ class MoodRegionEmulatorTest {
         shot("region-03-india-malayalam-tamil-selected")
         say("STEP ml+ta selected")
 
+        // Each step is isolated: a failure is recorded with a screenshot and the run carries on.
+        val stepFailures = ArrayList<String>()
+        fun step(name: String, block: () -> Unit) {
+            try { block(); say("STEP-OK $name") } catch (e: Throwable) {
+                stepFailures.add("$name: ${e.message?.lineSequence()?.firstOrNull()}")
+                say("STEP-FAILED $name: ${e.message}")
+                runCatching { shot("failed-" + name.lowercase().replace(Regex("[^a-z0-9]+"), "-")) }
+            }
+        }
+        fun pickCountryViaChooser(name: String, code: String) {
+            var viaUi = false
+            step("country chooser: pick $name") {
+                compose.onNodeWithText("Country").performClick(); settle(1200)
+                if (name == "United States") shot("region-03b-country-chooser-open")
+                compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Afghanistan")), useUnmergedTree = true).performScrollToNode(hasText(name)); settle(600)
+                compose.onNodeWithText(name).performClick(); settle(1200)
+                viaUi = true
+            }
+            if (!viaUi) {
+                say("FALLBACK: chooser UI failed for $name, country set through AppSettings so later steps still run")
+                runCatching { compose.onNodeWithText("Cancel").performClick(); settle(600) }
+                AppSettings.setMusicCountry(code); settle(1200)
+            }
+        }
         // Switch to the US: US languages only, then back: Indian choice is kept.
-        compose.onNodeWithText("Country").performClick(); settle(1200)
-        shot("region-03b-country-chooser-open")
-        compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Afghanistan")), useUnmergedTree = true).performScrollToNode(hasText("United States")); settle(600)
-        compose.onNodeWithText("United States").performClick(); settle(1200)
-        say("STEP country chooser: picked United States via the chooser UI")
-        for (l in listOf("English", "Spanish", "Hindi", "Korean")) assertTrue("$l chip for US", textShown(l))
-        assertTrue("no Malayalam for US", !textShown("Malayalam"))
-        shot("region-04-united-states-chips")
-        compose.onNodeWithText("Country").performClick(); settle(1200)
-        compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Afghanistan")), useUnmergedTree = true).performScrollToNode(hasText("India")); settle(600)
-        compose.onNodeWithText("India").performClick(); settle(1200)
-        say("STEP country chooser: picked India via the chooser UI")
-        assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
-        shot("region-05-india-selection-kept")
-        say("STEP country switch ok")
-        compose.onNodeWithText("Done").performClick(); settle(1500)
-        assertTrue("pill shows India and Malayalam", textShown("India") && textShown("Malayalam"))
-        shot("region-06-moods-pill-confirmed")
+        pickCountryViaChooser("United States", "US")
+        step("US chips") {
+            for (l in listOf("English", "Spanish", "Hindi", "Korean")) assertTrue("$l chip for US", textShown(l))
+            assertTrue("no Malayalam for US", !textShown("Malayalam"))
+            shot("region-04-united-states-chips")
+        }
+        pickCountryViaChooser("India", "IN")
+        step("India selection kept") {
+            assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
+            shot("region-05-india-selection-kept")
+        }
+        step("Done and confirmed pill") {
+            compose.onNodeWithText("Done").performClick(); settle(1500)
+            assertTrue("pill shows India and Malayalam", textShown("India") && textShown("Malayalam"))
+            shot("region-06-moods-pill-confirmed")
+        }
 
         // Real mood taps against the live service.
         lateinit var future: com.google.common.util.concurrent.ListenableFuture<androidx.media3.session.MediaController>
@@ -150,7 +172,7 @@ class MoodRegionEmulatorTest {
         }.onFailure { say("grid-end check failed: ${it.message}") }
         var played = 0
         val problems = ArrayList<String>()
-        for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) {
+        for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) { try {
             runCatching {
                 compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(label))
             }.onFailure { say("$label: scroll-to failed: ${it.message}") }
@@ -161,7 +183,8 @@ class MoodRegionEmulatorTest {
                 val b = compose.onAllNodesWithText(label, useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
                 say("$label tile bounds top=${b.top} bottom=${b.bottom} rootHeight=$rootH")
                 if (b.bottom > rootH - 450) {
-                    compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0]
+                    val gridId = compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true).fetchSemanticsNodes().maxByOrNull { it.size.height }!!.id
+                    compose.onNode(SemanticsMatcher("largest scrollable") { it.id == gridId }, useUnmergedTree = true)
                         .performTouchInput { swipe(androidx.compose.ui.geometry.Offset(centerX, height * 0.8f), androidx.compose.ui.geometry.Offset(centerX, height * 0.5f), 400) }
                     settle(800)
                     val b2 = compose.onAllNodesWithText(label, useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
@@ -216,8 +239,8 @@ class MoodRegionEmulatorTest {
             settle(1500)
             shot("region-07-mood-${label.lowercase()}-playing")
             compose.runOnUiThread { c.pause() }
-        }
-        say("SUMMARY moods with advancing position: $played of 5; problems=$problems")
-        assertTrue("release gate: every mood must queue and play (position advancing) but: $problems", problems.isEmpty() && played == 5)
+        } catch (ex: Throwable) { say("$label: iteration failed: ${ex.message}"); problems.add("$label: iteration failed ${ex.message?.lineSequence()?.firstOrNull()}"); runCatching { shot("failed-mood-${label.lowercase()}") } } }
+        say("SUMMARY moods with advancing position: $played of 5; problems=$problems; stepFailures=$stepFailures")
+        assertTrue("release gate: every mood must queue and play (position advancing) but: $problems steps: $stepFailures", problems.isEmpty() && stepFailures.isEmpty() && played == 5)
     }
 }
