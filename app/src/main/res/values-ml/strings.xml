@@ -1463,4 +1463,6 @@
     <string name="music_region_country">രാജ്യം</string>
     <string name="music_region_languages">സംഗീത ഭാഷകൾ</string>
     <string name="music_region_languages_hint">ഈ രാജ്യത്ത് ആളുകൾ കേൾക്കുന്ന ഭാഷകളാണിവ. മൂഡ് പ്ലേലിസ്റ്റുകൾ നിങ്ങൾ തിരഞ്ഞെടുത്തവയ്ക്ക് ആദ്യം മുൻഗണന നൽകും.</string>
+    <string name="music_region_uncovered">ഈ രാജ്യത്തിനുള്ള ഭാഷാ പട്ടിക ഇതുവരെ ലഭ്യമല്ല. മൂഡുകൾ ഈ രാജ്യത്തെ സംഗീതം തന്നെ ഉപയോഗിക്കും.</string>
+    <string name="music_region_confirm">നിങ്ങൾ കേൾക്കുന്ന ഭാഷകൾ തിരഞ്ഞെടുക്കൂ. സ്ഥലം നോക്കി ഒന്നും അനുമാനിക്കില്ല.</string>
 </resources>

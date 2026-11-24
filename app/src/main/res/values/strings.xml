@@ -1566,4 +1566,6 @@
     <string name="music_region_country">Country</string>
     <string name="music_region_languages">Music languages</string>
     <string name="music_region_languages_hint">These are the languages people listen to in this country. Mood playlists use the ones you tick first.</string>
+    <string name="music_region_uncovered">Language lists for this country are not available yet. Moods still use music from this country.</string>
+    <string name="music_region_confirm">Choose the languages you listen to. Nothing is assumed from your location.</string>
 </resources>

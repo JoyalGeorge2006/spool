@@ -41,6 +41,7 @@ import java.util.Locale
 /** "India · Malayalam, Tamil" — what the Find Your Mood pill and the settings row show. */
 fun musicRegionSummary(state: MusicRegion.State, maxLanguages: Int = 3): String {
     val names = MusicRegion.activeLanguages(state).map { it.label }
+    if (names.isEmpty()) return MusicRegion.displayCountry(MusicRegion.countryOf(state))
     val shown = names.take(maxLanguages).joinToString(", ")
     val more = if (names.size > maxLanguages) " +${names.size - maxLanguages}" else ""
     return "${MusicRegion.displayCountry(MusicRegion.countryOf(state))} \u00b7 $shown$more"
@@ -133,10 +134,29 @@ fun MusicRegionDialog(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp))
                 val active = MusicRegion.activeLanguages(state).map { it.id }.toSet()
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    MusicRegion.languagesFor(country).forEach { language ->
-                        MusicRegionRow(language.label, selected = language.id in active) {
-                            AppSettings.toggleMusicLanguage(language.id)
+                val offered = MusicRegion.languagesFor(country)
+                if (offered.isEmpty()) {
+                    Text(stringResource(R.string.music_region_uncovered), fontSize = 13.sp, lineHeight = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(horizontal = 4.dp))
+                } else {
+                    if (MusicRegion.needsConfirmation(state)) {
+                        Text(stringResource(R.string.music_region_confirm), fontSize = 13.sp, lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 4.dp))
+                    }
+                    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    ) {
+                        offered.forEach { language ->
+                            androidx.compose.material3.FilterChip(
+                                selected = language.id in active,
+                                onClick = { AppSettings.toggleMusicLanguage(language.id) },
+                                label = { Text(language.label) },
+                            )
                         }
                     }
                 }

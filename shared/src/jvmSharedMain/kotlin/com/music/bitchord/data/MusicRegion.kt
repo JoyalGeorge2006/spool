@@ -110,19 +110,18 @@ object MusicRegion {
         "RU" to listOf("russian", "english"),
     )
 
-    /** What [languagesFor] offers a country this table does not know. */
-    private val FALLBACK = listOf("english", "spanish", "hindi", "arabic", "french", "korean")
-
+    /** The languages listened to in [country]; empty when this table does not cover it (no worldwide stand-in list). */
     fun languagesFor(country: String): List<Language> =
-        (byCountry[country.uppercase(Locale.ROOT)] ?: FALLBACK).mapNotNull(languages::get)
+        (byCountry[country.uppercase(Locale.ROOT)] ?: emptyList()).mapNotNull(languages::get)
 
-    /**
-     * Who is selected when nothing is: in India every regional language (Indian
-     * music is the point of choosing India), elsewhere the country's first.
-     */
-    fun defaultLanguages(country: String): List<Language> {
-        val all = languagesFor(country)
-        return if (country.uppercase(Locale.ROOT) == "IN") all else all.take(1)
+    fun isCovered(country: String): Boolean = country.uppercase(Locale.ROOT) in byCountry
+
+    /** Language ids for the phone's configured languages (e.g. "ml" becomes "malayalam"). */
+    fun idsForLocales(locales: List<Locale>): Set<String> {
+        return locales.mapNotNull { l ->
+            val name = Locale(l.language).getDisplayLanguage(Locale.ENGLISH).lowercase(Locale.ROOT)
+            name.takeIf { it in languages }
+        }.toSet()
     }
 
     /** The persisted choice, plus what detection found. Read through [country] and [activeLanguages]. */
@@ -131,6 +130,8 @@ object MusicRegion {
         val detectedCountry: String? = null,
         val manualCountry: String? = null,
         val selected: Set<String> = emptySet(),
+        /** Language ids from the phone settings; used only until the listener confirms a choice. */
+        val deviceLanguages: Set<String> = emptySet(),
     )
 
     @Volatile
@@ -147,12 +148,21 @@ object MusicRegion {
             ?: "US").uppercase(Locale.ROOT)
     }
 
-    /** The selected languages that exist for the country; the country's defaults when none do. */
+    /**
+     * The chosen languages that exist for the country. Until the listener
+     * chooses, only languages the phone is already set to count; nothing is
+     * assumed beyond that. Choices for other countries are kept, not shown.
+     */
     fun activeLanguages(s: State = state): List<Language> {
         val country = countryOf(s)
-        val picked = languagesFor(country).filter { it.id in s.selected }
-        return picked.ifEmpty { defaultLanguages(country) }
+        val offered = languagesFor(country)
+        val picked = offered.filter { it.id in s.selected }
+        return picked.ifEmpty { offered.filter { it.id in s.deviceLanguages } }
     }
+
+    /** True while no language has been confirmed for this country. */
+    fun needsConfirmation(s: State = state): Boolean =
+        languagesFor(countryOf(s)).none { it.id in s.selected }
 
     /** Languages that name a scene on a shelf. English names none, so it never steers. */
     fun steeringLanguages(s: State = state): List<Language> = activeLanguages(s).filter { it.hints.isNotEmpty() }

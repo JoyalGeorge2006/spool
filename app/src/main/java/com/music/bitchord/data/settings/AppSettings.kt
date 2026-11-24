@@ -1122,6 +1122,7 @@ object AppSettings {
                 manualCountry = prefs.getString(KEY_MUSIC_COUNTRY, null)?.takeIf { it.length == 2 },
                 selected = prefs.getString(KEY_MUSIC_LANGUAGES, "").orEmpty()
                     .split(',').filter { it.isNotBlank() }.toSet(),
+                deviceLanguages = deviceLanguageIds(),
             ),
         )
         squareVideoThumbnails.value = false
@@ -1621,12 +1622,22 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_MUSIC_REGION_AUTO, false).apply()
     }
 
-    /** Ticks a language on or off. The last one on stays on: an empty choice is the country's default. */
+    private fun deviceLanguageIds(): Set<String> {
+        val list = android.content.res.Resources.getSystem().configuration.locales
+        return com.music.bitchord.data.MusicRegion.idsForLocales((0 until list.size()).map { list[it] })
+    }
+
+    /**
+     * Ticks a language on or off. Choices made for other countries are kept, so
+     * switching away and back restores them. Turning the last one off leaves
+     * the country unconfirmed, which asks again instead of guessing.
+     */
     fun toggleMusicLanguage(id: String) {
         val current = musicRegion.value
-        val active = com.music.bitchord.data.MusicRegion.activeLanguages(current).map { it.id }.toSet()
-        val next = if (id in active) active - id else active + id
-        if (next.isEmpty()) return
+        val shown = com.music.bitchord.data.MusicRegion.activeLanguages(current).map { it.id }.toSet()
+        val country = com.music.bitchord.data.MusicRegion.languagesFor(com.music.bitchord.data.MusicRegion.countryOf(current)).map { it.id }.toSet()
+        val others = current.selected - country
+        val next = others + if (id in shown) shown - id else shown + id
         prefs.edit().putString(KEY_MUSIC_LANGUAGES, next.joinToString(",")).apply()
         publishMusicRegion(current.copy(selected = next))
     }
