@@ -134,6 +134,19 @@ class MoodRegionEmulatorTest {
                 compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(label))
             }.onFailure { say("$label: scroll-to failed: ${it.message}") }
             settle(600)
+            // Keep the tile clear of the bottom navigation bar before tapping it.
+            runCatching {
+                val rootH = compose.onRoot().fetchSemanticsNode().size.height
+                val b = compose.onAllNodesWithText(label, useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
+                say("$label tile bounds top=${b.top} bottom=${b.bottom} rootHeight=$rootH")
+                if (b.bottom > rootH - 450) {
+                    compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0]
+                        .performTouchInput { swipe(androidx.compose.ui.geometry.Offset(centerX, height * 0.8f), androidx.compose.ui.geometry.Offset(centerX, height * 0.5f), 400) }
+                    settle(800)
+                    val b2 = compose.onAllNodesWithText(label, useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
+                    say("$label tile bounds after nudge top=${b2.top} bottom=${b2.bottom}")
+                }
+            }.onFailure { say("$label: bounds/nudge failed: ${it.message}") }
             compose.runOnUiThread { c.clearMediaItems() }
             val tile = compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().size
             if (tile == 0) { say("$label: no such tile on the page"); continue }
