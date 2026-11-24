@@ -73,18 +73,22 @@ class MoodRegionEmulatorTest {
         compose.onNodeWithText("Find Your Mood").assertExists()
         say("phone device languages=" + AppSettings.musicRegion.value.deviceLanguages + " country=" + MusicRegion.country + " active=" + MusicRegion.activeLanguages().map { it.id })
         shot("region-01-moods-pill-unconfirmed")
+        say("STEP pill screenshot taken")
 
         // Open the region page through the pill.
         compose.onNode(hasText("India", substring = true), useUnmergedTree = true).performClick()
         settle(1500)
+        say("STEP pill clicked")
         assertTrue("confirmation prompt shown", textShown("Choose the languages you listen to"))
         for (l in listOf("Malayalam", "Tamil", "Hindi", "Telugu", "Kannada", "English")) assertTrue("$l chip for India", textShown(l))
         assertTrue("no Spanish for India", !textShown("Spanish"))
         shot("region-02-india-chips-unconfirmed")
+        say("STEP chips asserted")
         compose.onNodeWithText("Malayalam").performClick(); settle(600)
         compose.onNodeWithText("Tamil").performClick(); settle(600)
         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
         shot("region-03-india-malayalam-tamil-selected")
+        say("STEP ml+ta selected")
 
         // Switch to the US: US languages only, then back: Indian choice is kept.
         AppSettings.setMusicCountry("US"); settle(1200)
@@ -94,6 +98,7 @@ class MoodRegionEmulatorTest {
         AppSettings.setMusicCountry("IN"); settle(1200)
         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
         shot("region-05-india-selection-kept")
+        say("STEP country switch ok")
         compose.onNodeWithText("Done").performClick(); settle(1500)
         assertTrue("pill shows India and Malayalam", textShown("India") && textShown("Malayalam"))
         shot("region-06-moods-pill-confirmed")
@@ -106,6 +111,7 @@ class MoodRegionEmulatorTest {
                 .setApplicationLooper(android.os.Looper.getMainLooper()).buildAsync()
         }
         val c = future.get(20, java.util.concurrent.TimeUnit.SECONDS)
+        say("STEP controller connected")
         var played = 0
         for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) {
             val grid = compose.onAllNodes(hasScrollToNodeAction() and hasAnyDescendant(hasText("Find Your Mood")), useUnmergedTree = true)[0]
@@ -132,6 +138,7 @@ class MoodRegionEmulatorTest {
             Thread.sleep(5000)
             compose.runOnUiThread { p2 = c.currentPosition; vol = c.volume; mime = c.currentMediaItem?.localConfiguration?.mimeType.orEmpty() }
             val advanced = ok && p2 - p1 >= 3000
+            say("STEP $label tapped")
             say("$label queued=${c.mediaItemCount} playing=$ok positionAdvancedMs=${p2 - p1} (audible playback needs this >= 3000) volume=$vol first=" + items.joinToString(" ;; "))
             if (advanced) played++
             settle(1500)
