@@ -1,0 +1,35 @@
+From f1dde00f40ff1e1620f4dd55abe3b589aff9e49f Mon Sep 17 00:00:00 2001
+From: spool <s@x>
+Date: Wed, 25 Nov 2026 03:18:05 +0530
+Subject: [PATCH] Emulator test: scroll the lazy country list to the country
+ before tapping
+
+---
+ .../java/com/music/bitchord/MoodRegionEmulatorTest.kt       | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt b/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
+index 011094b1..7a396979 100644
+--- a/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
++++ b/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
+@@ -109,13 +109,15 @@ class MoodRegionEmulatorTest {
+         // Switch to the US: US languages only, then back: Indian choice is kept.
+         compose.onNodeWithText("Country").performClick(); settle(1200)
+         shot("region-03b-country-chooser-open")
+-        compose.onNodeWithText("United States").performScrollTo().performClick(); settle(1200)
++        compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Afghanistan")), useUnmergedTree = true).performScrollToNode(hasText("United States")); settle(600)
++        compose.onNodeWithText("United States").performClick(); settle(1200)
+         say("STEP country chooser: picked United States via the chooser UI")
+         for (l in listOf("English", "Spanish", "Hindi", "Korean")) assertTrue("$l chip for US", textShown(l))
+         assertTrue("no Malayalam for US", !textShown("Malayalam"))
+         shot("region-04-united-states-chips")
+         compose.onNodeWithText("Country").performClick(); settle(1200)
+-        compose.onNodeWithText("India").performScrollTo().performClick(); settle(1200)
++        compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Afghanistan")), useUnmergedTree = true).performScrollToNode(hasText("India")); settle(600)
++        compose.onNodeWithText("India").performClick(); settle(1200)
+         say("STEP country chooser: picked India via the chooser UI")
+         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
+         shot("region-05-india-selection-kept")
+-- 
+2.34.1
+
