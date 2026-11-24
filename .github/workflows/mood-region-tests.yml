@@ -31,6 +31,20 @@ jobs:
           }
         }
         INIT
+    - name: Pre-seed the Robolectric Android jar (Maven Central rate limits; checksum verified)
+      shell: bash
+      run: |
+        P=org/robolectric/android-all-instrumented/14-robolectric-10818077-i7/android-all-instrumented-14-robolectric-10818077-i7.jar
+        WANT=dd5e1d356107e9d99ebf58beb5329debe2849140
+        D=$HOME/.m2/repository/$(dirname $P); mkdir -p $D
+        for base in https://repo1.maven.org/maven2 https://maven-central.storage-download.googleapis.com/maven2; do
+          for try in 1 2 3; do
+            curl -fsSL --retry 2 -o $D/$(basename $P) "$base/$P" && GOT=$(sha1sum $D/$(basename $P) | cut -d' ' -f1)
+            if [ "$GOT" = "$WANT" ]; then echo "robolectric jar verified sha1=$GOT from $base"; exit 0; fi
+            sleep 20
+          done
+        done
+        echo "could not obtain a checksum-verified jar"; rm -f $D/$(basename $P); exit 0
     - name: Unit tests (shared JVM and app dev unit tests)
       shell: bash
       run: |
@@ -54,3 +68,4 @@ jobs:
         if-no-files-found: ignore
 # rerun after locale baseline
 # unit rerun with English steering change
+# robolectric seeded
