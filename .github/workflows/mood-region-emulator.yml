@@ -47,39 +47,37 @@ jobs:
       run: |
         cat > /tmp/run-mood.sh <<'RUNMOOD'
         #!/bin/bash
-        mkdir -p proof
+        N=${1:-1}
+        P=proof/attempt-$N
+        mkdir -p $P
         APK0=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" 2>/dev/null | head -1)
         TAPK0=$(find app/build/outputs/apk/androidTest -name "*.apk" 2>/dev/null | head -1)
-        if [ -n "$APK0" ] && [ -n "$TAPK0" ]; then echo "reused cached APKs" > /tmp/build.log; else
+        if [ -n "$APK0" ] && [ -n "$TAPK0" ]; then echo "reused APKs" > /tmp/build.log; else
         timeout -k 20 1200 ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --console=plain > /tmp/build.log 2>&1; fi
-        echo "BUILD_STATUS=$?" > proof/status.txt
-        tail -40 /tmp/build.log | grep -vE "^\s+at |^w: " | cut -c1-300 > proof/build-tail.txt
+        echo "BUILD_STATUS=$?" > $P/status.txt
+        tail -20 /tmp/build.log | grep -vE "^\s+at |^w: " | cut -c1-300 > $P/build-tail.txt
         APK=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" | head -1)
         TAPK=$(find app/build/outputs/apk/androidTest -name "*.apk" | head -1)
-        { echo "app=$APK"; echo "test=$TAPK"; which adb; adb version; adb devices; } > proof/adb-info.txt 2>&1
-        timeout -k 5 150 adb install -r -t "$APK" > proof/install.txt 2>&1
-        timeout -k 5 150 adb install -r -t "$TAPK" >> proof/install.txt 2>&1
-        timeout 30 adb shell pm list instrumentation > proof/instr.txt 2>&1
-        RUNNER=$(sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p' proof/instr.txt | grep -i spool | head -1)
-        echo "runner=$RUNNER" >> proof/adb-info.txt
-        ( adb logcat -v time > /tmp/logcat-stream.txt 2>&1 & )
-        ( while true; do sleep 5; { date -u +%T; free -m | sed -n 2p; ps -eo rss,comm --sort=-rss | head -4; } >> proof/host-mem.txt 2>&1; done ) &
+        { echo "app=$APK"; echo "test=$TAPK"; adb devices; } > $P/adb-info.txt 2>&1
+        timeout -k 5 150 adb install -r -t "$APK" > $P/install.txt 2>&1
+        timeout -k 5 150 adb install -r -t "$TAPK" >> $P/install.txt 2>&1
+        RUNNER=$(adb shell pm list instrumentation 2>/dev/null | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p' | grep -i spool | head -1)
+        echo "runner=$RUNNER" >> $P/adb-info.txt
+        ( adb logcat -v time > /tmp/logcat-stream-$N.txt 2>&1 & )
+        ( while true; do sleep 5; { date -u +%T; free -m | sed -n 2p; ps -eo rss,comm --sort=-rss | head -3; } >> $P/host-mem.txt 2>&1; done ) &
         MEMPID=$!
-        timeout -k 5 480 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > proof/instrument.txt 2>&1
-        echo "INSTRUMENT_STATUS=$?" >> proof/status.txt
+        timeout -k 5 480 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > $P/instrument.txt 2>&1
+        echo "INSTRUMENT_STATUS=$?" >> $P/status.txt
         kill $MEMPID 2>/dev/null
-        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|am_crash|am_anr|ANR in|has died|lowmemorykiller|Out of memory|am_kill|TestRunner|system_server|Zygote" /tmp/logcat-stream.txt | cut -c1-300 | tail -150 > proof/logcat-stream-mood.txt
-        tail -60 /tmp/logcat-stream.txt | cut -c1-300 > proof/logcat-stream-tail.txt
-        timeout 30 adb devices >> proof/adb-info.txt 2>&1
-        timeout 60 adb pull /data/local/tmp/mood/. proof/ > proof/pull-log.txt 2>&1
-        timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. proof/ >> proof/pull-log.txt 2>&1
-        timeout 60 adb logcat -d -v time > /tmp/logcat-full.txt 2>&1
-        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|AndroidRuntime|am_crash|am_anr|ANR in|Process .* has died|INSTRUMENTATION|TestRunner" /tmp/logcat-full.txt | cut -c1-400 > proof/logcat-mood.txt
-        tail -150 /tmp/logcat-full.txt | grep -E " E | F " | cut -c1-250 | tail -60 > proof/logcat-errors-tail.txt
+        { adb devices; pgrep -a qemu | cut -c1-120; ls -la /tmp/android-runner 2>&1 | head; } > $P/emu-state.txt 2>&1
+        timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. $P/ > $P/pull-log.txt 2>&1
+        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|am_crash|am_anr|ANR in|has died|am_kill|TestRunner|lowmemorykiller" /tmp/logcat-stream-$N.txt | cut -c1-300 | tail -150 > $P/logcat-mood.txt
+        tail -30 /tmp/logcat-stream-$N.txt | cut -c1-300 > $P/logcat-tail.txt
+        if grep -q "^INSTRUMENTATION_CODE" $P/instrument.txt; then touch proof/done; fi
         exit 0
         RUNMOOD
         chmod +x /tmp/run-mood.sh
-    - name: Mood region on a real emulator
+    - name: Mood region on a real emulator, attempt 1
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 34
@@ -89,7 +87,31 @@ jobs:
         heap-size: 576M
         cores: 3
         disable-animations: true
-        script: /tmp/run-mood.sh
+        script: /tmp/run-mood.sh 1
+    - name: Mood region on a real emulator, attempt 2
+      if: hashFiles('proof/done') == ''
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        profile: pixel_6
+        ram-size: 4096M
+        heap-size: 576M
+        cores: 3
+        disable-animations: true
+        script: /tmp/run-mood.sh 2
+    - name: Mood region on a real emulator, attempt 3
+      if: hashFiles('proof/done') == ''
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        profile: pixel_6
+        ram-size: 4096M
+        heap-size: 576M
+        cores: 3
+        disable-animations: true
+        script: /tmp/run-mood.sh 3
     - name: Save built APKs for reuse
       if: always() && steps.apks.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
@@ -117,4 +139,4 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v9
+# v10
