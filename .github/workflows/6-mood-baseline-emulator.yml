@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
   push:
     branches: [spool-mood-baseline]
-    paths: [".github/workflows/mood-baseline-emulator.yml", "app/src/androidTest/java/com/music/bitchord/BaselineMoodProbeTest.kt"]
 permissions:
   contents: write
 jobs:
@@ -139,3 +138,4 @@ jobs:
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin HEAD:refs/heads/spool-mood-proof-baseline-${GITHUB_RUN_ID}
 # baseline v1
+# baseline v2
