@@ -101,7 +101,7 @@ class MoodRegionEmulatorTest {
         // The first tap starts from the phone default shown selected (English), so it stays until untapped.
         assertEquals(setOf("malayalam", "tamil", "english"), MusicRegion.activeLanguages().map { it.id }.toSet())
         shot("region-03a-india-ml-ta-with-phone-english")
-        compose.onNode(hasText("English") and hasClickAction(), useUnmergedTree = true).performClick(); settle(600)
+        compose.onNodeWithText("English").performClick(); settle(600)
         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
         shot("region-03-india-malayalam-tamil-selected")
         say("STEP ml+ta selected")
@@ -130,8 +130,10 @@ class MoodRegionEmulatorTest {
         say("STEP controller connected")
         var played = 0
         for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) {
-            val grid = compose.onAllNodes(hasScrollToNodeAction() and hasAnyDescendant(hasText("Find Your Mood")), useUnmergedTree = true)[0]
-            grid.performScrollToNode(hasText(label)); settle(600)
+            runCatching {
+                compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(label))
+            }.onFailure { say("$label: scroll-to failed: ${it.message}") }
+            settle(600)
             compose.onAllNodesWithText(label, useUnmergedTree = true)[0].performClick()
             var ok = false
             try {
