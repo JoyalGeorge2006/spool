@@ -1,0 +1,38 @@
+From 74f52a01ee72def978617d6dcaf41ffd611fed0d Mon Sep 17 00:00:00 2001
+From: spool <s@x>
+Date: Wed, 25 Nov 2026 02:12:42 +0530
+Subject: [PATCH] Emulator test: click chips by text, robust mood tile scroll
+
+---
+ .../java/com/music/bitchord/MoodRegionEmulatorTest.kt     | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt b/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
+index 391266b7..a055abf7 100644
+--- a/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
++++ b/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
+@@ -101,7 +101,7 @@ class MoodRegionEmulatorTest {
+         // The first tap starts from the phone default shown selected (English), so it stays until untapped.
+         assertEquals(setOf("malayalam", "tamil", "english"), MusicRegion.activeLanguages().map { it.id }.toSet())
+         shot("region-03a-india-ml-ta-with-phone-english")
+-        compose.onNode(hasText("English") and hasClickAction(), useUnmergedTree = true).performClick(); settle(600)
++        compose.onNodeWithText("English").performClick(); settle(600)
+         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
+         shot("region-03-india-malayalam-tamil-selected")
+         say("STEP ml+ta selected")
+@@ -130,8 +130,10 @@ class MoodRegionEmulatorTest {
+         say("STEP controller connected")
+         var played = 0
+         for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) {
+-            val grid = compose.onAllNodes(hasScrollToNodeAction() and hasAnyDescendant(hasText("Find Your Mood")), useUnmergedTree = true)[0]
+-            grid.performScrollToNode(hasText(label)); settle(600)
++            runCatching {
++                compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true)[0].performScrollToNode(hasText(label))
++            }.onFailure { say("$label: scroll-to failed: ${it.message}") }
++            settle(600)
+             compose.onAllNodesWithText(label, useUnmergedTree = true)[0].performClick()
+             var ok = false
+             try {
+-- 
+2.34.1
+
