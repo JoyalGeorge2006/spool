@@ -98,6 +98,10 @@ class MoodRegionEmulatorTest {
         say("STEP chips asserted")
         compose.onNodeWithText("Malayalam").performClick(); settle(600)
         compose.onNodeWithText("Tamil").performClick(); settle(600)
+        // The first tap starts from the phone default shown selected (English), so it stays until untapped.
+        assertEquals(setOf("malayalam", "tamil", "english"), MusicRegion.activeLanguages().map { it.id }.toSet())
+        shot("region-03a-india-ml-ta-with-phone-english")
+        compose.onNode(hasText("English") and hasClickAction(), useUnmergedTree = true).performClick(); settle(600)
         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
         shot("region-03-india-malayalam-tamil-selected")
         say("STEP ml+ta selected")
