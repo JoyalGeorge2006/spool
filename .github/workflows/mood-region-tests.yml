@@ -57,6 +57,17 @@ jobs:
         grep -B2 -A14 " FAILED$" /tmp/gradle.log | head -150 || true
         grep -l "<failure" $(find . -path "*test-results*" -name "*.xml") 2>/dev/null | head -20 || true
         find . -path "*test-results*" -name "*MusicRegion*.xml" -exec grep -m2 "<testsuite " {} \; || true
+    - name: Whole-suite test counts
+      if: always()
+      run: |
+        python3 - <<'PYCODE'
+        import glob,re
+        t=f=e=sk=0;n=0
+        for p in glob.glob('**/build/test-results/**/*.xml',recursive=True):
+            m=re.search(r'<testsuite [^>]*tests="(\d+)" skipped="(\d+)" failures="(\d+)" errors="(\d+)"',open(p,errors='ignore').read(4000))
+            if m: n+=1;t+=int(m[1]);sk+=int(m[2]);f+=int(m[3]);e+=int(m[4])
+        print(f'SUITE-COUNTS suites={n} tests={t} skipped={sk} failures={f} errors={e} passed={t-sk-f-e}')
+        PYCODE
     - uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -66,7 +77,4 @@ jobs:
           shared/build/reports/tests
           app/build/reports/tests
         if-no-files-found: ignore
-# rerun after locale baseline
-# unit rerun with English steering change
-# robolectric seeded
-# v22
+# v23 counts
