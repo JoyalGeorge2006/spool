@@ -44,15 +44,17 @@ jobs:
         mkdir -p proof
         D=/sdcard/Android/data/app.spool.music.dev/files
         ( adb logcat -v time > /tmp/logcat-full.txt 2>&1 & )
-        ( while true; do sleep 8; timeout 20 adb pull $D/. proof/ > /dev/null 2>&1; grep -E "MOOD-PROOF|FATAL EXCEPTION|AndroidRuntime|lowmemory|Out of memory" /tmp/logcat-full.txt > proof/logcat-mood.txt 2>/dev/null; done ) &
+        ( while true; do sleep 2; timeout 20 adb pull $D/. proof/ > /dev/null 2>&1; grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|AndroidRuntime|am_crash|am_anr|ANR in|Process .* has died|INSTRUMENTATION|TestRunner" /tmp/logcat-full.txt > proof/logcat-mood.txt 2>/dev/null; done ) &
         PULLER=$!
         timeout 1700 ./gradlew --init-script /tmp/platform.gradle :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.music.bitchord.MoodRegionEmulatorTest --no-daemon --console=plain > /tmp/emu-gradle.log 2>&1
         echo "GRADLE_STATUS=$?" > proof/status.txt
         sleep 10
         kill $PULLER 2>/dev/null
         timeout 30 adb pull $D/. proof/ > /dev/null 2>&1
-        grep -E "MOOD-PROOF|FATAL EXCEPTION|AndroidRuntime|lowmemory|Out of memory" /tmp/logcat-full.txt > proof/logcat-mood.txt 2>/dev/null
+        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|AndroidRuntime|am_crash|am_anr|ANR in|Process .* has died|INSTRUMENTATION|TestRunner" /tmp/logcat-full.txt > proof/logcat-mood.txt 2>/dev/null
         tail -400 /tmp/emu-gradle.log | grep -vE "^\s+at |^w: " > proof/gradle-tail.txt
+        { ls -la /tmp/emu-gradle.log; wc -l /tmp/emu-gradle.log; grep -n -E "FAILED|failed|What went wrong|BUILD|Tests |tests completed|INSTRUMENTATION|Expected|Exception|Killed|OutOfMemory" /tmp/emu-gradle.log | cut -c1-300 | tail -60; echo ---RAWTAIL; tail -40 /tmp/emu-gradle.log | cut -c1-300; echo ---OOM; (dmesg 2>/dev/null || sudo dmesg 2>/dev/null) | grep -i -E "killed process|out of memory" | tail -5; free -m; } > proof/gradle-diagnosis.txt 2>&1
+        ls app/build/outputs/androidTest-results/connected/*/*.xml app/build/outputs/androidTest-results/connected/*/*/*.xml 2>/dev/null | head; for x in $(ls app/build/outputs/androidTest-results/connected/*/*.xml app/build/outputs/androidTest-results/connected/*/*/*.xml 2>/dev/null | head -2); do grep -v "^\s*at " "$x" | cut -c1-400 | head -60 > proof/test-result-$(basename $x).txt; done
         tail -150 /tmp/logcat-full.txt | grep -E " E | F " | cut -c1-250 | tail -60 > proof/logcat-errors-tail.txt
         exit 0
         RUNMOOD
@@ -76,4 +78,4 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v4
+# v5
