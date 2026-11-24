@@ -47,71 +47,58 @@ jobs:
       run: |
         cat > /tmp/run-mood.sh <<'RUNMOOD'
         #!/bin/bash
-        N=${1:-1}
-        P=proof/attempt-$N
-        mkdir -p $P
+        export PATH=$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        mkdir -p proof
         APK0=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" 2>/dev/null | head -1)
         TAPK0=$(find app/build/outputs/apk/androidTest -name "*.apk" 2>/dev/null | head -1)
         if [ -n "$APK0" ] && [ -n "$TAPK0" ]; then echo "reused APKs" > /tmp/build.log; else
         timeout -k 20 1200 ./gradlew --init-script /tmp/platform.gradle :app:assembleDevDebug :app:assembleDevDebugAndroidTest --no-daemon --console=plain > /tmp/build.log 2>&1; fi
-        echo "BUILD_STATUS=$?" > $P/status.txt
-        tail -20 /tmp/build.log | grep -vE "^\s+at |^w: " | cut -c1-300 > $P/build-tail.txt
+        echo "BUILD_STATUS=$?" > proof/build-status.txt
         APK=$(find app/build/outputs/apk -name "*.apk" -path "*dev*" ! -path "*androidTest*" | head -1)
         TAPK=$(find app/build/outputs/apk/androidTest -name "*.apk" | head -1)
-        { echo "app=$APK"; echo "test=$TAPK"; adb devices; } > $P/adb-info.txt 2>&1
-        timeout -k 5 150 adb install -r -t "$APK" > $P/install.txt 2>&1
-        timeout -k 5 150 adb install -r -t "$TAPK" >> $P/install.txt 2>&1
-        RUNNER=$(adb shell pm list instrumentation 2>/dev/null | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p' | grep -i spool | head -1)
-        echo "runner=$RUNNER" >> $P/adb-info.txt
-        ( adb logcat -v time > /tmp/logcat-stream-$N.txt 2>&1 & )
-        ( while true; do sleep 5; { date -u +%T; free -m | sed -n 2p; ps -eo rss,comm --sort=-rss | head -3; } >> $P/host-mem.txt 2>&1; done ) &
-        MEMPID=$!
-        timeout -k 5 480 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > $P/instrument.txt 2>&1
-        echo "INSTRUMENT_STATUS=$?" >> $P/status.txt
-        kill $MEMPID 2>/dev/null
-        { adb devices; pgrep -a qemu | cut -c1-120; ls -la /tmp/android-runner 2>&1 | head; } > $P/emu-state.txt 2>&1
-        timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. $P/ > $P/pull-log.txt 2>&1
-        grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|am_crash|am_anr|ANR in|has died|am_kill|TestRunner|lowmemorykiller" /tmp/logcat-stream-$N.txt | cut -c1-300 | tail -150 > $P/logcat-mood.txt
-        tail -30 /tmp/logcat-stream-$N.txt | cut -c1-300 > $P/logcat-tail.txt
-        if grep -q "^INSTRUMENTATION_CODE" $P/instrument.txt; then touch proof/done; fi
+        IMG="system-images;android-34;default;x86_64"
+        yes | sdkmanager --licenses > /dev/null 2>&1
+        sdkmanager --install "$IMG" emulator > /tmp/sdk-install.log 2>&1
+        tail -3 /tmp/sdk-install.log > proof/sdk-install.txt
+        echo no | avdmanager create avd -n test -k "$IMG" -d pixel_6 --force > proof/avd-create.txt 2>&1
+        printf 'hw.ramSize=4096\nhw.cpu.ncore=3\nvm.heapSize=576\nhw.keyboard=yes\n' >> $HOME/.android/avd/test.avd/config.ini
+        attempt() {
+          N=$1; GPU=$2; P=proof/attempt-$N; mkdir -p $P
+          echo "gpu=$GPU" > $P/config.txt
+          adb kill-server > /dev/null 2>&1; adb start-server > /dev/null 2>&1
+          nohup emulator -port 5554 -avd test -no-window -gpu $GPU -no-snapshot -noaudio -no-boot-anim -verbose > /tmp/emu-$N.log 2>&1 &
+          EPID=$!
+          BOOT=no
+          for i in $(seq 1 90); do sleep 4; if [ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then BOOT=yes; break; fi; done
+          echo "boot=$BOOT" >> $P/config.txt
+          [ "$BOOT" = yes ] || { tail -80 /tmp/emu-$N.log | cut -c1-300 > $P/emulator-stderr-tail.txt; return; }
+          adb shell input keyevent 82; adb shell settings put global window_animation_scale 0; adb shell settings put global transition_animation_scale 0; adb shell settings put global animator_duration_scale 0
+          timeout -k 5 150 adb install -r -t "$APK" > $P/install.txt 2>&1
+          timeout -k 5 150 adb install -r -t "$TAPK" >> $P/install.txt 2>&1
+          RUNNER=$(adb shell pm list instrumentation 2>/dev/null | sed -n 's/^instrumentation:\([^ ]*\) .*/\1/p' | grep -i spool | head -1)
+          echo "runner=$RUNNER" >> $P/config.txt
+          ( adb logcat -v time > /tmp/logcat-stream-$N.txt 2>&1 & )
+          ( while true; do sleep 5; { date -u +%T; free -m | sed -n 2p; ps -eo pid,stat,pcpu,rss,etimes,args --sort=-rss | head -3 | cut -c1-110; } >> $P/host-state.txt 2>&1; done ) &
+          MEMPID=$!
+          timeout -k 5 480 adb shell am instrument -w -r -e class com.music.bitchord.MoodRegionEmulatorTest "$RUNNER" > $P/instrument.txt 2>&1
+          echo "INSTRUMENT_STATUS=$?" > $P/status.txt
+          kill $MEMPID 2>/dev/null
+          { echo "-- adb devices"; adb devices; echo "-- qemu procs"; ps -eo pid,stat,pcpu,rss,etimes,args | grep -E "qemu-system|emulator" | grep -v grep | cut -c1-150; echo "-- launcher alive?"; kill -0 $EPID 2>&1 && echo alive; } > $P/emu-state.txt 2>&1
+          { echo "-- dmesg"; (dmesg 2>&1 || sudo dmesg 2>&1) | tail -40; } > $P/kernel.txt 2>&1
+          tail -120 /tmp/emu-$N.log | cut -c1-300 > $P/emulator-stderr-tail.txt
+          timeout 60 adb pull /sdcard/Android/data/app.spool.music.dev/files/. $P/ > $P/pull-log.txt 2>&1
+          grep -E "MOOD-PROOF|SHOT-SAVED|FATAL EXCEPTION|am_crash|am_anr|ANR in|has died|am_kill|TestRunner|lowmemorykiller" /tmp/logcat-stream-$N.txt | cut -c1-300 | tail -150 > $P/logcat-mood.txt
+          tail -30 /tmp/logcat-stream-$N.txt | cut -c1-300 > $P/logcat-tail.txt
+          if grep -q "^INSTRUMENTATION_CODE" $P/instrument.txt; then touch proof/done; fi
+          timeout 20 adb emu kill > /dev/null 2>&1; sleep 3; kill $EPID 2>/dev/null; pkill -f qemu-system 2>/dev/null; sleep 2
+        }
+        attempt 1 guest
+        [ -f proof/done ] || attempt 2 swangle_indirect
         exit 0
         RUNMOOD
         chmod +x /tmp/run-mood.sh
-    - name: Mood region on a real emulator, attempt 1
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 34
-        arch: x86_64
-        profile: pixel_6
-        ram-size: 4096M
-        heap-size: 576M
-        cores: 3
-        disable-animations: true
-        script: /tmp/run-mood.sh 1
-    - name: Mood region on a real emulator, attempt 2
-      if: hashFiles('proof/done') == ''
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 34
-        arch: x86_64
-        profile: pixel_6
-        ram-size: 4096M
-        heap-size: 576M
-        cores: 3
-        disable-animations: true
-        script: /tmp/run-mood.sh 2
-    - name: Mood region on a real emulator, attempt 3
-      if: hashFiles('proof/done') == ''
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 34
-        arch: x86_64
-        profile: pixel_6
-        ram-size: 4096M
-        heap-size: 576M
-        cores: 3
-        disable-animations: true
-        script: /tmp/run-mood.sh 3
+    - name: Mood region on a real emulator, own emulator with logs
+      run: bash /tmp/run-mood.sh
     - name: Save built APKs for reuse
       if: always() && steps.apks.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
@@ -139,4 +126,4 @@ jobs:
         git add -f proof
         git commit -qm "Emulator proof for ${GITHUB_SHA}"
         git push -f origin spool-mood-proof
-# v10
+# v11
