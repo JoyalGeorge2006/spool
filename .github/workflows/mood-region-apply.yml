@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [spool-mood-region]
-    paths: [".github/workflows/mood-region-apply.yml"]
+    paths: ["mood.patch"]
 permissions:
   contents: write
 jobs:
@@ -16,12 +16,13 @@ jobs:
         fetch-depth: 0
     - name: Apply the reviewed change on top of the 2.1.5 source and push it to this branch
       run: |
-        set -euo pipefail
-        if git log --format=%s | grep -q '^Moods: music region and languages'; then echo already applied; exit 0; fi
-        echo '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
+        set -eu
+        test -f mood.patch
+        cp mood.patch /tmp/mood.patch
         git config user.name spool-ci
         git config user.email spool-ci@users.noreply.github.com
+        git rm -q mood.patch
+        git commit -qm "Remove applied patch file"
         git am /tmp/mood.patch
         git push origin HEAD:${GITHUB_REF_NAME}
-        git log --oneline -3
-
+        git log --oneline -4
