@@ -1,0 +1,120 @@
+[   18.697344] apexd: Didn't generate uevent for [com.android.os.statsd] removal
+[   18.701841] apexd: Failed to delete dm-device com.android.os.statsd
+[   18.704696] apexd: Deleting unused dm device com.android.rkpd
+[   18.709261] apexd: Didn't generate uevent for [com.android.rkpd] removal
+[   18.711113] apexd: Failed to delete dm-device com.android.rkpd
+[   18.716989] apexd: Deleting unused dm device com.android.runtime
+[   18.729461] apexd: Didn't generate uevent for [com.android.runtime] removal
+[   18.7INFO         | Boot completed in 20340 ms
+INFO         | Increasing screen off timeout, logcat buffer size to 2M.
+30623] init: ... started service 'qemu-props-bootcomplete' has pid 1373
+[   18.732351] apexd: Failed to delete dm-device com.android.runtime
+[   18.753627] init: Command 'start qemu-props-bootcomplete' action=dev.bootcomplete=1 && vendor.qemu.dev.bootcomplete=0 (/vendor/etc/init/hw/init.ranchu.rc:109) took 254ms and succeeded
+[   18.765730] init: Service 'qemu-props-bootcomplete' (pid 1373) exited with status 0 oneshot service took 0.246000 seconds in background
+[   18.770011] init: Sending signal 9 to service 'qemu-props-bootcomplete' (pid 1373) process group...
+[   18.774517] libprocessgroup: Successfully killed process cgroup uid 0 pid 1373 in 0ms
+DEBUG   | Enable overlay packages with name ending in pixel_6
+[   18.809557] apexd: Deleting unused dm device com.android.sdkext
+[   18.819333] apexd: Didn't generate uevent for [com.android.sdkext] removal
+[   18.821551] apexd: Failed to delete dm-device com.android.sdkext
+[   18.831206] apexd: Deleting unused dm device com.android.tzdata
+VERBOSE | Created RenderThread. Active RenderThreads: 12
+DEBUG   | Started new RenderThread (total 12) @0x5e9372a0f2c0
+[   18.853542] apexd: Didn't generate uevent for [com.android.tzdata] removal
+[   18.853729] init: starting service 'ranchu-setup'...
+[   18.857262] apexd: Failed to delete dm-device com.android.tzdata
+[   18.857279] apexd: Deleting unused dm device com.android.virt
+[   18.857328] apexd: Didn't generate uevent for [com.android.virt] removal
+[   18.857332] apexd: Failed to delete dm-device com.android.virt
+[   18.857338] apexd: Deleting unused dm device com.android.vndk.v34
+[   18.857368] apexd: Didn't generate uevent for [com.android.vndk.v34] removal
+[   18.857372] apexd: Failed to delete dm-device com.android.vndk.v34
+[   18.908560] init: ... started service 'ranchu-setup' has pid 1426
+[   18.910287] init: Command 'start ranchu-setup' action=dev.bootcomplete=1 && vendor.qemu.dev.bootcomplete=0 (/vendor/etc/init/hw/init.ranchu.rc:110) took 56ms and succeeded
+[   18.922688] init: processing action (persist.sys.zram_enabled=1 && sys-boot-completed-set) from (/vendor/etc/init/hw/init.ranchu.rc:198)
+[   18.952951] zram0: detected capacity change from 0 to 6024456
+[   18.977602] mkswap: Swapspace size: 3012224k, UUID=078632da-DEBUG   | ColorBuffer 74, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 16, type: 0, props: 15 / 1]
+8a5a-4325-86e8-e495e5a3e7d1
+[   18.980286] Adding 3012224k swap on /dev/block/zram0.  Priority:-2 extents:1 across:3012224k SS
+[   18.982937] init: Service 'ranchu-setup' (pid 1426) exited with status 0 oneshot service took 0.079000 seconds in background
+[   18.987122] init: Sending signal 9 to service 'ranchu-setup' (pid 1426) process group...
+[   18.991976] libprocessgroup: Successfully killed process cgroup uid 0 pid 1426 in 0ms
+[   18.995864] init: processing action (bootreceiver.enable=1 && dmesgd.start=1 && ro.product.cpu.abilist64=*) from (/system/etc/init/dmesgd.rc:12)
+[   18.998755] init: starting service 'dmesgd'...
+[   19.001168] init: ... started service 'dmesgd' has pid 1468
+[   19.003093] init: processing action (sys.user.0.ce_available=true) from (/system/etc/init/wifi.rc:21)
+[   19.005919] selinux: SELinux: Skipping restorecon on directory(/data/misc_ce/0/apexdata/com.android.wifi)
+[   19.010235] init: processing action (sys.boot_completed=1 && sys.wifitracing.started=1 && wifi.interface=*) from (/system/etc/init/wifi.rc:98)
+[   19.016544] servicemanager: Could not find android.hardware.graphics.allocator.IAllocator/default in the VINTF manifest.
+VERBOSE | Created RenderThread. Active RenderThreads: 13
+DEBUG   | Started new RenderThread (total 13) @0x5e9372a0f680
+DEBUG   | ColorBuffer 75, 42x42, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 7056, type: 0, props: 15 / 1]
+[   19.102254] init: Command 'write /sys/kernel/tracing/instances/wifi/events/net/filter name==${wifi.interface}' action=sys.boot_completed=1 && sys.wifitracing.started=1 && wifi.interface=* (/system/etc/init/wifi.rc:101) took 89ms and succeeded
+[   19.112041] init: Service 'dmesgd' (piDEBUG   | ColorBuffer 77, 42x42, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 7056, type: 0, props: 15 / 1]
+d 1468) exited with status 0 oneshot service took 0.111000 seconds in background
+[   19.119812] init: Sending signal 9 to service 'dmesgd' (pid 1468) process group...
+[   19.121883] libprocessgroup: Successfully killed process cgroup uid 1086 pid 1468 in 0ms
+DEBUG   | ColorBuffer 78, 1080x128, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 552960, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 79, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10368000, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 81, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10368000, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 82, 1080x2400, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 10368000, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 83, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 14
+DEBUG   | Started new RenderThread (total 14) @0x5e9372a0f860
+DEBUG   | ColorBuffer 86, 1x1, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 16, type: 0, props: 15 / 1]
+VERBOSE | Created RenderThread. Active RenderThreads: 15
+DEBUG   | Started new RenderThread (total 15) @0x5e9372a0ef00
+DEBUG   | ColorBuffer 89, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 90, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 91, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 92, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 93, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 94, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 95, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 96, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+[   20.479457] type=1400 audit(1795557532.756:8): avc:  denied  { getopt } for  comm="binder:514_D" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   20.490577] type=1400 audit(1795557532.756:9): avc:  denied  { getopt } for  comm="binder:514_D" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   20.503401] type=1400 audit(1795557532.756:10): avc:  denied  { getopt } for  comm="binder:514_D" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+DEBUG   | ColorBuffer 97, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 98, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+DEBUG   | ColorBuffer 99, 147x147, VK_FORMAT_R8G8B8A8_UNORM, Memory [size: 87616, type: 0, props: 15 / 1]
+[   21.201279] servicemanager: Found android.hardware.security.keymint.IRemotelyProvisionedComponent/default in device VINTF manifest.
+[   21.208857] servicemanager: Since 'android.hardware.drm.IDrmFactory/clearkey' could not be found, trying to start it as a lazy AIDL service. (if it's not configured to be a lazy service, it may be stuck starting or still starting).
+[   21.223610] init: starting service 'vendor.drm-clearkey-service'...
+[   21.268949] init: ... started service 'vendor.drm-clearkey-service' has pid 1937
+[   21.271891] init: Control message: Processed ctl.interface_start for 'aidl/android.hardware.drm.IDrmFactory/clearkey' from pid: 144 (/system/bin/servicemanager)
+[   21.298096] servicemanager: Found android.hardware.drm.IDrmFactory/clearkey in device VINTF manifest.
+[   21.301615] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   21.338375] servicemanager: Notifying android.hardware.drm.IDrmFactory/clearkey they do (previously: don't) have clients when service is guaranteed to be in use
+[   21.353464] servicemanager: Notifying android.hardware.drm.IDrmFactory/clearkey they don't (previously: do) have clients when we now have no record of a client
+[   21.376761] servicemanager: Notifying apexservice they don't (previously: do) have clients when we now have no record of a client
+[   21.382658] servicemanager: Unregistering android.hardware.drm.IDrmFactory/clearkey
+[   21.383230] AidlLazyServiceRegistrar: Process has 0 (of 1 available) client(s) in use after notification apexservice has clients: 0
+[   21.394234] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   21.396727] AidlLazyServiceRegistrar: Trying to shut down the service. No clients in use for any service in process.
+[   21.400906] init: Service 'vendor.drm-clearkey-service' (pid 1937) exited with status 0 oneshot service took 0.173000 seconds in background
+[   21.404237] init: Sending signal 9 to service 'vendor.drm-clearkey-service' (pid 1937) process group...
+[   21.410328] servicemanager: Unregistering apexservice
+[   21.415558] BpBinder: onLastStrongRef automatically unlinking death recipients: 
+[   21.420561] AidlLazyServiceRegistrar: Unregistered all clients and exiting
+[   21.420820] libprocessgroup: Successfully killed process cgroup uid 1013 pid 1937 in 0ms
+[   21.435098] init: Service 'apexd' (pid 205) exited with status 0 oneshot service took 13.477000 seconds in background
+[   21.438386] init: Sending signal 9 to service 'apexd' (pid 205) process group...
+[   21.440597] libprocessgroup: Successfully killed process cgroup uid 0 pid 205 in 0ms
+[   21.697458] type=1400 audit(1795557533.972:11): avc:  denied  { getopt } for  comm="binder:514_7" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   21.931052] wlan0: authenticate with 02:15:b2:00:00:01
+[   21.932567] wlan0: No basic rates, using min rate instead
+[   21.934312] wlan0: send auth to 02:15:b2:00:00:01 (try 1/3)
+[   21.936896] wlan0: authenticated
+[   21.938176] wlan0: associate with 02:15:b2:00:00:01 (try 1/3)
+[   21.940341] wlan0: RX AssocResp from 02:15:b2:00:00:01 (capab=0x1 status=0 aid=1)
+[   21.941960] wlan0: No basic rates, using min rate instead
+[   21.943794] wlan0: associated
+[   22.303084] type=1400 audit(1795557534.580:12): avc:  denied  { getopt } for  comm="binder:514_7" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   22.310786] type=1400 audit(1795557534.584:13): avc:  denied  { getopt } for  comm="binder:514_7" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   22.316062] type=1400 audit(1795557534.584:14): avc:  denied  { getopt } for  comm="binder:514_7" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   22.325454] type=1400 audit(1795557534.600:15): avc:  denied  { getopt } for  comm="binder:514_3" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   22.329932] audit: audit_lost=1 audit_rate_limit=5 audit_backlog_limit=64
+[   22.331829] audit: rate limit exceeded
+[   22.333331] type=1400 audit(1795557534.604:16): avc:  denied  { getopt } for  comm="binder:514_3" scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+[   22.529305] logd: logdr: UID=2000 GID=2000 PID=2032 b tail=0 logMask=99 pid=0 start=0ns deadline=0ns

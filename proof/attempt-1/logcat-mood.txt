@@ -1,0 +1,5 @@
+11-24 21:58:05.042 I/lowmemorykiller(  141): Using psi monitors for memory pressure detection
+11-24 21:58:05.044 I/lowmemorykiller(  141): Process polling is supported
+11-24 21:58:05.044 I/lowmemorykiller(  141): Process reaper initialized with 2 threads in the pool
+11-24 21:58:12.505 I/lowmemorykiller(  141): lmkd data connection established
+11-24 21:58:16.135 I/ActivityManager(  516): Process WebViewLoader-x86_64 (pid 952) has died: psvc PER 

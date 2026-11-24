@@ -1,0 +1,3 @@
+gpu=swangle_indirect
+boot=yes
+runner=app.spool.music.dev.test/androidx.test.runner.AndroidJUnitRunner

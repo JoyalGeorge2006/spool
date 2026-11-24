@@ -1,0 +1,322 @@
+11-24 21:58:34.982 I/virtio_blk(    0): module verification failed: signature and/or required key missing - tainting kernel
+11-24 21:58:35.429 I/init    (    0): Copied ramdisk prop to /second_stage_resources/system/etc/ramdisk/build.prop
+11-24 21:58:37.590 I/init    (    0): Falling back to standard signature check. TODO implement support for fsverity SEPolicy.
+11-24 21:58:37.592 I/init    (    0): Error: Apex SEPolicy failed signature check
+11-24 21:58:37.660 W/auditd  (  140): type=1403 audit(0.0:2): auid=4294967295 ses=4294967295 lsm=selinux res=1
+11-24 21:58:37.668 W/auditd  (  140): type=1404 audit(0.0:3): enforcing=1 old_enforcing=0 auid=4294967295 ses=4294967295 enabled=1 old-enabled=1 lsm=selinux res=1
+11-24 21:58:37.849 I/init    (    0): Parsing file /system/etc/init/mediaextractor.rc...
+11-24 21:58:40.403 I/init    (    0): starting service 'exec 9 (/system/bin/chattr +F /data/media)'...
+11-24 21:58:40.410 I/apexd   (    0): Populating APEX database from mounts...
+11-24 21:58:40.968 I/odsign  (  305): Signature of public key did not match.
+11-24 21:58:41.136 E/odsign  (  305): Couldn't load trusted digests: /data/misc/odsign/odsign.info.signature does not match.
+11-24 21:58:41.403 I/init    (    0): Command 'rm /data/misc/perfetto-traces/.guardraildata' action=post-fs-data (/system/etc/init/perfetto.rc:74) took 0ms and failed: unlink() failed: No such file or directory
+11-24 21:58:41.475 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.486 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.497 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.503 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.503 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.519 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.537 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.537 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.625 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.635 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.635 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.732 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.739 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.739 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.761 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.768 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.768 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.783 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.790 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.790 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.811 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.816 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.817 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.827 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.842 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.848 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.848 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.860 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.867 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.867 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.911 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.917 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:41.917 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:42.383 I/zygote64(  335): option[18]=-XMadviseWillNeedArtFileSize:4294967295
+11-24 21:58:42.463 I/init    (    0): ... started service 'exec 16 (/system/bin/profcollectctl reset)' has pid 403
+11-24 21:58:42.723 I/init    (    0): Service 'exec 16 (/system/bin/profcollectctl reset)' (pid 403) exited with status 0 oneshot service took 0.259000 seconds in background
+11-24 21:58:42.727 I/init    (    0): Sending signal 9 to service 'exec 16 (/system/bin/profcollectctl reset)' (pid 403) process group...
+11-24 21:58:42.730 I/libprocessgroup(    0): Successfully killed process cgroup uid 0 pid 403 in 0ms
+11-24 21:58:42.900 I/init    (    0): starting service 'mediaextractor'...
+11-24 21:58:42.905 I/init    (    0): ... started service 'mediaextractor' has pid 461
+11-24 21:58:42.943 I/main_extractorservice(  461): enable media.extractor memory limits
+11-24 21:58:42.944 W/mediaextractor(  461): Could not read additional policy file '/vendor/etc/seccomp_policy/mediaextractor.policy'
+11-24 21:58:42.944 W/mediaextractor(  461): libminijail[461]: failed to get path of fd 5: No such file or directory
+11-24 21:58:42.944 W/mediaextractor(  461): libminijail[461]: allowing syscall: socket
+11-24 21:58:42.944 W/mediaextractor(  461): libminijail[461]: allowing syscall: connect
+11-24 21:58:42.944 W/mediaextractor(  461): libminijail[461]: allowing syscall: fcntl
+11-24 21:58:42.944 W/mediaextractor(  461): libminijail[461]: allowing syscall: writev
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(48): syscall readlinkat redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(43): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(54): syscall gettid redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(51): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(1): syscall read redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(19): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(2): syscall write redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(6): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(3): syscall exit redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(29): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(4): syscall rt_sigreturn redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(31): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(5): syscall exit_group redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(30): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(6): syscall clock_gettime redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(15): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(8): syscall futex redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(4): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(9): syscall getrandom redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(36): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(10): syscall getpid redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(53): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(11): syscall gettid redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(51): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(14): syscall openat redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(13): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(15): syscall dup redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(9): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(16): syscall close redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(8): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(17): syscall lseek redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(20): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(18): syscall getdents64 redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(42): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(19): syscall faccessat redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(32): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(28): syscall prctl redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(5): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(29): syscall madvise redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(12): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(30): syscall mprotect redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(18): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(31): syscall munmap redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(10): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(32): syscall getuid redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(22): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(33): syscall fstat redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(25): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(34): syscall mmap redefined here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: compile_file: <fd>(11): previous definition here
+11-24 21:58:42.945 W/mediaextractor(  461): libminijail[461]: logging seccomp filter failures
+11-24 21:58:43.027 I/MediaExtractorFactory(  461): plugin directory not present (/system/lib64/extractors)
+11-24 21:58:43.027 I/MediaExtractorFactory(  461): plugin directory not present (/system_ext/lib64/extractors)
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.403 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:43.410 W/System  (  335): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.403 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.410 W/System  (  514): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:44.645 D/CompatConfig(  514): Adding: com.android.server.compat.config.Change@403d314
+11-24 21:58:45.431 D/ziparchive(  514): Zip: EOCD not found, /data/app/~~-ihPCn-rBN3exFL-_MJHbw==/app.spool.music.dev.test-hVEh_-234vTnezNOjnWOZw==/base.apk is not zip
+11-24 21:58:45.431 E/system_server(  514): Failed to open APK '/data/app/~~-ihPCn-rBN3exFL-_MJHbw==/app.spool.music.dev.test-hVEh_-234vTnezNOjnWOZw==/base.apk': Invalid file
+11-24 21:58:45.431 W/PackageManager(  514): Failed to parse /data/app/~~-ihPCn-rBN3exFL-_MJHbw==: Failed to parse /data/app/~~-ihPCn-rBN3exFL-_MJHbw==/app.spool.music.dev.test-hVEh_-234vTnezNOjnWOZw==/base.apk
+11-24 21:58:45.446 W/PackageManager(  514): Odd, missing scanned package app.spool.music.dev.test
+11-24 21:58:45.468 W/PackageSettings(  514): Skipping PackageSetting{166dbf9 app.spool.music.dev.test/10141} due to missing metadata
+11-24 21:58:45.758 I/InputReader(  514): Device added: id=5, eventHubId=11, name='virtio_input_multi_touch_2', descriptor='929d4636b8e04f50240a26561429a6e91c9eff9e',sources=KEYBOARD | TOUCHSCREEN | STYLUS
+11-24 21:58:46.138 D/SystemServerTimingAsync(  514): InitThreadPoolExec:Update app-ops uidState in case package app.spool.music.dev.test changed
+11-24 21:58:46.138 D/SystemServerInitThreadPool(  514): Started executing Update app-ops uidState in case package app.spool.music.dev.test changed
+11-24 21:58:46.138 D/SystemServerInitThreadPool(  514): Finished executing Update app-ops uidState in case package app.spool.music.dev.test changed
+11-24 21:58:46.138 V/SystemServerTimingAsync(  514): InitThreadPoolExec:Update app-ops uidState in case package app.spool.music.dev.test changed took to complete: 0ms
+11-24 21:58:46.141 D/SystemServerTimingAsync(  514): InitThreadPoolExec:Update app-ops uidState in case package com.android.printspooler changed
+11-24 21:58:46.141 D/SystemServerInitThreadPool(  514): Started executing Update app-ops uidState in case package com.android.printspooler changed
+11-24 21:58:46.141 D/SystemServerInitThreadPool(  514): Finished executing Update app-ops uidState in case package com.android.printspooler changed
+11-24 21:58:46.141 V/SystemServerTimingAsync(  514): InitThreadPoolExec:Update app-ops uidState in case package com.android.printspooler changed took to complete: 0ms
+11-24 21:58:46.410 D/MediaCodecList(  514): codecHandlesFormat: no format, so no extra checks
+11-24 21:58:46.429 W/BestClock(  514): java.time.DateTimeException: Missing network time fix
+11-24 21:58:46.440 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:46.477 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:46.490 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:46.604 D/CCodecConfig(  514):   c2::u32 raw.sample-rate.value = 44100
+11-24 21:58:46.604 D/CCodec  (  514):   int32_t sample-rate = 44100
+11-24 21:58:46.604 D/CCodec  (  514):   int32_t sample-rate = 44100
+11-24 21:58:46.646 E/AppOps  (  514): package app.spool.music.dev.test not found, can't check for attributionTag null
+11-24 21:58:46.646 E/AppOps  (  514): Bad call made by uid 1000. Package "app.spool.music.dev.test" does not belong to uid 10141.
+11-24 21:58:46.646 E/AppOps  (  514): java.lang.SecurityException: Specified package "app.spool.music.dev.test" under uid 10141 but it is not
+11-24 21:58:46.646 V/StorageManagerService(  514): Package app.spool.music.dev.test does not have legacy storage
+11-24 21:58:46.647 V/StorageManagerService(  514): Package com.android.printspooler does not have legacy storage
+11-24 21:58:46.659 D/CompatibilityChangeReporter(  514): Compat change id reported: 174042980; UID 1000; state: DISABLED
+11-24 21:58:46.659 D/CompatibilityChangeReporter(  514): Compat change id reported: 174042936; UID 1000; state: DISABLED
+11-24 21:58:46.766 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:46.768 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:46.824 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:47.130 D/CompatibilityChangeReporter(  514): Compat change id reported: 124107808; UID 1001; state: ENABLED
+11-24 21:58:47.383 D/CCodecConfig(  741):   c2::u32 raw.sample-rate.value = 44100
+11-24 21:58:47.383 D/CCodec  (  741):   int32_t sample-rate = 44100
+11-24 21:58:47.383 D/CCodec  (  741):   int32_t sample-rate = 44100
+11-24 21:58:47.410 I/droid.bluetooth(  913): [1124/215847.410748:INFO:com_android_bluetooth_btservice_ActivityAttribution.cpp(96)] classInitNative: succeeds
+11-24 21:58:47.410 D/BluetoothAdapterService(  913): setAdapterService() - trying to set service to com.android.bluetooth.btservice.AdapterService@bfcf1a0
+11-24 21:58:47.429 D/BluetoothManagerService(  514): Broadcasting onBluetoothServiceUp() to 4 receivers.
+11-24 21:58:47.429 D/BluetoothAdapter(  514): onBluetoothServiceUp: android.bluetooth.IBluetooth$Stub$Proxy@3721d38
+11-24 21:58:47.429 D/BluetoothAdapter(  913): onBluetoothServiceUp: com.android.bluetooth.btservice.AdapterService$AdapterServiceBinder@bc3008b
+11-24 21:58:47.429 D/BluetoothAdapter(  741): onBluetoothServiceUp: android.bluetooth.IBluetooth$Stub$Proxy@24a83b1
+11-24 21:58:47.505 D/CCodecConfig(  741):   c2::u32 raw.sample-rate.value = 44100
+11-24 21:58:47.505 D/CCodec  (  741):   int32_t sample-rate = 44100
+11-24 21:58:47.505 D/CCodec  (  741):   int32_t sample-rate = 44100
+11-24 21:58:47.558 I/OpenGLRenderer(  741): Davey! duration=783ms; Flags=0, FrameTimelineVsyncId=208, IntendedVsync=14461883754, Vsync=15111883728, InputEventId=0, HandleInputStart=15122318943, AnimationStart=15122319271, PerformTraversalsStart=15122348631, DrawStart=15122428156, FrameDeadline=14961883734, FrameInterva
+11-24 21:58:47.696 W/MediaSessionCompat(  913): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:47.740 I/bluetooth(  913): packages/modules/Bluetooth/system/btif/src/btif_sock_l2cap.cc:357 send_app_psm_or_chan_l: Sending l2cap socket socket_id:3 channel:4101
+11-24 21:58:47.740 D/BluetoothAdapter(  913): listenUsingInsecureL2capOn: set assigned channel to 4101
+11-24 21:58:47.747 W/MediaSessionCompat(  913): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:48.352 D/CellBroadcastConfigTracker-0(  941): setCellBroadcastIdRanges with ranges:[CellBroadcastIdRange[4370, 4370, 1, true], CellBroadcastIdRange[4383, 4383, 1, true], CellBroadcastIdRange[4371, 4372, 1, true], CellBroadcastIdRange[4097, 4097, 2, true], CellBroadcastIdRange[4384, 4385, 1, true], CellBroad
+11-24 21:58:48.352 D/CellBroadcastConfigTracker-0(  941): IdleState handle EVENT_REQUEST with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1, true], CellBroadcast
+11-24 21:58:48.357 D/CellBroadcastConfigTracker-0(  941): GsmConfiguringState handle EVENT_CONFIGURATION_DONE with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1,
+11-24 21:58:49.429 W/ContextImpl( 1269): Failed to ensure /data/user/0/com.android.carrierconfig/cache: mkdir failed: errno 126 (Required key not available)
+11-24 21:58:49.429 W/ContextImpl( 1269): Failed to update user.inode_cache: stat failed: ENOENT (No such file or directory)
+11-24 21:58:49.877 D/CellBroadcastConfigTracker-0(  941): setCellBroadcastIdRanges with ranges:[CellBroadcastIdRange[4370, 4370, 1, true], CellBroadcastIdRange[4383, 4383, 1, true], CellBroadcastIdRange[4371, 4372, 1, true], CellBroadcastIdRange[4097, 4097, 2, true], CellBroadcastIdRange[4384, 4385, 1, true], CellBroad
+11-24 21:58:49.877 I/OpenGLRenderer(  947): Davey! duration=956ms; Flags=0, FrameTimelineVsyncId=847, IntendedVsync=16595217002, Vsync=16595217002, InputEventId=0, HandleInputStart=16595341097, AnimationStart=16595341543, PerformTraversalsStart=16595365463, DrawStart=16600790845, FrameDeadline=16611883668, FrameInterva
+11-24 21:58:49.877 D/CellBroadcastConfigTracker-0(  941): IdleState handle EVENT_REQUEST with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1, true], CellBroadcast
+11-24 21:58:49.890 D/CellBroadcastConfigTracker-0(  941): GsmConfiguringState handle EVENT_CONFIGURATION_DONE with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1,
+11-24 21:58:49.938 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:50.412 W/PackageManager(  514): Odd, missing scanned package app.spool.music.dev.test
+11-24 21:58:50.429 I/Telecom (  514): PhoneAccountRegistrar: getSimCallManager: SimCallManager for subId 1 queried, returning: null: TSI.rPA(cap)@ACg🔒
+11-24 21:58:50.429 I/Telecom (  514): PhoneAccountRegistrar: Notifying telephony of voice service override change for 1 SIMs, hasService = false: TSI.rPA(cap)@ACg🔒
+11-24 21:58:50.429 I/PhoneInterfaceManager(  941): setVoiceServiceStateOverride: subId=1, phone=Handler (com.android.internal.telephony.GsmCdmaPhone) {207d980}, hasService=false, callingPackage=com.android.server.telecom
+11-24 21:58:50.429 I/Telephony(  941): AccountEntry: Registered phoneAccount: [[ ] PhoneAccount: ComponentInfo{com.android.phone/com.android.services.telephony.TelephonyConnectionService}, 1, UserHandle{0} Capabilities: CallProvider MultiUser PlaceEmerg SimSub  Audio Routes: BESW Schemes: tel voicemail  Extras: Bundle[
+11-24 21:58:50.429 I/Telephony(  941): PstnIncomingCallNotifier: Registering: [0]
+11-24 21:58:50.429 D/Telephony(  941): Registering: Handler (com.android.internal.telephony.GsmCdmaPhone) {207d980}
+11-24 21:58:50.429 W/Telephony(  941): registerMmTelCapabilityCallback: registration failed, no ImsService available. Exception: code: 1
+11-24 21:58:50.429 W/Telephony(  941): registerImsRegistrationCallback: registration failed, no ImsService available. Exception: code: 1
+11-24 21:58:50.456 W/ContextImpl(  514): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcastMultiplePermissions:1303 android.content.Context.sendBroadcastMultiplePermissions:2422 android.content.Context.sendBroadcastMultiplePermissions:2410 com.android.server.Telephony
+11-24 21:58:50.729 D/CompatibilityChangeReporter(  514): Compat change id reported: 174042980; UID 10112; state: DISABLED
+11-24 21:58:50.729 D/CompatibilityChangeReporter(  514): Compat change id reported: 174042936; UID 10112; state: DISABLED
+11-24 21:58:50.784 W/MediaSessionCompat(  913): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:50.804 W/ContextImpl(  514): Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcastMultiplePermissions:1303 android.content.Context.sendBroadcastMultiplePermissions:2422 android.content.Context.sendBroadcastMultiplePermissions:2410 com.android.server.Telephony
+11-24 21:58:50.849 W/MediaSessionCompat(  913): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:50.934 I/ActivityManager(  514): Start proc 1381:com.android.music/u0a102 for service {com.android.music/com.android.music.MediaPlaybackService}
+11-24 21:58:50.939 I/ActivityManager(  514): Start proc 1390:com.android.printspooler/u0a78 for service {com.android.printspooler/com.android.printspooler.model.PrintSpoolerService}
+11-24 21:58:50.976 I/BackupManagerService(  514): [UserID:0] Package app.spool.music.dev.test not installed; dropping from full backup
+11-24 21:58:50.976 W/AppSearchIcing(  514): document-store.cc:381: Couldn't find derived files or failed to initialize them, regenerating derived files for DocumentStore.
+11-24 21:58:51.182 I/id.printspooler( 1390): Using CollectorTypeCC GC.
+11-24 21:58:51.182 W/id.printspooler( 1390): Unexpected CPU variant for x86: x86_64.
+11-24 21:58:51.182 W/id.printspooler( 1390): Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-24 21:58:51.210 E/id.printspooler( 1390): Not starting debugger since process cannot load the jdwp agent.
+11-24 21:58:51.292 D/nativeloader( 1390): Configuring clns-shared-6 for other apk /system/app/PrintSpooler/PrintSpooler.apk. target_sdk_version=34, uses_libraries=, library_path=/system/app/PrintSpooler/lib/x86_64:/system/app/PrintSpooler/PrintSpooler.apk!/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/dat
+11-24 21:58:51.346 I/MediaSessionStack(  514): addSession to bottom of stack | record: com.android.music/MediaPlaybackService (userId=0)
+11-24 21:58:51.349 V/GraphicsEnvironment( 1390): ANGLE GameManagerService for com.android.printspooler: false
+11-24 21:58:51.349 V/GraphicsEnvironment( 1390): com.android.printspooler is not listed in per-application setting
+11-24 21:58:51.359 E/MediaBrowser(  913): onConnectFailed for ComponentInfo{com.android.music/com.android.music.MediaPlaybackService}
+11-24 21:58:51.526 D/CellBroadcastConfigTracker-0(  941): setCellBroadcastIdRanges with ranges:[CellBroadcastIdRange[4370, 4370, 1, true], CellBroadcastIdRange[4383, 4383, 1, true], CellBroadcastIdRange[4371, 4372, 1, true], CellBroadcastIdRange[4097, 4097, 2, true], CellBroadcastIdRange[4384, 4385, 1, true], CellBroad
+11-24 21:58:51.526 D/CellBroadcastConfigTracker-0(  941): IdleState handle EVENT_REQUEST with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1, true], CellBroadcast
+11-24 21:58:51.538 D/CellBroadcastConfigTracker-0(  941): GsmConfiguringState handle EVENT_CONFIGURATION_DONE with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1,
+11-24 21:58:51.756 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:51.823 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:51.842 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:51.849 I/DevicePolicyEngine(  514): Couldn't find any receivers that handle ACTION_DEVICE_POLICY_SET_RESULT in package com.android.devicelockcontroller
+11-24 21:58:52.073 D/LocalImageResolver(  741): Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 21:58:52.100 D/LocalImageResolver(  741): Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 21:58:52.403 D/CompatibilityChangeReporter(  514): Compat change id reported: 135634846; UID 10108; state: DISABLED
+11-24 21:58:52.403 D/CompatibilityChangeReporter(  514): Compat change id reported: 177438394; UID 10108; state: DISABLED
+11-24 21:58:52.403 D/CompatibilityChangeReporter(  514): Compat change id reported: 135772972; UID 10108; state: DISABLED
+11-24 21:58:52.403 D/CompatibilityChangeReporter(  514): Compat change id reported: 135754954; UID 10108; state: DISABLED
+11-24 21:58:52.671 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:52.759 W/Binder  (  514): java.lang.IllegalArgumentException: Unable to get package app.spool.music.dev.test
+11-24 21:58:53.072 I/MessagingApp( 1774): Carrier configs loaded: Bundle[{httpSocketTimeout=60000, aliasMinChars=2, smsToMmsTextThreshold=-1, enableSMSDeliveryReports=true, maxMessageTextSize=-1, supportMmsContentDisposition=true, enabledTransID=false, aliasEnabled=false, supportHttpCharsetHeader=false, allowAttachAudi
+11-24 21:58:53.082 I/MessagingApp( 1774): Carrier configs loaded: Bundle[{httpSocketTimeout=60000, aliasMinChars=2, smsToMmsTextThreshold=-1, enableSMSDeliveryReports=true, maxMessageTextSize=-1, supportMmsContentDisposition=true, enabledTransID=false, aliasEnabled=false, supportHttpCharsetHeader=false, allowAttachAudi
+11-24 21:58:54.660 I/ActivityManager(  514): Force stopping app.spool.music.dev.test appid=10141 user=-1: installPackageLI
+11-24 21:58:54.662 E/libprocessgroup(  514): No such cgroup attribute: /sys/fs/cgroup/uid_4294877437/cgroup.freeze
+11-24 21:58:54.663 E/libprocessgroup(  514): No such cgroup attribute: /sys/fs/cgroup/uid_4294877437/cgroup.freeze
+11-24 21:58:54.664 I/PackageManager(  514): Update package app.spool.music.dev.test code path from /data/app/~~-ihPCn-rBN3exFL-_MJHbw==/app.spool.music.dev.test-hVEh_-234vTnezNOjnWOZw== to /data/app/~~20R_IIzrzlqrnxZr91YRHg==/app.spool.music.dev.test-6yGGXf4mDec5bdQAjqGeqg==; Retain data and using new
+11-24 21:58:54.731 V/BackupManagerService(  514): [UserID:0] restoreAtInstall pkg=app.spool.music.dev.test token=1 restoreSet=0
+11-24 21:58:54.748 D/CarrierSvcBindHelper(  941): onPackageAdded: app.spool.music.dev.test
+11-24 21:58:54.757 I/SdkSandboxManager(  514): No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10141, mPackageName='app.spool.music.dev.test, mAppProcessToken='null'}
+11-24 21:58:54.769 I/SafetyLabelChangedBroadcastReceiver(  845): received broadcast packageName: app.spool.music.dev.test, current user: UserHandle{0}, packageChangeEvent: NEW_INSTALL, intent user: UserHandle{0}
+11-24 21:58:54.778 D/ImsResolver(  941): maybeAddedImsService, packageName: app.spool.music.dev.test
+11-24 21:58:54.797 D/CarrierSvcBindHelper(  941): onPackageModified: app.spool.music.dev.test
+11-24 21:58:54.811 D/ImsResolver(  941): maybeAddedImsService, packageName: app.spool.music.dev.test
+11-24 21:58:55.105 W/ActivityManager(  514): Unable to find instrumentation target package: app.spool.music.dev

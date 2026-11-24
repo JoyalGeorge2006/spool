@@ -1,0 +1,10 @@
+-- adb devices
+List of devices attached
+emulator-5554	device
+
+-- qemu procs
+   4584 Sl    222 2985548    24 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headless -port 5554 -avd test -no-window -gpu
+   4590 Sl    0.0  4512      24 /usr/local/lib/android/sdk/emulator/crashpad_handler --no-rate-limit --database=/tmp/android-runner/emu-crash-37.3.10.
+   4647 Sl    0.4 25216      24 /usr/local/lib/android/sdk/emulator/netsimd --host-dns=127.0.0.53
+-- launcher alive?
+alive

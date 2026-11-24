@@ -1,0 +1,35 @@
+11-24 21:58:19.913 D/CompatibilityChangeReporter(  516): Compat change id reported: 135772972; UID 10070; state: DISABLED
+11-24 21:58:19.913 D/CompatibilityChangeReporter(  516): Compat change id reported: 135754954; UID 10070; state: ENABLED
+11-24 21:58:19.913 D/CompatibilityChangeReporter(  516): Compat change id reported: 143937733; UID 10070; state: ENABLED
+11-24 21:58:19.913 W/SubscriptionInfo( 1045): MCC string is not a number
+11-24 21:58:19.913 W/SubscriptionInfo( 1045): MNC string is not a number
+11-24 21:58:19.916 E/viders.calendar( 1770): Not starting debugger since process cannot load the jdwp agent.
+11-24 21:58:19.932 V/MediaProvider( 1647): onOpen() for external.db
+11-24 21:58:19.933 D/MediaProvider( 1482): Finished migration from legacy provider
+11-24 21:58:19.941 D/CompatibilityChangeReporter(  516): Compat change id reported: 168419799; UID 10062; state: DISABLED
+11-24 21:58:19.941 D/CompatibilityChangeReporter(  516): Compat change id reported: 273564678; UID 10062; state: DISABLED
+11-24 21:58:19.944 D/CompatibilityChangeReporter(  516): Compat change id reported: 265195908; UID 10062; state: ENABLED
+11-24 21:58:19.945 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_cmas_amber_alerts args=null
+11-24 21:58:19.949 D/CompatibilityChangeReporter(  516): Compat change id reported: 265195908; UID 10070; state: ENABLED
+11-24 21:58:19.951 D/CompatibilityChangeReporter(  516): Compat change id reported: 135634846; UID 10093; state: DISABLED
+11-24 21:58:19.951 D/CompatibilityChangeReporter(  516): Compat change id reported: 177438394; UID 10093; state: DISABLED
+11-24 21:58:19.951 D/CompatibilityChangeReporter(  516): Compat change id reported: 135772972; UID 10093; state: DISABLED
+11-24 21:58:19.952 D/CompatibilityChangeReporter(  516): Compat change id reported: 135754954; UID 10093; state: ENABLED
+11-24 21:58:19.962 D/CompatibilityChangeReporter( 1770): Compat change id reported: 171979766; UID 10062; state: ENABLED
+11-24 21:58:19.963 D/CompatibilityChangeReporter( 1770): Compat change id reported: 242716250; UID 10062; state: ENABLED
+11-24 21:58:19.964 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_cmas_amber_alerts
+11-24 21:58:19.964 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_area_update_info_alerts args=null
+11-24 21:58:19.964 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_area_update_info_alerts
+11-24 21:58:19.965 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_test_alerts args=null
+11-24 21:58:19.965 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_test_alerts
+11-24 21:58:19.965 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_state_local_test_alerts args=null
+11-24 21:58:19.965 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_state_local_test_alerts
+11-24 21:58:19.965 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_public_safety_messages args=null
+11-24 21:58:19.965 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_public_safety_messages
+11-24 21:58:19.965 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_cmas_severe_threat_alerts args=null
+11-24 21:58:19.966 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_cmas_severe_threat_alerts
+11-24 21:58:19.966 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_cmas_extreme_threat_alerts args=null
+11-24 21:58:19.966 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_cmas_extreme_threat_alerts
+11-24 21:58:19.966 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_cmas_presidential_alerts args=null
+11-24 21:58:19.966 D/CellBroadcastReceiver( 1274): migrateSharedPreferenceFromLegacy: unsupported key: enable_cmas_presidential_alerts
+11-24 21:58:19.966 D/LegacyCellBroadcastContentProvider( 1337): call: method=get_preference name=enable_emergency_alerts args=null

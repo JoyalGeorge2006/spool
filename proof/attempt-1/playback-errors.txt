@@ -1,0 +1,240 @@
+11-24 21:58:01.408 I/virtio_blk(    0): module verification failed: signature and/or required key missing - tainting kernel
+11-24 21:58:01.410 W/        (    0): Kernel module BTF mismatch detected, BTF debug info may be unavailable for some modules
+11-24 21:58:03.996 I/init    (    0): Falling back to standard signature check. TODO implement support for fsverity SEPolicy.
+11-24 21:58:03.998 I/init    (    0): Error: Apex SEPolicy failed signature check
+11-24 21:58:04.065 W/auditd  (  140): type=1403 audit(0.0:2): auid=4294967295 ses=4294967295 lsm=selinux res=1
+11-24 21:58:04.073 W/auditd  (  140): type=1404 audit(0.0:3): enforcing=1 old_enforcing=0 auid=4294967295 ses=4294967295 enabled=1 old-enabled=1 lsm=selinux res=1
+11-24 21:58:04.257 I/init    (    0): Parsing file /system/etc/init/mediaextractor.rc...
+11-24 21:58:05.410 I/usb3    (    0): Product: USB/IP Virtual Host Controller
+11-24 21:58:07.911 I/init    (    0): Service 'derive_sdk' (pid 301) exited with status 0 waiting took 0.041000 seconds
+11-24 21:58:08.429 E/selinux (    0): SELinux:  Could not stat /data/dalvik-cache/x86: No such file or directory.
+11-24 21:58:08.490 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.501 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.511 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.518 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.518 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.533 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.553 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.553 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.651 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.662 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.662 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.759 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.765 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.765 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.788 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.795 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.795 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.810 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.817 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.817 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.837 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.843 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.843 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.853 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.868 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.874 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.874 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.887 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.894 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.894 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.939 D/LibBpfLoader(    0): Couldn't find section bpfloader_min_required_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.945 D/LibBpfLoader(    0): Couldn't find section btf_min_bpfloader_ver (defaulting to 0 [0x0]).
+11-24 21:58:08.945 D/LibBpfLoader(    0): Couldn't find section btf_min_kernel_ver (defaulting to 0 [0x0]).
+11-24 21:58:09.381 I/zygote64(  337): option[18]=-XMadviseWillNeedArtFileSize:4294967295
+11-24 21:58:09.464 I/init    (    0): ... started service 'exec 16 (/system/bin/profcollectctl reset)' has pid 403
+11-24 21:58:09.744 I/init    (    0): ... started service 'exec 17 (/system/bin/bootstat --set_system_boot_reason)' has pid 429
+11-24 21:58:09.749 I/init    (    0): Service 'exec 16 (/system/bin/profcollectctl reset)' (pid 403) exited with status 0 oneshot service took 0.285000 seconds in background
+11-24 21:58:09.754 I/init    (    0): Sending signal 9 to service 'exec 16 (/system/bin/profcollectctl reset)' (pid 403) process group...
+11-24 21:58:09.759 I/libprocessgroup(    0): Successfully killed process cgroup uid 0 pid 403 in 0ms
+11-24 21:58:09.740 I/bootstat(  429): Service started: /system/bin/bootstat --set_system_boot_reason 
+11-24 21:58:09.740 I/bootstat(  429): Canonical boot reason: reboot
+11-24 21:58:09.740 I/bootstat(  429): Canonical boot reason: reboot
+11-24 21:58:09.742 E/bootstat(  429): Failed to read /metadata/bootstat/persist.sys.boot.reason: No such file or directory
+11-24 21:58:09.742 I/bootstat(  429): Value of persist.sys.boot.reason : 
+11-24 21:58:09.742 I/bootstat(  429): Normalized last reboot reason : reboot
+11-24 21:58:09.743 E/bootstat(  429): Failed to unlink /metadata/bootstat/persist.sys.boot.reason: No such file or directory
+11-24 21:58:09.771 I/init    (    0): Service 'exec 17 (/system/bin/bootstat --set_system_boot_reason)' (pid 429) exited with status 0 oneshot service took 0.026000 seconds in background
+11-24 21:58:09.778 I/init    (    0): Sending signal 9 to service 'exec 17 (/system/bin/bootstat --set_system_boot_reason)' (pid 429) process group...
+11-24 21:58:09.782 I/libprocessgroup(    0): Successfully killed process cgroup uid 1000 pid 429 in 0ms
+11-24 21:58:09.931 I/init    (    0): starting service 'mediaextractor'...
+11-24 21:58:09.944 I/init    (    0): ... started service 'mediaextractor' has pid 462
+11-24 21:58:10.016 I/main_extractorservice(  462): enable media.extractor memory limits
+11-24 21:58:10.021 W/mediaextractor(  462): Could not read additional policy file '/vendor/etc/seccomp_policy/mediaextractor.policy'
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: failed to get path of fd 5: No such file or directory
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: allowing syscall: socket
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: allowing syscall: connect
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: allowing syscall: fcntl
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: allowing syscall: writev
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(48): syscall readlinkat redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(43): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(54): syscall gettid redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(51): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(1): syscall read redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(19): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(2): syscall write redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(6): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(3): syscall exit redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(29): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(4): syscall rt_sigreturn redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(31): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(5): syscall exit_group redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(30): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(6): syscall clock_gettime redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(15): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(8): syscall futex redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(4): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(9): syscall getrandom redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(36): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(10): syscall getpid redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(53): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(11): syscall gettid redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(51): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(14): syscall openat redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(13): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(15): syscall dup redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(9): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(16): syscall close redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(8): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(17): syscall lseek redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(20): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(18): syscall getdents64 redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(42): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(19): syscall faccessat redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(32): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(28): syscall prctl redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(5): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(29): syscall madvise redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(12): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(30): syscall mprotect redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(18): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(31): syscall munmap redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(10): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(32): syscall getuid redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(22): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(33): syscall fstat redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(25): previous definition here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: /apex/com.android.media/etc/seccomp_policy/crash_dump.x86_64.policy(34): syscall mmap redefined here
+11-24 21:58:10.021 W/mediaextractor(  462): libminijail[462]: compile_file: <fd>(11): previous definition here
+11-24 21:58:10.022 W/mediaextractor(  462): libminijail[462]: logging seccomp filter failures
+11-24 21:58:10.102 I/MediaExtractorFactory(  462): plugin directory not present (/system/lib64/extractors)
+11-24 21:58:10.102 I/MediaExtractorFactory(  462): plugin directory not present (/system_ext/lib64/extractors)
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.410 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:10.429 W/System  (  337): No Compatibility callbacks set! Querying change 247079863
+11-24 21:58:12.144 I/PackageManager(  516): /system/app/PrintSpooler changed; collecting certs
+11-24 21:58:12.804 I/InputReader(  516): Device added: id=5, eventHubId=11, name='virtio_input_multi_touch_2', descriptor='929d4636b8e04f50240a26561429a6e91c9eff9e',sources=KEYBOARD | TOUCHSCREEN | STYLUS
+11-24 21:58:13.033 I/ArtService(  516): Dexopt result: [packageName = com.android.printspooler] DexContainerFileDexoptResult{dexContainerFile=/system/app/PrintSpooler/PrintSpooler.apk, primaryAbi=true, abi=x86_64, actualCompilerFilter=verify, status=SKIPPED, dex2oatWallTimeMillis=0, dex2oatCpuTimeMillis=0, sizeBytes=0,
+11-24 21:58:13.745 I/dex2oat64(  680): dex2oat took 71.665ms (80.660ms cpu) (threads: 3) arena alloc=0B (0B) java alloc=528KB (541008B) native alloc=1338KB (1370304B) free=785KB (804784B)
+11-24 21:58:15.403 W/WiredAccessoryManager(  516): This kernel does not have usb audio support
+11-24 21:58:15.403 W/WiredAccessoryManager(  516): This kernel does not have HDMI audio support
+11-24 21:58:15.403 V/SystemServerTiming(  516): StartWiredAccessoryManager took to complete: 1ms
+11-24 21:58:15.403 D/SystemServerTiming(  516): StartMidiManager
+11-24 21:58:15.403 I/SystemServiceManager(  516): Starting com.android.server.midi.MidiService$Lifecycle
+11-24 21:58:15.403 V/SystemServerTiming(  516): StartMidiManager took to complete: 0ms
+11-24 21:58:15.403 D/SystemServerTiming(  516): StartAdbService
+11-24 21:58:15.403 I/SystemServiceManager(  516): Starting com.android.server.adb.AdbService$Lifecycle
+11-24 21:58:15.578 I/DefaultPermGrantPolicy(  516): Granting Notification permissions to platform signature apps for user 0
+11-24 21:58:15.641 D/SystemServerTimingAsync(  516): InitThreadPoolExec:Update app-ops uidState in case package com.android.printspooler changed
+11-24 21:58:15.641 D/SystemServerInitThreadPool(  516): Started executing Update app-ops uidState in case package com.android.printspooler changed
+11-24 21:58:15.641 D/SystemServerInitThreadPool(  516): Finished executing Update app-ops uidState in case package com.android.printspooler changed
+11-24 21:58:15.641 V/SystemServerTimingAsync(  516): InitThreadPoolExec:Update app-ops uidState in case package com.android.printspooler changed took to complete: 0ms
+11-24 21:58:15.924 D/CCodecConfig(  516):   c2::u32 raw.sample-rate.value = 44100
+11-24 21:58:15.924 D/CCodec  (  516):   int32_t sample-rate = 44100
+11-24 21:58:15.924 D/CCodec  (  516):   int32_t sample-rate = 44100
+11-24 21:58:16.264 V/StorageManagerService(  516): Package com.android.printspooler does not have legacy storage
+11-24 21:58:16.276 D/CompatibilityChangeReporter(  516): Compat change id reported: 174042980; UID 1000; state: DISABLED
+11-24 21:58:16.276 D/CompatibilityChangeReporter(  516): Compat change id reported: 174042936; UID 1000; state: DISABLED
+11-24 21:58:16.403 D/BatteryStateDatabase( 1050): initialize battery states database
+11-24 21:58:16.403 W/BatteryUsageContentProvider( 1050): create content provider from null
+11-24 21:58:16.403 W/ActivityThread(  516): Failed to find provider info for com.android.calendar (user not unlocked)
+11-24 21:58:16.403 W/ActivityThread(  516): Failed to find provider info for com.android.calendar (user not unlocked)
+11-24 21:58:16.410 D/SpaEnvironment( 1050): reset
+11-24 21:58:16.410 D/CompatibilityChangeReporter(  516): Compat change id reported: 161145287; UID 1001; state: ENABLED
+11-24 21:58:16.429 D/CompatibilityChangeReporter(  516): Compat change id reported: 265195908; UID 10112; state: ENABLED
+11-24 21:58:16.793 D/CCodecConfig(  832):   c2::u32 raw.sample-rate.value = 44100
+11-24 21:58:16.793 D/CCodec  (  832):   int32_t sample-rate = 44100
+11-24 21:58:16.793 D/CCodec  (  832):   int32_t sample-rate = 44100
+11-24 21:58:16.964 D/CCodecConfig(  832):   c2::u32 raw.sample-rate.value = 44100
+11-24 21:58:16.964 D/CCodec  (  832):   int32_t sample-rate = 44100
+11-24 21:58:16.964 D/CCodec  (  832):   int32_t sample-rate = 44100
+11-24 21:58:17.003 D/CompatibilityChangeReporter(  516): Compat change id reported: 124107808; UID 1001; state: ENABLED
+11-24 21:58:17.372 W/PermissionManagerService(  516): Datasource AttributionSource { uid = 10064, packageName = com.android.cellbroadcastreceiver, attributionTag = null, token = android.os.BinderProxy@d192cb5, next = android.content.AttributionSourceState@c9e4ebb } protecting data with platform defined runtime permissi
+11-24 21:58:17.372 W/MediaSessionCompat( 1018): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:17.394 I/bluetooth( 1018): packages/modules/Bluetooth/system/btif/src/btif_sock_l2cap.cc:357 send_app_psm_or_chan_l: Sending l2cap socket socket_id:3 channel:4101
+11-24 21:58:17.394 D/BluetoothAdapter( 1018): listenUsingInsecureL2capOn: set assigned channel to 4101
+11-24 21:58:17.411 W/MediaSessionCompat( 1018): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:17.429 D/CellBroadcastConfigTracker-0( 1045): IdleState message:4
+11-24 21:58:17.852 I/OpenGLRenderer(  832): Davey! duration=727ms; Flags=1, FrameTimelineVsyncId=525, IntendedVsync=18309181775, Vsync=18692515093, InputEventId=0, HandleInputStart=18704866078, AnimationStart=18704866523, PerformTraversalsStart=18705398322, DrawStart=18967991164, FrameDeadline=18325848441, FrameInterva
+11-24 21:58:17.938 D/CellBroadcastConfigTracker-0( 1045): setCellBroadcastIdRanges with ranges:[CellBroadcastIdRange[4370, 4370, 1, true], CellBroadcastIdRange[4096, 4096, 2, true], CellBroadcastIdRange[4383, 4383, 1, true], CellBroadcastIdRange[4371, 4372, 1, true], CellBroadcastIdRange[4097, 4097, 2, true], CellBroad
+11-24 21:58:17.938 D/CellBroadcastConfigTracker-0( 1045): IdleState handle EVENT_REQUEST with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1, true], CellBroadcast
+11-24 21:58:17.940 D/CellBroadcastConfigTracker-0( 1045): GsmConfiguringState handle EVENT_CONFIGURATION_DONE with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1,
+11-24 21:58:18.298 I/OpenGLRenderer(  832): Davey! duration=750ms; Flags=0, FrameTimelineVsyncId=954, IntendedVsync=18709181759, Vsync=19225848405, InputEventId=0, HandleInputStart=19244317340, AnimationStart=19244318111, PerformTraversalsStart=19245336036, DrawStart=19338896856, FrameDeadline=19109181743, FrameInterva
+11-24 21:58:18.639 W/MediaSessionCompat( 1018): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:18.882 I/ActivityManager(  516): Start proc 1543:com.android.music/u0a102 for service {com.android.music/com.android.music.MediaPlaybackService}
+11-24 21:58:18.888 D/CompatibilityChangeReporter(  516): Compat change id reported: 174042980; UID 10110; state: DISABLED
+11-24 21:58:18.888 D/CompatibilityChangeReporter(  516): Compat change id reported: 174042936; UID 10110; state: DISABLED
+11-24 21:58:18.978 W/MediaSessionCompat( 1018): Couldn't find a unique registered media button receiver in the given context.
+11-24 21:58:19.104 I/MediaSessionStack(  516): addSession to bottom of stack | record: com.android.music/MediaPlaybackService (userId=0)
+11-24 21:58:19.151 I/OpenGLRenderer(  832): Davey! duration=998ms; Flags=0, FrameTimelineVsyncId=1104, IntendedVsync=19259181737, Vsync=19759181717, InputEventId=0, HandleInputStart=19768861615, AnimationStart=19768862462, PerformTraversalsStart=19771162364, DrawStart=19802543879, FrameDeadline=19575848391, FrameInterv
+11-24 21:58:19.167 I/ActivityManager(  516): Start proc 1606:com.android.printspooler/u0a78 for service {com.android.printspooler/com.android.printspooler.model.PrintSpoolerService}
+11-24 21:58:19.182 E/MediaBrowser( 1018): onConnectFailed for ComponentInfo{com.android.music/com.android.music.MediaPlaybackService}
+11-24 21:58:19.403 W/WificondScannerImpl(  516): Scan failed: error code: -7
+11-24 21:58:19.403 I/ImsExternalCallTracker( 1045): handleVideoCapabilitiesChanged : isVideoCapable = false
+11-24 21:58:19.403 D/ImsExternalCallTracker( 1045): refreshCallPullState
+11-24 21:58:19.403 I/Telephony( 1045): handleVideoCapabilitesChanged. Video capability - false
+11-24 21:58:19.406 I/id.printspooler( 1606): Using CollectorTypeCC GC.
+11-24 21:58:19.406 W/id.printspooler( 1606): Unexpected CPU variant for x86: x86_64.
+11-24 21:58:19.406 W/id.printspooler( 1606): Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-24 21:58:19.411 I/DevicePolicyEngine(  516): Couldn't find any receivers that handle ACTION_DEVICE_POLICY_SET_RESULT in package com.android.devicelockcontroller
+11-24 21:58:19.468 D/CompatibilityChangeReporter(  516): Compat change id reported: 174042980; UID 10112; state: DISABLED
+11-24 21:58:19.468 D/CompatibilityChangeReporter(  516): Compat change id reported: 174042936; UID 10112; state: DISABLED
+11-24 21:58:19.483 E/id.printspooler( 1606): Not starting debugger since process cannot load the jdwp agent.
+11-24 21:58:19.540 D/nativeloader( 1606): Configuring clns-shared-6 for other apk /system/app/PrintSpooler/PrintSpooler.apk. target_sdk_version=34, uses_libraries=, library_path=/system/app/PrintSpooler/lib/x86_64:/system/app/PrintSpooler/PrintSpooler.apk!/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/dat
+11-24 21:58:19.548 V/GraphicsEnvironment( 1606): ANGLE GameManagerService for com.android.printspooler: false
+11-24 21:58:19.548 V/GraphicsEnvironment( 1606): com.android.printspooler is not listed in per-application setting
+11-24 21:58:20.054 D/CellBroadcastConfigTracker-0( 1045): setCellBroadcastIdRanges with ranges:[CellBroadcastIdRange[4370, 4370, 1, true], CellBroadcastIdRange[4096, 4096, 2, true], CellBroadcastIdRange[4383, 4383, 1, true], CellBroadcastIdRange[4371, 4372, 1, true], CellBroadcastIdRange[4097, 4097, 2, true], CellBroad
+11-24 21:58:20.055 D/CellBroadcastConfigTracker-0( 1045): IdleState handle EVENT_REQUEST with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1, true], CellBroadcast
+11-24 21:58:20.096 D/CellBroadcastConfigTracker-0( 1045): GsmConfiguringState handle EVENT_CONFIGURATION_DONE with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1,
+11-24 21:58:20.252 D/CellBroadcastConfigTracker-0( 1045): setCellBroadcastIdRanges with ranges:[CellBroadcastIdRange[4370, 4370, 1, true], CellBroadcastIdRange[4096, 4096, 2, true], CellBroadcastIdRange[4383, 4383, 1, true], CellBroadcastIdRange[4371, 4372, 1, true], CellBroadcastIdRange[4097, 4097, 2, true], CellBroad
+11-24 21:58:20.252 D/CellBroadcastConfigTracker-0( 1045): IdleState handle EVENT_REQUEST with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1, true], CellBroadcast
+11-24 21:58:20.253 D/CellBroadcastConfigTracker-0( 1045): GsmConfiguringState handle EVENT_CONFIGURATION_DONE with request:Request[mCbRangesRequest3gpp = [CellBroadcastIdRange[4352, 4354, 1, true], CellBroadcastIdRange[4355, 4355, 1, false], CellBroadcastIdRange[4356, 4356, 1, true], CellBroadcastIdRange[4370, 4379, 1,
+11-24 21:58:20.403 W/ServiceManagerCppClient(  401): Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10112 pid=0
+11-24 21:58:20.403 D/PermissionCache(  401): checking android.permission.ACCESS_SURFACE_FLINGER for uid=10112 => denied (1524 us)
+11-24 21:58:20.407 I/MessagingApp( 1842): Carrier configs loaded: Bundle[{httpSocketTimeout=60000, aliasMinChars=2, smsToMmsTextThreshold=-1, enableSMSDeliveryReports=true, maxMessageTextSize=-1, supportMmsContentDisposition=true, enabledTransID=false, aliasEnabled=false, supportHttpCharsetHeader=false, allowAttachAudi
+11-24 21:58:20.410 I/HeadsetPhoneState( 1018): stopListenForPhoneState(), no listener indicates nothing is listening
+11-24 21:58:20.410 W/HeadsetPhoneState( 1018): startListenForPhoneState, no event to listen
+11-24 21:58:20.429 D/SystemServerTiming(  516): getUserSwitchability-0
+11-24 21:58:20.429 D/SystemServerTiming(  516): TM.isInCall
+11-24 21:58:20.429 V/SystemServerTiming(  516): TM.isInCall took to complete: 0ms
+11-24 21:58:20.429 D/SystemServerTiming(  516): hasUserRestriction-DISALLOW_USER_SWITCH
+11-24 21:58:20.429 V/SystemServerTiming(  516): hasUserRestriction-DISALLOW_USER_SWITCH took to complete: 0ms
+11-24 21:58:20.429 D/SystemServerTiming(  516): getInt-ALLOW_USER_SWITCHING_WHEN_SYSTEM_USER_LOCKED
+11-24 21:58:20.429 V/SystemServerTiming(  516): getInt-ALLOW_USER_SWITCHING_WHEN_SYSTEM_USER_LOCKED took to complete: 0ms
+11-24 21:58:20.429 D/SystemServerTiming(  516): isUserUnlocked-USER_SYSTEM
+11-24 21:58:20.429 V/SystemServerTiming(  516): isUserUnlocked-USER_SYSTEM took to complete: 0ms
+11-24 21:58:20.429 V/SystemServerTiming(  516): getUserSwitchability-0 took to complete: 0ms
+11-24 21:58:20.441 I/MessagingApp( 1842): Carrier configs loaded: Bundle[{httpSocketTimeout=60000, aliasMinChars=2, smsToMmsTextThreshold=-1, enableSMSDeliveryReports=true, maxMessageTextSize=-1, supportMmsContentDisposition=true, enabledTransID=false, aliasEnabled=false, supportHttpCharsetHeader=false, allowAttachAudi

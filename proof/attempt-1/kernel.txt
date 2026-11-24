@@ -1,0 +1,41 @@
+-- dmesg
+[   11.306176] piix4_smbus 0000:00:01.3: SMBus base address uninitialized - upgrade BIOS or use force_addr=0xaddr
+[   11.363854] loop0: detected capacity change from 0 to 151600
+[   11.368872] loop1: detected capacity change from 0 to 91568
+[   11.401536] ppdev: user-space parallel port driver
+[   11.518011] intel_powerclamp: No package C-state available
+[   12.313768] EXT4-fs (nvme0n1p13): Supports (experimental) DIO atomic writes awu_min: 4096, awu_max: 4096
+[   12.342501] EXT4-fs (nvme0n1p13): mounted filesystem 11999f8e-011e-444a-a50e-01ccb4b16f2e r/w with ordered data mode. Quota mode: none.
+[   12.691157] audit: type=1400 audit(1795557092.689:2): apparmor="STATUS" operation="profile_load" profile="unconfined" name="Discord" pid=833 comm="apparmor_parser"
+[   12.691165] audit: type=1400 audit(1795557092.689:3): apparmor="STATUS" operation="profile_load" profile="unconfined" name="QtWebEngineProcess" pid=835 comm="apparmor_parser"
+[   12.717495] audit: type=1400 audit(1795557092.715:4): apparmor="STATUS" operation="profile_load" profile="unconfined" name="1password" pid=832 comm="apparmor_parser"
+[   12.717502] audit: type=1400 audit(1795557092.715:5): apparmor="STATUS" operation="profile_load" profile="unconfined" name=4D6F6E676F444220436F6D70617373 pid=834 comm="apparmor_parser"
+[   12.729426] audit: type=1400 audit(1795557092.727:6): apparmor="STATUS" operation="profile_load" profile="unconfined" name="balena-etcher" pid=839 comm="apparmor_parser"
+[   12.737505] audit: type=1400 audit(1795557092.735:7): apparmor="STATUS" operation="profile_load" profile="unconfined" name="babeld" pid=838 comm="apparmor_parser"
+[   12.737510] audit: type=1400 audit(1795557092.735:8): apparmor="STATUS" operation="profile_load" profile="unconfined" name="bfdd" pid=840 comm="apparmor_parser"
+[   12.737834] audit: type=1400 audit(1795557092.736:9): apparmor="STATUS" operation="profile_load" profile="unconfined" name="alsamixer" pid=837 comm="apparmor_parser"
+[   12.738978] audit: type=1400 audit(1795557092.737:10): apparmor="STATUS" operation="profile_load" profile="unconfined" name="brave" pid=842 comm="apparmor_parser"
+[   12.739402] audit: type=1400 audit(1795557092.737:11): apparmor="STATUS" operation="profile_load" profile="unconfined" name="buildah" pid=843 comm="apparmor_parser"
+[   14.300970] 8021q: 802.1Q VLAN Support v1.8
+[   14.384851] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[   14.385131] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[   14.385266] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[   14.385813] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[   14.385821] cfg80211: failed to load regulatory.db
+[   15.162961] systemd-fstab-generator[1064]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   15.413181] EXT4-fs (dm-0): resizing filesystem from 19370235 to 39031035 blocks
+[   15.790037] EXT4-fs (dm-0): resized filesystem to 39031035
+[   15.799323] ephemeral0: Can't lookup blockdev
+[   15.835845] systemd-fstab-generator[1149]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   16.200672] ephemeral0: Can't lookup blockdev
+[   16.514461] loop2: detected capacity change from 0 to 8
+[   16.883955] nvme nvme0: using unchecked data buffer
+[   17.135684] NET: Registered PF_QIPCRTR protocol family
+[   17.668428] zram: Added device: zram0
+[   23.606707] systemd-fstab-generator[1832]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   23.769730] systemd-fstab-generator[1900]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   26.588267] kauditd_printk_skb: 180 callbacks suppressed
+[   26.588272] audit: type=1400 audit(1795557106.942:192): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1970 comm="apparmor_parser"
+[   27.032565] Initializing XFRM netlink socket
+[   27.047403] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   90.035578] /proc/cgroups lists only v1 controllers, use cgroup.controllers of root cgroup for v2 info
