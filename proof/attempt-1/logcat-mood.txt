@@ -1,0 +1,44 @@
+11-24 21:05:10.777 I/lowmemorykiller(  142): Using psi monitors for memory pressure detection
+11-24 21:05:10.778 I/lowmemorykiller(  142): Process polling is supported
+11-24 21:05:10.792 I/lowmemorykiller(  142): Process reaper initialized with 2 threads in the pool
+11-24 21:05:20.129 I/lowmemorykiller(  142): lmkd data connection established
+11-24 21:05:24.786 I/ActivityManager(  519): Process WebViewLoader-x86_64 (pid 966) has died: psvc PER 
+11-24 21:05:41.571 I/TestRunner( 2460): run started: 1 tests
+11-24 21:05:41.573 I/TestRunner( 2460): started: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-24 21:05:57.400 I/System.out( 2460): MOOD-PROOF phone device languages=[english] country=IN active=[english]
+11-24 21:05:58.516 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-01-moods-pill-unconfirmed.png bytes=144491
+11-24 21:05:58.521 I/System.out( 2460): MOOD-PROOF STEP pill screenshot taken
+11-24 21:06:01.113 I/System.out( 2460): MOOD-PROOF STEP pill clicked
+11-24 21:06:02.344 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-02-india-chips-unconfirmed.png bytes=127758
+11-24 21:06:02.352 I/System.out( 2460): MOOD-PROOF STEP chips asserted
+11-24 21:06:06.112 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03a-india-ml-ta-with-phone-english.png bytes=117007
+11-24 21:06:08.429 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03-india-malayalam-tamil-selected.png bytes=116490
+11-24 21:06:08.434 I/System.out( 2460): MOOD-PROOF STEP ml+ta selected
+11-24 21:06:10.796 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-04-united-states-chips.png bytes=119151
+11-24 21:06:13.078 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-05-india-selection-kept.png bytes=116490
+11-24 21:06:13.083 I/System.out( 2460): MOOD-PROOF STEP country switch ok
+11-24 21:06:15.729 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-06-moods-pill-confirmed.png bytes=144821
+11-24 21:06:15.738 I/System.out( 2460): MOOD-PROOF STEP controller connected
+11-24 21:06:58.231 I/System.out( 2460): MOOD-PROOF Energy: queued but not READY+playing within 40s
+11-24 21:07:03.363 I/System.out( 2460): MOOD-PROOF STEP Energy tapped
+11-24 21:07:03.379 I/System.out( 2460): MOOD-PROOF Energy queued=66 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Thattum Muttum | Deepak Dev, Jassie Gift, Sindhuja Rajaram, Kaithapram ;; No Money No
+11-24 21:07:06.228 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-energy-playing.png bytes=169186
+11-24 21:07:38.857 I/System.out( 2460): MOOD-PROOF Sleep: nothing queued within 30s
+11-24 21:07:43.864 I/System.out( 2460): MOOD-PROOF STEP Sleep tapped
+11-24 21:07:43.869 I/System.out( 2460): MOOD-PROOF Sleep queued=0 playbackState=4(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=
+11-24 21:07:46.382 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-sleep-playing.png bytes=122592
+11-24 21:08:28.925 I/System.out( 2460): MOOD-PROOF Relax: queued but not READY+playing within 40s
+11-24 21:08:34.122 I/System.out( 2460): MOOD-PROOF STEP Relax tapped
+11-24 21:08:34.129 I/System.out( 2460): MOOD-PROOF Relax queued=63 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Mukile Mukile | Joshua Sridhar, M.G. Sreekumar, Gireesh Puthenchery ;; Oru Neeramenkil
+11-24 21:08:36.702 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-relax-playing.png bytes=170923
+11-24 21:09:20.965 I/System.out( 2460): MOOD-PROOF Party: queued but not READY+playing within 40s
+11-24 21:09:26.050 I/System.out( 2460): MOOD-PROOF STEP Party tapped
+11-24 21:09:26.056 I/System.out( 2460): MOOD-PROOF Party queued=70 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Kodava Wedding Song (From "Bromance") | Govind Vasantha, Sanjith Hegde, Kiran Kaverapp
+11-24 21:09:28.705 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-party-playing.png bytes=148030
+11-24 21:10:11.943 I/System.out( 2460): MOOD-PROOF Love: queued but not READY+playing within 40s
+11-24 21:10:16.950 I/System.out( 2460): MOOD-PROOF STEP Love tapped
+11-24 21:10:16.956 I/System.out( 2460): MOOD-PROOF Love queued=60 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=O Sahebaa | Shaan Rahman ;; Enthedi Enthedi | M. Jayachandran, Sudeep Kumar, K.S. Chith
+11-24 21:10:19.817 I/System.out( 2460): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-love-playing.png bytes=159442
+11-24 21:10:19.827 I/System.out( 2460): MOOD-PROOF SUMMARY moods with advancing position: 0 of 5
+11-24 21:10:21.251 I/TestRunner( 2460): finished: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-24 21:10:21.278 I/TestRunner( 2460): run finished: 1 tests, 0 failed, 0 ignored

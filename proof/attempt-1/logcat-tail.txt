@@ -1,0 +1,30 @@
+11-24 21:10:21.865 I/binder  (    0): cannot allocate buffer: vma cleared, target dead or dying
+11-24 21:10:21.865 I/binder  (    0): 519:2300 transaction async to 2460:0 failed 159962/29189/-3, size 128-0 line 3406
+11-24 21:10:21.878 I/binder  (    0): undelivered TRANSACTION_COMPLETE
+11-24 21:10:21.879 I/binder  (    0): undelivered transaction 159775, process died.
+11-24 21:10:21.881 I/binder  (    0): undelivered transaction 159819, process died.
+11-24 21:10:21.897 D/ConnectivityService(  519): releasing NetworkRequest [ REQUEST id=54, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 21:10:21.897 D/ConnectivityService(  519): releasing NetworkRequest [ REQUEST id=56, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 21:10:21.897 D/ConnectivityService(  519): releasing NetworkRequest [ REQUEST id=60, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 21:10:21.897 V/MediaPlayerList( 1029): onActiveSessionsChanged: number of controllers: 0
+11-24 21:10:21.897 D/AvrcpTargetJni( 1029): sendPlayerSettingsNative
+11-24 21:10:21.897 I/bt_stack( 1029): [INFO:avrcp_service.cc(551)] virtual void bluetooth::avrcp::AvrcpService::SendPlayerSettingsChanged(std::vector<PlayerAttribute>, std::vector<uint8_t>)
+11-24 21:10:21.897 I/bt_stack( 1029): [INFO:avrcp_service.cc(565)] attribute=PlayerAttribute::REPEAT : value=PlayerRepeatValue::OFF
+11-24 21:10:21.897 I/bt_stack( 1029): attribute=PlayerAttribute::SHUFFLE : value=PlayerShuffleValue::OFF
+11-24 21:10:21.897 I/bt_stack( 1029): 
+11-24 21:10:21.898 W/WindowOnBackDispatcher( 3301): sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@fdca2a5
+11-24 21:10:21.960 D/CoreBackPreview(  519): Window{357bb58 u0 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity}: Setting back callback null
+11-24 21:10:21.964 W/InputManager-JNI(  519): Input channel object '357bb58 app.spool.music.dev.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity (client)' was disposed without first being removed with the input manager!
+11-24 21:10:21.970 W/InputManager-JNI(  519): Input channel object 'a88e099 Splash Screen app.spool.music.dev.test (client)' was disposed without first being removed with the input manager!
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown center_vertical_guideline
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown action_button_guideline
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown icon
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown media_seamless
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown media_action_barrier_start
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown media_action_barrier_end
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown media_action_barrier_top
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown remove_text
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown settings
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown dismiss
+11-24 21:10:22.004 W/ConstraintSet(  837): id unknown cancel
+11-24 21:10:22.039 I/MR2ServiceImpl(  519): stopScan | manager: 1

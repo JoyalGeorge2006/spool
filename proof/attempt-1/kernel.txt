@@ -1,0 +1,41 @@
+-- dmesg
+[   10.460668] kauditd_printk_skb: 175 callbacks suppressed
+[   10.460672] audit: type=1400 audit(1795553810.679:186): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="rsyslogd" pid=1243 comm="apparmor_parser"
+[   10.481427] audit: type=1400 audit(1795553810.700:187): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/journal/socket" pid=1291 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[   10.481583] audit: type=1400 audit(1795553810.700:188): apparmor="DENIED" operation="capable" class="cap" profile="systemd-detect-virt" pid=1291 comm="systemd-detect-" capability=38  capname="perfmon"
+[   10.481667] audit: type=1400 audit(1795553810.700:189): apparmor="DENIED" operation="sendmsg" class="file" profile="systemd-detect-virt" name="/att/systemd-detect-virt/run/systemd/notify" pid=1291 comm="systemd-detect-" requested_mask="w" denied_mask="w" fsuid=0 ouid=0
+[   10.785759] loop0: detected capacity change from 0 to 8
+[   10.952059] NET: Registered PF_QIPCRTR protocol family
+[   11.119863] audit: type=1400 audit(1795553811.338:190): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/lib/snapd/snap-confine" pid=1447 comm="apparmor_parser"
+[   11.241795] Adding 3145724k swap on /swapfile.  Priority:-1 extents:4 across:4440060k 
+[   11.559175] audit: type=1400 audit(1795553811.777:191): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1621 comm="apparmor_parser"
+[   11.927344] Initializing XFRM netlink socket
+[   11.947175] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   12.047831] systemd-fstab-generator[1844]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   13.734726] systemd-fstab-generator[2064]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   14.083604] systemd-fstab-generator[2135]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   44.588160] hv_netvsc 6045bda9-ad95-6045-bda9-ad956045bda9 eth0: VF slot 1 added
+[   44.591223] hv_pci 98cf5a3d-45df-41cd-8b2e-e3fb99c149ab: PCI VMBus probing: Using version 0x10004
+[   44.593597] hv_pci 98cf5a3d-45df-41cd-8b2e-e3fb99c149ab: PCI host bridge to bus 45df:00
+[   44.593604] pci_bus 45df:00: root bus resource [mem 0xfc0000000-0xfc00fffff window]
+[   44.593609] pci_bus 45df:00: No busn resource found for root bus, will use [bus 00-ff]
+[   44.597842] pci 45df:00:02.0: [15b3:1016] type 00 class 0x020000 PCIe Endpoint
+[   44.602489] pci 45df:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]
+[   44.603426] pci 45df:00:02.0: enabling Extended Tags
+[   44.618050] pci 45df:00:02.0: 0.000 Gb/s available PCIe bandwidth, limited by Unknown x0 link at 45df:00:02.0 (capable of 63.008 Gb/s with 8.0 GT/s PCIe x8 link)
+[   44.626356] pci_bus 45df:00: busn_res: [bus 00-ff] end is updated to 00
+[   44.626372] pci 45df:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]: assigned
+[   44.891270] mlx5_core 45df:00:02.0: enabling device (0000 -> 0002)
+[   44.894631] mlx5_core 45df:00:02.0: firmware version: 14.30.5026
+[   45.030643] mlx5_core 45df:00:02.0: Flow counters bulk query buffer size increased, bulk_query_len(8)
+[   45.111418] hv_netvsc 6045bda9-ad95-6045-bda9-ad956045bda9 eth0: VF registering: eth1
+[   45.111480] mlx5_core 45df:00:02.0 eth1: joined to eth0
+[   45.112043] mlx5_core 45df:00:02.0: MLX5E: StrdRq(0) RqSz(1024) StrdSz(256) RxCqeCmprss(0 basic)
+[   45.140289] mlx5_core 45df:00:02.0 enP17887s1: renamed from eth1
+[   45.177417] MACsec IEEE 802.1AE
+[   45.272906] mlx5_core 45df:00:02.0 enP17887s1: Link up
+[   45.299508] hv_netvsc 6045bda9-ad95-6045-bda9-ad956045bda9 eth0: Data path switched to VF: enP17887s1
+[   45.299758] mlx5_core 45df:00:02.0 mlx5_0: Port: 1 Link ACTIVE
+[   48.930116] hv_balloon: Max. dynamic memory size: 16384 MB
+[   71.041825] /proc/cgroups lists only v1 controllers, use cgroup.controllers of root cgroup for v2 info
+[  504.878378] kvm: kvm [4313]: vcpu0, guest rIP: 0xffffffffbd203a51 Unhandled WRMSR(0xc0010007) = 0xffff

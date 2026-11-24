@@ -1,0 +1,4 @@
+/tmp/android-runner/netsimd/netsim_session_stats.json
+/tmp/android-runner/netsimd/netsim_stdout.log
+/tmp/android-runner/netsimd/netsim_stderr.log
+/tmp/android-runner/emu-crash-37.3.10.db/settings.dat
