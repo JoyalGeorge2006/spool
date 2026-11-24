@@ -29,7 +29,13 @@ class MoodRegionEmulatorTest {
     )
 
     private val log = StringBuilder()
-    private fun say(s: String) { println("MOOD-PROOF $s"); log.appendLine(s) }
+    private fun say(s: String) {
+        println("MOOD-PROOF $s"); log.appendLine(s)
+        runCatching {
+            val dir = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
+            File(dir, "mood-proof.txt").appendText(s + "\n")
+        }
+    }
 
     private fun shot(name: String) {
         compose.mainClock.advanceTimeBy(1200)
@@ -49,6 +55,10 @@ class MoodRegionEmulatorTest {
 
     @Test
     fun regionChipsPillAndRealMoodPlayback() {
+        try { runProof() } catch (e: Throwable) { say("TEST-FAILURE ${e::class.java.name}: ${e.message}"); runCatching { shot("region-failure") }; throw e }
+    }
+
+    private fun runProof() {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
         compose.runOnUiThread { AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList()) }
         AppSettings.setOnboardingComplete()
@@ -128,8 +138,6 @@ class MoodRegionEmulatorTest {
             shot("region-07-mood-${label.lowercase()}-playing")
             compose.runOnUiThread { c.pause() }
         }
-        File(ctx.getExternalFilesDir(null), "mood-proof.txt").writeText(log.toString())
-        println("SHOT-SAVED ${File(ctx.getExternalFilesDir(null), "mood-proof.txt").absolutePath} bytes=${log.length}")
         assertTrue("at least one real mood advanced playback position", played > 0)
     }
 }
