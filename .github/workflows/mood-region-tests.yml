@@ -1,5 +1,6 @@
 name: Mood region unit tests (no APK, no release)
 on:
+  workflow_dispatch:
   push:
     branches: [spool-mood-region]
     paths: [".github/workflows/mood-region-tests.yml", "shared/**", "app/**", "sharedUi/**"]
