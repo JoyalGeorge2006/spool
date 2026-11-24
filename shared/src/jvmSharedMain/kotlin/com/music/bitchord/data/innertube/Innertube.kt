@@ -567,8 +567,8 @@ object Innertube {
 
     // ---- Public API ---------------------------------------------------------
 
-    suspend fun browse(browseId: String, params: String? = null): JsonObject =
-        postMusic("browse") {
+    suspend fun browse(browseId: String, params: String? = null, region: String? = null): JsonObject =
+        postMusic("browse", region = region ?: currentRegion) {
             put("browseId", browseId)
             params?.let { put("params", it) }
         }

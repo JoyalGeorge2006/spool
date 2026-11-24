@@ -1455,4 +1455,12 @@
     <string name="conflict_skip_one">ഈ ഫയൽ ഒഴിവാക്കുക</string>
     <string name="conflict_skip_many">ഈ ഫയലുകൾ ഒഴിവാക്കുക</string>
     <string name="conflict_toggle_hint">കൂടുതൽ പേരുമുട്ടലുകൾ ശേഷിക്കുമ്പോൾ മാത്രം</string>
+    <string name="music_region">സംഗീത മേഖല</string>
+    <string name="music_region_description">മൂഡുകൾ നിങ്ങളുടെ രാജ്യത്തെ സംഗീതം, നിങ്ങളുടെ ഭാഷകളിൽ പ്ലേ ചെയ്യുന്നു.</string>
+    <string name="music_region_detect">സ്വയം കണ്ടെത്തുക</string>
+    <string name="music_region_detect_summary">കണ്ടെത്തിയത്: %1$s (സിം അല്ലെങ്കിൽ നെറ്റ്‌വർക്കിൽ നിന്ന്)</string>
+    <string name="music_region_detect_none">രാജ്യം കണ്ടെത്താനായില്ല</string>
+    <string name="music_region_country">രാജ്യം</string>
+    <string name="music_region_languages">സംഗീത ഭാഷകൾ</string>
+    <string name="music_region_languages_hint">ഈ രാജ്യത്ത് ആളുകൾ കേൾക്കുന്ന ഭാഷകളാണിവ. മൂഡ് പ്ലേലിസ്റ്റുകൾ നിങ്ങൾ തിരഞ്ഞെടുത്തവയ്ക്ക് ആദ്യം മുൻഗണന നൽകും.</string>
 </resources>

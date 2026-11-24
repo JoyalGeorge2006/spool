@@ -279,7 +279,7 @@ object YtMusicRepository {
 
     /** The server-defined mood and genre categories used by Explore. */
     suspend fun moodAndGenres(): Result<List<MoodGenreSection>> = call("moods-and-genres") {
-        InnertubeParser.parseMoodAndGenres(Innertube.browse("FEmusic_moods_and_genres"))
+        InnertubeParser.parseMoodAndGenres(Innertube.browse("FEmusic_moods_and_genres", region = MusicRegion.country))
     }
 
     /**
@@ -287,11 +287,16 @@ object YtMusicRepository {
      * supplies its tile artwork, so caching it avoids a second request when a
      * user taps a category whose cover has already appeared.
      */
-    suspend fun moodGenreShelves(browseId: String, params: String?): Result<List<HomeShelf>> {
-        val key = "$browseId:${params.orEmpty()}"
+    suspend fun moodGenreShelves(
+        browseId: String,
+        params: String?,
+        region: String = MusicRegion.country,
+    ): Result<List<HomeShelf>> {
+        // The shelves YouTube returns depend on the country, so the country is part of the key.
+        val key = "$region:$browseId:${params.orEmpty()}"
         moodGenreShelfCache[key]?.let { return Result.success(it) }
         return call("mood-genre:$browseId") {
-            InnertubeParser.parseHome(Innertube.browse(browseId, params))
+            InnertubeParser.parseHome(Innertube.browse(browseId, params, region))
         }.also { result -> result.getOrNull()?.let { moodGenreShelfCache.putIfAbsent(key, it) } }
     }
 

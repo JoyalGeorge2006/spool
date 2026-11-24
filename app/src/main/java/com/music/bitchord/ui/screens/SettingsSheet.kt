@@ -224,6 +224,7 @@ fun SettingsScreen(
     onWearOs: () -> Unit,
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
+    onMusicRegion: () -> Unit = {},
     onEditSignatureApi: () -> Unit,
     /**
      * Asks before [mode] is turned on: it hands volume to the DAC at full
@@ -319,6 +320,7 @@ fun SettingsScreen(
     val hideRecents by AppSettings.hideRecents.collectAsStateWithLifecycle()
     val hideTopPicks by AppSettings.hideTopPicks.collectAsStateWithLifecycle()
     val hideHomeMoods by AppSettings.hideHomeMoods.collectAsStateWithLifecycle()
+    val musicRegion by AppSettings.musicRegion.collectAsStateWithLifecycle()
     val filterNonMusicAudio by AppSettings.filterNonMusicAudio.collectAsStateWithLifecycle()
     val localMusicFolderUri by AppSettings.localMusicFolderUri.collectAsStateWithLifecycle()
     val highPerformanceMode by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
@@ -1062,6 +1064,16 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { AppSettings.setHideTopPicks(!hideTopPicks) },
+                )
+            }
+            val musicRegionTitle = stringResource(R.string.music_region)
+            row(musicRegionTitle, "region", "country", "language", "moods", "malayalam", "tamil", "hindi") {
+                SettingsRow(
+                    icon = SfIcons.Language,
+                    title = musicRegionTitle,
+                    subtitle = com.music.bitchord.ui.components.musicRegionSummary(musicRegion),
+                    trailing = { Chevron() },
+                    onClick = onMusicRegion,
                 )
             }
             val hideHomeMoodsTitle = stringResource(R.string.hide_home_moods)

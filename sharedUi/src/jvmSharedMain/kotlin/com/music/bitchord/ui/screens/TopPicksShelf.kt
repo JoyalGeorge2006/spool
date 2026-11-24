@@ -1280,6 +1280,9 @@ fun MoodGridPage(
     onClick: (TopPickMood, String) -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    /** "India · Malayalam, Tamil": shown as a pill under the title when set. */
+    regionLabel: String? = null,
+    onRegionClick: () -> Unit = {},
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = libraryGrid(maxWidth - PAGE_GUTTER * 2)
@@ -1293,6 +1296,23 @@ fun MoodGridPage(
         ) {
             item(key = "moods:title", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                 com.music.bitchord.ui.components.V6PageTitle(stringResource(Res.string.find_your_mood))
+            }
+            if (regionLabel != null) {
+                item(key = "moods:region", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .clickable(onClick = onRegionClick)
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = "$regionLabel  \u203a",
+                            fontSize = 13.sp,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
             gridItems(TopPickMood.entries, key = { it.name }) { mood ->
                 MoodTile(mood, onClick, Modifier.fillMaxWidth())

@@ -714,6 +714,7 @@ private fun BitChordApp(
     val pageFocus = remember { FocusRequester() }
     var showLyricsSources by remember { mutableStateOf(false) }
     var showAppLanguage by remember { mutableStateOf(false) }
+    var showMusicRegion by remember { mutableStateOf(false) }
     var showTranslationLanguage by remember { mutableStateOf(false) }
     var returnToSettingsAfterSignIn by remember { mutableStateOf(false) }
     var showListenBrainzLogin by remember { mutableStateOf(false) }
@@ -2872,7 +2873,7 @@ private fun BitChordApp(
             // The sort panels and the converted language/lyrics dialogs, all
             // inline over the page now.
             librarySortMenuOpen || songSortMenuOpen || folderMenuOpen ||
-            showAppLanguage || showTranslationLanguage || showLyricsSources || showUpdateDialog
+            showAppLanguage || showMusicRegion || showTranslationLanguage || showLyricsSources || showUpdateDialog
         Row(
             Modifier
                 .fillMaxSize()
@@ -2995,10 +2996,13 @@ private fun BitChordApp(
                                 )
                             }
                         } else if (pageRoute == AppRoute.Moods) {
+                            val musicRegion by AppSettings.musicRegion.collectAsStateWithLifecycle()
                             MoodGridPage(
                                 gridState = moodsGridState,
                                 onClick = playMood,
                                 contentPadding = listPadding,
+                                regionLabel = com.music.bitchord.ui.components.musicRegionSummary(musicRegion, maxLanguages = 2),
+                                onRegionClick = { showMusicRegion = true },
                             )
                         } else if (pageRoute == AppRoute.Replay) {
                             ReplayScreen(
@@ -3205,6 +3209,7 @@ private fun BitChordApp(
                                 onWearOs = { navigator.push(AppRoute.WearOs) },
                                 onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                                 onAppLanguage = { showAppLanguage = true },
+                                onMusicRegion = { showMusicRegion = true },
                                 onEditSignatureApi = { editingSignatureApi = true },
                                 onConfirmBitPerfect = { confirmBitPerfect = it },
                                 onConfirmFixedVolume = { confirmFixedVolume = true },
@@ -5490,6 +5495,15 @@ private fun BitChordApp(
                 hazeState = hazeState,
                 pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
                 onDismiss = { showAppLanguage = false },
+            )
+        }
+
+        if (showMusicRegion) {
+            BackHandler { showMusicRegion = false }
+            com.music.bitchord.ui.components.MusicRegionDialog(
+                hazeState = hazeState,
+                pageSourceKey = com.music.bitchord.ui.components.PageFrostSourceKey,
+                onDismiss = { showMusicRegion = false },
             )
         }
 

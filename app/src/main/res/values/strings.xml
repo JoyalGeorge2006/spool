@@ -1558,4 +1558,12 @@
     <string name="conflict_skip_one">Skip this file</string>
     <string name="conflict_skip_many">Skip these files</string>
     <string name="conflict_toggle_hint">Only when more conflicts remain</string>
+    <string name="music_region">Music region</string>
+    <string name="music_region_description">Moods play music from your country, in your languages.</string>
+    <string name="music_region_detect">Detect automatically</string>
+    <string name="music_region_detect_summary">Detected: %1$s (from your SIM or network)</string>
+    <string name="music_region_detect_none">Could not detect a country</string>
+    <string name="music_region_country">Country</string>
+    <string name="music_region_languages">Music languages</string>
+    <string name="music_region_languages_hint">These are the languages people listen to in this country. Mood playlists use the ones you tick first.</string>
 </resources>

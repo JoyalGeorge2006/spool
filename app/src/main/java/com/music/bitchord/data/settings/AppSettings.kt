@@ -531,6 +531,13 @@ object AppSettings {
     /** Home's Find Your Mood shelf. Explore's moods are a page the listener opened, so they stay. */
     val hideHomeMoods = MutableStateFlow(false)
 
+    /**
+     * The listener's music country and languages (see [com.music.bitchord.data.MusicRegion]).
+     * The flow is for the UI; the same value is mirrored into MusicRegion.state
+     * for the code that builds mood queues.
+     */
+    val musicRegion = MutableStateFlow(com.music.bitchord.data.MusicRegion.State())
+
     /** Music videos are square wherever they show — see [com.music.bitchord.ui.components.VideoThumbnails]. */
     val squareVideoThumbnails = MutableStateFlow(false)
 
@@ -1108,6 +1115,15 @@ object AppSettings {
         hideHomeVideos.value = false // Tracks remain available as audio.
         hideTopPicks.value = prefs.getBoolean(KEY_HIDE_TOP_PICKS, false)
         hideHomeMoods.value = prefs.getBoolean(KEY_HIDE_HOME_MOODS, false)
+        publishMusicRegion(
+            com.music.bitchord.data.MusicRegion.State(
+                auto = prefs.getBoolean(KEY_MUSIC_REGION_AUTO, true),
+                detectedCountry = detectMusicCountry(applicationContext),
+                manualCountry = prefs.getString(KEY_MUSIC_COUNTRY, null)?.takeIf { it.length == 2 },
+                selected = prefs.getString(KEY_MUSIC_LANGUAGES, "").orEmpty()
+                    .split(',').filter { it.isNotBlank() }.toSet(),
+            ),
+        )
         squareVideoThumbnails.value = false
         VideoThumbnails.square = squareVideoThumbnails.value
         smartVersionAlignment.value = false
@@ -1565,6 +1581,54 @@ object AppSettings {
     fun setHideTopPicks(value: Boolean) {
         hideTopPicks.value = value
         prefs.edit().putBoolean(KEY_HIDE_TOP_PICKS, value).apply()
+    }
+
+    private fun publishMusicRegion(state: com.music.bitchord.data.MusicRegion.State) {
+        musicRegion.value = state
+        com.music.bitchord.data.MusicRegion.state = state
+    }
+
+    /**
+     * Best-effort country: the SIM, then the network, then the phone's region.
+     * No location permission is used; none of the three says what the listener
+     * likes, only where the phone is from.
+     */
+    private fun detectMusicCountry(context: Context): String? {
+        val telephony = runCatching {
+            context.getSystemService(Context.TELEPHONY_SERVICE) as? android.telephony.TelephonyManager
+        }.getOrNull()
+        val sim = runCatching { telephony?.simCountryIso }.getOrNull()
+        val network = runCatching { telephony?.networkCountryIso }.getOrNull()
+        val phone = java.util.Locale.getDefault().country
+        return listOf(sim, network, phone)
+            .firstOrNull { !it.isNullOrBlank() && it.length == 2 }
+            ?.uppercase(java.util.Locale.ROOT)
+    }
+
+    /** Looks again at the SIM and network, e.g. when the settings page opens after travel. */
+    fun refreshMusicCountry(context: Context) {
+        publishMusicRegion(musicRegion.value.copy(detectedCountry = detectMusicCountry(context)))
+    }
+
+    fun setMusicRegionAuto(value: Boolean) {
+        prefs.edit().putBoolean(KEY_MUSIC_REGION_AUTO, value).apply()
+        publishMusicRegion(musicRegion.value.copy(auto = value))
+    }
+
+    fun setMusicCountry(code: String) {
+        prefs.edit().putString(KEY_MUSIC_COUNTRY, code).apply()
+        publishMusicRegion(musicRegion.value.copy(manualCountry = code, auto = false))
+        prefs.edit().putBoolean(KEY_MUSIC_REGION_AUTO, false).apply()
+    }
+
+    /** Ticks a language on or off. The last one on stays on: an empty choice is the country's default. */
+    fun toggleMusicLanguage(id: String) {
+        val current = musicRegion.value
+        val active = com.music.bitchord.data.MusicRegion.activeLanguages(current).map { it.id }.toSet()
+        val next = if (id in active) active - id else active + id
+        if (next.isEmpty()) return
+        prefs.edit().putString(KEY_MUSIC_LANGUAGES, next.joinToString(",")).apply()
+        publishMusicRegion(current.copy(selected = next))
     }
 
     fun setHideHomeMoods(value: Boolean) {
@@ -2388,6 +2452,9 @@ object AppSettings {
     private const val KEY_HIDE_HOME_VIDEOS = "hide_home_videos"
     private const val KEY_HIDE_TOP_PICKS = "hide_top_picks"
     private const val KEY_HIDE_HOME_MOODS = "hide_home_moods"
+    private const val KEY_MUSIC_REGION_AUTO = "music_region_auto"
+    private const val KEY_MUSIC_COUNTRY = "music_country"
+    private const val KEY_MUSIC_LANGUAGES = "music_languages"
     private const val KEY_SQUARE_VIDEO_THUMBNAILS = "square_video_thumbnails"
     private const val KEY_SMART_VERSION_ALIGNMENT = "smart_version_alignment"
     private const val KEY_REDUCE_BLUR = "reduce_dynamic_blur"

@@ -636,30 +636,47 @@ object TopPicks {
     private suspend fun moodQueue(pick: TopPick): Result<List<Song>> = coroutineScope {
         val generation = com.music.bitchord.data.innertube.Innertube.listenerGeneration
         val mood = pick.mood ?: return@coroutineScope Result.failure(IllegalStateException("mood card without a mood"))
-        val shelves = YtMusicRepository.moodGenreShelves(TopPickMood.CATEGORY_BROWSE_ID, mood.params)
+        // The listener's country and languages: shelves are asked for in their
+        // country, and a shelf or playlist that names one of their languages
+        // outranks one that does not.
+        val region = MusicRegion.country
+        val langs = MusicRegion.steeringLanguages()
+        val shelves = YtMusicRepository.moodGenreShelves(TopPickMood.CATEGORY_BROWSE_ID, mood.params, region)
             .getOrElse { return@coroutineScope Result.failure(it) }
         val playlists = { shelf: HomeShelf -> shelf.items.filter { it.browseId?.startsWith("VL") == true } }
         val candidates = shelves.filter { playlists(it).isNotEmpty() }
-        val score = { shelf: HomeShelf -> Taste.shelfScore(shelf.title, mood, pick.hints) }
+        val score = { shelf: HomeShelf ->
+            Taste.shelfScore(shelf.title, mood, pick.hints) + MusicRegion.shelfBonus(shelf.title, mood, langs)
+        }
         val best = candidates.maxOfOrNull(score)
-            ?: return@coroutineScope Result.failure(IllegalStateException("no playlists for $mood"))
-        // With no scene in common, any shelf of the mood will do.
-        val shelf = candidates.filter { score(it) == best }.random()
-        val chosen = playlists(shelf).take(6).shuffled().take(MOOD_PLAYLISTS)
-        val fetched = chosen.map { item ->
-            async {
-                val playlistId = item.browseId!!.removePrefix("VL")
-                // As a watch queue, so YouTube hands over each official video's
-                // song version directly; the playlist page only lists videos.
-                YtMusicRepository.playlistAsAudio(playlistId).getOrNull()?.takeIf { it.isNotEmpty() }
-                    ?: YtMusicRepository.browseSongs(item.browseId!!).getOrNull()?.songs.orEmpty()
-            }
-        }.awaitAll().flatten()
-            // A row YouTube couldn't pair stays the video, and plays as one;
-            // the player menu's version switch turns it into the song.
-            .distinctBy { it.videoId }
-            .shuffled()
-            .take(MOOD_QUEUE)
+        val bestShelves = best?.let { b -> candidates.filter { score(it) == b } }.orEmpty()
+        // A language shelf exists when the best one names a chosen language
+        // (or, with no language to serve, whatever scored best will do).
+        val languageShelf = if (langs.isEmpty()) bestShelves.firstOrNull()
+        else bestShelves.firstOrNull { MusicRegion.languageMatches(it.title, langs) > 0 }
+        val searched = if (languageShelf == null && langs.isNotEmpty()) languageSearchQueue(mood, langs) else emptyList()
+        val fetched = if (searched.isNotEmpty()) searched else {
+            val shelf = (languageShelf ?: bestShelves.randomOrNull())
+                ?: return@coroutineScope Result.failure(IllegalStateException("no playlists for $mood"))
+            // Playlists that name the listener's language first, the rest after.
+            val ordered = playlists(shelf).take(8).shuffled()
+                .sortedByDescending { MusicRegion.languageMatches(it.title, langs) }
+            val chosen = ordered.take(MOOD_PLAYLISTS)
+            chosen.map { item ->
+                async {
+                    val playlistId = item.browseId!!.removePrefix("VL")
+                    // As a watch queue, so YouTube hands over each official video's
+                    // song version directly; the playlist page only lists videos.
+                    YtMusicRepository.playlistAsAudio(playlistId).getOrNull()?.takeIf { it.isNotEmpty() }
+                        ?: YtMusicRepository.browseSongs(item.browseId!!).getOrNull()?.songs.orEmpty()
+                }
+            }.awaitAll().flatten()
+                // A row YouTube couldn't pair stays the video, and plays as one;
+                // the player menu's version switch turns it into the song.
+                .distinctBy { it.videoId }
+                .shuffled()
+                .take(MOOD_QUEUE)
+        }
         if (fetched.isEmpty()) return@coroutineScope Result.failure(IllegalStateException("$mood playlists were empty"))
         // The mood picked; now make it theirs. Blend in a few of their own
         // chart toppers the mood already carries, open on their artists and
@@ -674,6 +691,35 @@ object TopPicks {
         else Result.success(personalized)
     }
 
+    /**
+     * Songs for a mood in the listener's languages when YouTube's mood shelves
+     * name none of them: a search per language ("Malayalam relaxing songs"),
+     * the languages' results mixed. Empty when too little comes back to be
+     * worth playing, so the shelves stay the answer.
+     */
+    private suspend fun languageSearchQueue(
+        mood: TopPickMood,
+        langs: List<MusicRegion.Language>,
+    ): List<Song> = coroutineScope {
+        val songs = langs.take(3).map { lang ->
+            async {
+                YtMusicRepository.search(MusicRegion.searchQuery(lang, mood), com.music.bitchord.data.model.SearchFilter.SONGS)
+                    .getOrNull().orEmpty()
+                    .mapNotNull { row ->
+                        when (row) {
+                            is com.music.bitchord.data.model.SearchResult.Track -> row.song
+                            is com.music.bitchord.data.model.SearchResult.TopTrack -> row.song
+                            else -> null
+                        }
+                    }
+                    .filterNot { it.isVideo }
+                    .take(MOOD_QUEUE)
+            }
+        }.awaitAll().flatten().distinctBy { it.videoId }.shuffled().take(MOOD_QUEUE)
+        if (songs.size >= MIN_SEARCHED_QUEUE) songs else emptyList()
+    }
+
+    private const val MIN_SEARCHED_QUEUE = 12
     private const val MOOD_PLAYLISTS = 3
     private const val MOOD_QUEUE = 60
 
