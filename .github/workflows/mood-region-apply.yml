@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [spool-mood-region]
-    paths: ["1-mood.patch", ".github/workflows/mood-region-apply.yml"]
+    paths: ["patches/*.patch"]
 permissions:
   contents: write
 jobs:
@@ -14,15 +14,15 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Apply the reviewed change on top of the 2.1.5 source and push it to this branch
+    - name: Apply patch files from patches/ on top of the branch and push
       run: |
         set -eu
-        test -f 1-mood.patch
-        cp 1-mood.patch /tmp/mood.patch
+        mkdir -p /tmp/pp
+        cp patches/*.patch /tmp/pp/
         git config user.name spool-ci
         git config user.email spool-ci@users.noreply.github.com
-        git rm -q 1-mood.patch
-        git commit -qm "Remove applied patch file"
-        git am /tmp/mood.patch
+        git rm -q patches/*.patch
+        git commit -qm "Remove applied patch files"
+        for f in $(ls /tmp/pp/*.patch | sort); do git am "$f"; done
         git push origin HEAD:${GITHUB_REF_NAME}
-        git log --oneline -4
+        git log --oneline -5
