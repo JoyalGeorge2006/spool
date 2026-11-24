@@ -1,0 +1,51 @@
+From 6e2dde9e42b6fa48ed3e7288c8d7e9b2b55bee88 Mon Sep 17 00:00:00 2001
+From: Instinct Agent <agent@instinct.com>
+Date: Tue, 24 Nov 2026 23:22:17 +0530
+Subject: [PATCH] Emulator proof: write evidence as it happens, record failures
+
+---
+ .../com/music/bitchord/MoodRegionEmulatorTest.kt   | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt b/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
+index 2b962e30..e25980fe 100644
+--- a/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
++++ b/app/src/androidTest/java/com/music/bitchord/MoodRegionEmulatorTest.kt
+@@ -29,7 +29,13 @@ class MoodRegionEmulatorTest {
+     )
+ 
+     private val log = StringBuilder()
+-    private fun say(s: String) { println("MOOD-PROOF $s"); log.appendLine(s) }
++    private fun say(s: String) {
++        println("MOOD-PROOF $s"); log.appendLine(s)
++        runCatching {
++            val dir = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)
++            File(dir, "mood-proof.txt").appendText(s + "\n")
++        }
++    }
+ 
+     private fun shot(name: String) {
+         compose.mainClock.advanceTimeBy(1200)
+@@ -49,6 +55,10 @@ class MoodRegionEmulatorTest {
+ 
+     @Test
+     fun regionChipsPillAndRealMoodPlayback() {
++        try { runProof() } catch (e: Throwable) { say("TEST-FAILURE ${e::class.java.name}: ${e.message}"); runCatching { shot("region-failure") }; throw e }
++    }
++
++    private fun runProof() {
+         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+         compose.runOnUiThread { AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList()) }
+         AppSettings.setOnboardingComplete()
+@@ -128,8 +138,6 @@ class MoodRegionEmulatorTest {
+             shot("region-07-mood-${label.lowercase()}-playing")
+             compose.runOnUiThread { c.pause() }
+         }
+-        File(ctx.getExternalFilesDir(null), "mood-proof.txt").writeText(log.toString())
+-        println("SHOT-SAVED ${File(ctx.getExternalFilesDir(null), "mood-proof.txt").absolutePath} bytes=${log.length}")
+         assertTrue("at least one real mood advanced playback position", played > 0)
+     }
+ }
+-- 
+2.34.1
+
