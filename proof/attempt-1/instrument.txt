@@ -1,0 +1,47 @@
+INSTRUMENTATION_STATUS: class=com.music.bitchord.MoodRegionEmulatorTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.music.bitchord.MoodRegionEmulatorTest:
+INSTRUMENTATION_STATUS: test=regionChipsPillAndRealMoodPlayback
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.music.bitchord.MoodRegionEmulatorTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: release gate: every mood must queue and play (position advancing) but: [Energy: queued but never READY+playing, Sleep: nothing queued, Sleep: queued but never READY+playing, Relax: queued but never READY+playing, Party: queued but never READY+playing, Love: queued but never READY+playing]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:199)
+	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+
+INSTRUMENTATION_STATUS: stream=
+Error in regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest):
+java.lang.AssertionError: release gate: every mood must queue and play (position advancing) but: [Energy: queued but never READY+playing, Sleep: nothing queued, Sleep: queued but never READY+playing, Relax: queued but never READY+playing, Party: queued but never READY+playing, Love: queued but never READY+playing]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:199)
+	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+
+INSTRUMENTATION_STATUS: test=regionChipsPillAndRealMoodPlayback
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 280.902
+There was 1 failure:
+1) regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+java.lang.AssertionError: release gate: every mood must queue and play (position advancing) but: [Energy: queued but never READY+playing, Sleep: nothing queued, Sleep: queued but never READY+playing, Relax: queued but never READY+playing, Party: queued but never READY+playing, Love: queued but never READY+playing]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:199)
+	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

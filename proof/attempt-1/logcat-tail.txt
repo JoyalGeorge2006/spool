@@ -1,0 +1,30 @@
+11-24 21:27:21.752 V/WindowManagerShell(  841): Playing animation for (#8)android.os.BinderProxy@f931301@0
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.transition.DefaultMixedHandler@95e54d5
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.keyguard.KeyguardTransitionHandler@cc134ea
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.activityembedding.ActivityEmbeddingController@35f03db
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.recents.RecentsTransitionHandler@9038e78
+11-24 21:27:21.752 V/ShellRecents(  841): RecentsTransitionHandler.startAnimation: no controller found
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.pip.PipTransition@4bc6951
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.splitscreen.StageCoordinator@1f5b5b6
+11-24 21:27:21.752 V/WindowManagerShell(  841):  try handler com.android.wm.shell.transition.RemoteTransitionHandler@3c002b7
+11-24 21:27:21.752 V/WindowManager(  517): Sent Transition #8 createdAt=11-24 21:27:20.656 via request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=9 displayId=0 isRunning=false baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] 
+11-24 21:27:21.752 V/WindowManager(  517):     startWCT=WindowContainerTransaction { changes = {} hops = [] errorCallbackToken=null taskFragmentOrganizer=null }
+11-24 21:27:21.752 V/WindowManagerShell(  841): Transition doesn't have explicit remote, search filters for match for {id=8 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@e542ef9} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x3f98ffd sb=Rect
+11-24 21:27:21.752 V/WindowManagerShell(  841):  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLaunch
+11-24 21:27:21.752 V/WindowManager(  517):     info={id=8 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{edda542 Task{28b1a32 #1 type=home}}} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x604a77d sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0},{WCT{RemoteToken{89211
+11-24 21:27:21.752 D/RemoteTransitionHandler(  841): Found filterPair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLaunch
+11-24 21:27:21.752 V/WindowManagerShell(  841):  Delegate animation for #8 to RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@436b2fa, appThread = android.app.IApplicationThread$Stub$Proxy@d2e90ab, debugName = QuickstepLaunchHome }
+11-24 21:27:21.757 W/system_server(  517): Long monitor contention with owner android.anim (545) at android.content.res.Configuration com.android.server.wm.ActivityTaskManagerService.getGlobalConfigurationForPid(int)(ActivityTaskManagerService.java:1133) waiters=1 in void com.android.server.wm.Windo
+11-24 21:27:21.757 W/Looper  (  517): Slow dispatch took 233ms main h=com.android.server.accessibility.AccessibilityManagerService$MainHandler c=<recycled PooledLambda@8569bc6> m=0
+11-24 21:27:21.758 W/Looper  (  517): Slow delivery took 235ms main h=com.android.server.media.MediaSessionService$MessageHandler c=null m=1
+11-24 21:27:21.758 V/MediaPlayerList( 1025): onActiveSessionsChanged: number of controllers: 0
+11-24 21:27:21.758 V/MediaPlayerList( 1025): onActiveSessionsChanged: number of controllers: 0
+11-24 21:27:21.758 D/AvrcpTargetJni( 1025): sendPlayerSettingsNative
+11-24 21:27:21.758 I/bt_stack( 1025): [INFO:avrcp_service.cc(551)] virtual void bluetooth::avrcp::AvrcpService::SendPlayerSettingsChanged(std::vector<PlayerAttribute>, std::vector<uint8_t>)
+11-24 21:27:21.758 I/bt_stack( 1025): [INFO:avrcp_service.cc(565)] attribute=PlayerAttribute::REPEAT : value=PlayerRepeatValue::OFF
+11-24 21:27:21.758 I/bt_stack( 1025): attribute=PlayerAttribute::SHUFFLE : value=PlayerShuffleValue::OFF
+11-24 21:27:21.758 I/bt_stack( 1025): 
+11-24 21:27:21.760 I/Choreographer( 3338): Skipped 63 frames!  The application may be doing too much work on its main thread.
+11-24 21:27:21.761 W/Looper  (  517): Drained
+11-24 21:27:21.762 W/ActivityManager(  517): setHasOverlayUi called on unknown pid: 2465
+11-24 21:27:21.771 V/WindowManagerShell(  841):  animated by com.android.wm.shell.transition.RemoteTransitionHandler@3c002b7
