@@ -107,11 +107,16 @@ class MoodRegionEmulatorTest {
         say("STEP ml+ta selected")
 
         // Switch to the US: US languages only, then back: Indian choice is kept.
-        AppSettings.setMusicCountry("US"); settle(1200)
+        compose.onNodeWithText("Country").performClick(); settle(1200)
+        shot("region-03b-country-chooser-open")
+        compose.onNodeWithText("United States").performScrollTo().performClick(); settle(1200)
+        say("STEP country chooser: picked United States via the chooser UI")
         for (l in listOf("English", "Spanish", "Hindi", "Korean")) assertTrue("$l chip for US", textShown(l))
         assertTrue("no Malayalam for US", !textShown("Malayalam"))
         shot("region-04-united-states-chips")
-        AppSettings.setMusicCountry("IN"); settle(1200)
+        compose.onNodeWithText("Country").performClick(); settle(1200)
+        compose.onNodeWithText("India").performScrollTo().performClick(); settle(1200)
+        say("STEP country chooser: picked India via the chooser UI")
         assertEquals(setOf("malayalam", "tamil"), MusicRegion.activeLanguages().map { it.id }.toSet())
         shot("region-05-india-selection-kept")
         say("STEP country switch ok")
@@ -128,6 +133,19 @@ class MoodRegionEmulatorTest {
         }
         val c = future.get(20, java.util.concurrent.TimeUnit.SECONDS)
         say("STEP controller connected")
+        // The last mood row must clear the bottom bar once the grid is scrolled to its end.
+        runCatching {
+            val grid = compose.onAllNodes(hasScrollToNodeAction(), useUnmergedTree = true).fetchSemanticsNodes().maxByOrNull { it.size.height }
+            repeat(4) {
+                val gid = grid!!.id
+                compose.onNode(SemanticsMatcher("largest scrollable") { it.id == gid }, useUnmergedTree = true)
+                    .performTouchInput { swipe(androidx.compose.ui.geometry.Offset(centerX, height * 0.8f), androidx.compose.ui.geometry.Offset(centerX, height * 0.2f), 300) }
+                settle(500)
+            }
+            val b = compose.onAllNodesWithText("Social", useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
+            say("GRID-END Social label bottom=${b.bottom} rootHeight=${compose.onRoot().fetchSemanticsNode().size.height} gridNodeHeight=${grid?.size?.height}")
+            shot("region-08-grid-scrolled-to-end")
+        }.onFailure { say("grid-end check failed: ${it.message}") }
         var played = 0
         val problems = ArrayList<String>()
         for (label in listOf("Energy", "Sleep", "Relax", "Party", "Love")) {
@@ -151,7 +169,9 @@ class MoodRegionEmulatorTest {
             compose.runOnUiThread { c.clearMediaItems() }
             val tile = compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().size
             if (tile == 0) { say("$label: no such tile on the page"); problems.add("$label: no such tile"); continue }
-            compose.onAllNodesWithText(label, useUnmergedTree = true)[0].performClick()
+            shot("region-07a-${label.lowercase()}-before-tap")
+            val lb = compose.onAllNodesWithText(label, useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
+            compose.onRoot().performTouchInput { click(androidx.compose.ui.geometry.Offset(lb.center.x, (lb.top - 250f).coerceAtLeast(300f))) }
             var queued = false
             try {
                 compose.waitUntil(30_000) {
