@@ -1,0 +1,120 @@
+From 5e0ee28bd4b9fb0b23f23da63b3d51821f1dda2e Mon Sep 17 00:00:00 2001
+From: x <x@x>
+Date: Wed, 25 Nov 2026 03:48:34 +0530
+Subject: [PATCH 2/2] Sleep mood: prefer real songs over generic
+ sleep/baby/meditation channels when languages are selected
+
+---
+ .../com/music/bitchord/data/MusicRegion.kt    | 28 ++++++++++++++++++-
+ .../com/music/bitchord/data/TopPicks.kt       |  8 ++++++
+ .../music/bitchord/data/MusicRegionTest.kt    | 25 ++++++++++++++++-
+ 3 files changed, 59 insertions(+), 2 deletions(-)
+
+diff --git a/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/MusicRegion.kt b/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/MusicRegion.kt
+index bc942ccd..678642f1 100644
+--- a/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/MusicRegion.kt
++++ b/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/MusicRegion.kt
+@@ -208,7 +208,7 @@ object MusicRegion {
+         TopPickMood.FOCUS, TopPickMood.WORK -> "focus"
+         TopPickMood.HEARTBREAK -> "heartbreak"
+         TopPickMood.LOVE -> "romantic"
+-        TopPickMood.SLEEP -> "soft lullaby"
++        TopPickMood.SLEEP -> "soft melody"
+         TopPickMood.PARTY, TopPickMood.SOCIAL, TopPickMood.WEEKEND -> "party"
+         TopPickMood.FITNESS, TopPickMood.OUTDOORS, TopPickMood.SPORTS -> "workout"
+         TopPickMood.COMMUTING -> "travel"
+@@ -218,4 +218,30 @@ object MusicRegion {
+     /** The search that finds a language's songs for a mood when no shelf names it. */
+     fun searchQuery(language: Language, mood: TopPickMood): String =
+         "${language.label} ${moodTerm(mood)} songs"
++
++    // ---- Sleep: songs, not generic sleep channels ------------------------------
++
++    private val GENERIC_SLEEP_ARTIST = listOf(
++        "baby", "lullaby", "lullabies", "meditation", "sleep music", "zen zone", "zen master", "therapy", "sounds of", "asmr", "relaxing music",
++    )
++    private val GENERIC_SLEEP_TITLE = listOf(
++        "affirmation", "meditation", "sleep music", "sleep therapy", "delta waves", "binaural", "white noise", "baby sleep", "baby lullab",
++    )
++
++    /** A generic sleep, baby or meditation channel's upload rather than a song in the listener's language. */
++    fun isGenericSleepFiller(title: String, artist: String): Boolean {
++        val t = title.lowercase(Locale.ROOT)
++        val a = artist.lowercase(Locale.ROOT)
++        return GENERIC_SLEEP_ARTIST.any { it in a } || GENERIC_SLEEP_TITLE.any { it in t }
++    }
++
++    /**
++     * Real songs first: generic filler only fills up to [minimum] when too few
++     * songs came back. This is a title and artist heuristic, not a per-track
++     * language filter, so other-language songs can still appear.
++     */
++    fun <T> preferSongs(items: List<T>, minimum: Int, title: (T) -> String, artist: (T) -> String): List<T> {
++        val (filler, songs) = items.partition { isGenericSleepFiller(title(it), artist(it)) }
++        return if (songs.size >= minimum) songs else songs + filler.take(minimum - songs.size)
++    }
+ }
+diff --git a/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/TopPicks.kt b/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/TopPicks.kt
+index a13c8eb5..8b49e028 100644
+--- a/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/TopPicks.kt
++++ b/shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/TopPicks.kt
+@@ -674,6 +674,10 @@ object TopPicks {
+                 // A row YouTube couldn't pair stays the video, and plays as one;
+                 // the player menu's version switch turns it into the song.
+                 .distinctBy { it.videoId }
++                .let { all ->
++                    if (mood == TopPickMood.SLEEP && langs.isNotEmpty())
++                        MusicRegion.preferSongs(all, MIN_SEARCHED_QUEUE, { it.title }, { it.artist }) else all
++                }
+                 .shuffled()
+                 .take(MOOD_QUEUE)
+         }
+@@ -713,6 +717,10 @@ object TopPicks {
+                         }
+                     }
+                     .filterNot { it.isVideo }
++                    .let { all ->
++                        if (mood == TopPickMood.SLEEP)
++                            MusicRegion.preferSongs(all, MIN_SEARCHED_QUEUE, { it.title }, { it.artist }) else all
++                    }
+                     .take(MOOD_QUEUE)
+             }
+         }.awaitAll().flatten().distinctBy { it.videoId }.shuffled().take(MOOD_QUEUE)
+diff --git a/shared/src/jvmTest/kotlin/com/music/bitchord/data/MusicRegionTest.kt b/shared/src/jvmTest/kotlin/com/music/bitchord/data/MusicRegionTest.kt
+index 47dee15c..b9749729 100644
+--- a/shared/src/jvmTest/kotlin/com/music/bitchord/data/MusicRegionTest.kt
++++ b/shared/src/jvmTest/kotlin/com/music/bitchord/data/MusicRegionTest.kt
+@@ -69,6 +69,29 @@ class MusicRegionTest {
+     @Test
+     fun searchQueryNamesLanguageAndMood() {
+         val q = MusicRegion.searchQuery(MusicRegion.languages.getValue("tamil"), TopPickMood.SLEEP)
+-        assertEquals("Tamil soft lullaby songs", q)
++        assertEquals("Tamil soft melody songs", q)
++    }
++
++    @Test
++    fun sleepSetAvoidsGenericChannelsButKeepsFilmSongs() {
++        assertTrue(MusicRegion.isGenericSleepFiller("Go to Sleep", "Beautiful Lullaby Academy"))
++        assertTrue(MusicRegion.isGenericSleepFiller("I Am Affirmations for Children While They Sleep", "Rising Higher Meditation"))
++        assertTrue(MusicRegion.isGenericSleepFiller("Sleep Therapy in Veena", "Raag Music Therapy"))
++        assertTrue(!MusicRegion.isGenericSleepFiller("Kunjikkavil Meghame", "Johnpaul George, Vinayak Sasikumar"))
++        assertTrue(!MusicRegion.isGenericSleepFiller("Innum Konjam Neram", "A.R. Rahman, Vijay Prakash"))
++        // Sadhana Sargam is a singer, not a generic channel.
++        assertTrue(!MusicRegion.isGenericSleepFiller("Snehidhane", "Sadhana Sargam, Srinivas"))
++    }
++
++    @Test
++    fun preferSongsOrdersSongsFirstAndOnlyPadsWithFillerWhenShort() {
++        val songs = (1..14).map { "Song $it" to "Singer" }
++        val filler = (1..5).map { "Baby $it" to "Baby Lullaby" }
++        val enough = MusicRegion.preferSongs(filler + songs, 12, { it.first }, { it.second })
++        assertEquals(14, enough.size)
++        assertTrue(enough.none { it.second == "Baby Lullaby" })
++        val few = MusicRegion.preferSongs(filler + songs.take(10), 12, { it.first }, { it.second })
++        assertEquals(12, few.size)
++        assertEquals(10, few.count { it.second == "Singer" })
+     }
+ }
+-- 
+2.34.1
+
