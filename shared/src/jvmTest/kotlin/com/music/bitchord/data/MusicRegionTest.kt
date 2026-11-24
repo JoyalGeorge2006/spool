@@ -44,7 +44,7 @@ class MusicRegionTest {
         assertEquals(setOf("malayalam", "english"), MusicRegion.activeLanguages(ml).map { it.id }.toSet())
         val en = india.copy(deviceLanguages = setOf("english"))
         assertEquals(listOf("english"), MusicRegion.activeLanguages(en).map { it.id })
-        assertTrue(MusicRegion.steeringLanguages(en).isEmpty())
+        assertEquals(listOf("english"), MusicRegion.steeringLanguages(en).map { it.id })
     }
 
     @Test

@@ -25,7 +25,7 @@ object MusicRegion {
         id to Language(id, label, hints.toList())
 
     val languages: Map<String, Language> = linkedMapOf(
-        lang("english", "English"),
+        lang("english", "English", "english"),
         lang("malayalam", "Malayalam", "malayalam", "mollywood", "kerala"),
         lang("tamil", "Tamil", "tamil", "kollywood"),
         lang("hindi", "Hindi", "hindi", "bollywood"),
