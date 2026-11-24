@@ -1,0 +1,30 @@
+11-24 20:53:32.678 I/binder  (    0): undelivered transaction 132108, process died.
+11-24 20:53:32.666 V/ActivityManager(  516): Got obituary of 2416:app.spool.music.dev
+11-24 20:53:32.667 I/ImeTracker(  516): app.spool.music.dev:9c2fcac6: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-24 20:53:32.667 I/ImeTracker(  516): app.spool.music.dev:9c2fcac6: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 20:53:32.667 I/MediaSessionStack(  516): removeSession | record: app.spool.music.dev/androidx.media3.session.id.BitChordPlayback (userId=0)
+11-24 20:53:32.667 I/MediaFocusControl(  516): AudioFocus  removeFocusStackEntryOnDeath(): removing entry for android.os.BinderProxy@86f5514
+11-24 20:53:32.668 V/MediaPlayerList( 1017): onActiveSessionsChanged: number of controllers: 0
+11-24 20:53:32.668 V/MediaPlayerList( 1017): onActiveSessionsChanged: number of controllers: 0
+11-24 20:53:32.668 D/ConnectivityService(  516): releasing NetworkRequest [ REQUEST id=54, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 20:53:32.668 D/AvrcpTargetJni( 1017): sendPlayerSettingsNative
+11-24 20:53:32.668 I/bt_stack( 1017): [INFO:avrcp_service.cc(551)] virtual void bluetooth::avrcp::AvrcpService::SendPlayerSettingsChanged(std::vector<PlayerAttribute>, std::vector<uint8_t>)
+11-24 20:53:32.668 I/bt_stack( 1017): [INFO:avrcp_service.cc(565)] attribute=PlayerAttribute::REPEAT : value=PlayerRepeatValue::OFF
+11-24 20:53:32.668 I/bt_stack( 1017): attribute=PlayerAttribute::SHUFFLE : value=PlayerShuffleValue::OFF
+11-24 20:53:32.668 I/bt_stack( 1017): 
+11-24 20:53:32.668 D/ConnectivityService(  516): releasing NetworkRequest [ REQUEST id=56, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 20:53:32.668 D/ConnectivityService(  516): releasing NetworkRequest [ REQUEST id=60, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-24 20:53:32.672 W/ActivityManager(  516): setHasOverlayUi called on unknown pid: 2416
+11-24 20:53:32.690 I/Zygote  (  337): Process 2416 exited due to signal 9 (Killed)
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown center_vertical_guideline
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown action_button_guideline
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown icon
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown media_seamless
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown media_action_barrier_start
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown media_action_barrier_end
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown media_action_barrier_top
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown remove_text
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown settings
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown dismiss
+11-24 20:53:32.695 W/ConstraintSet(  830): id unknown cancel
+11-24 20:53:32.752 D/MediaDeviceManager(  830): Can not get LocalBluetoothLeBroadcast

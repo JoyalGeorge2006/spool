@@ -1,0 +1,104 @@
+11-24 20:51:45.481 I/lowmemorykiller(  141): Using psi monitors for memory pressure detection
+11-24 20:51:45.482 I/lowmemorykiller(  141): Process polling is supported
+11-24 20:51:45.482 I/lowmemorykiller(  141): Process reaper initialized with 2 threads in the pool
+11-24 20:51:53.423 I/lowmemorykiller(  141): lmkd data connection established
+11-24 20:51:57.072 I/ActivityManager(  516): Process WebViewLoader-x86_64 (pid 957) has died: psvc PER 
+11-24 20:52:10.099 I/TestRunner( 2416): run started: 1 tests
+11-24 20:52:10.100 I/TestRunner( 2416): started: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-24 20:52:22.780 I/System.out( 2416): MOOD-PROOF phone device languages=[english] country=IN active=[english]
+11-24 20:52:23.883 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-01-moods-pill-unconfirmed.png bytes=144268
+11-24 20:52:23.894 I/System.out( 2416): MOOD-PROOF STEP pill screenshot taken
+11-24 20:52:25.934 I/System.out( 2416): MOOD-PROOF STEP pill clicked
+11-24 20:52:27.007 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-02-india-chips-unconfirmed.png bytes=127609
+11-24 20:52:27.012 I/System.out( 2416): MOOD-PROOF STEP chips asserted
+11-24 20:52:30.388 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03a-india-ml-ta-with-phone-english.png bytes=116841
+11-24 20:52:32.619 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03-india-malayalam-tamil-selected.png bytes=116334
+11-24 20:52:32.624 I/System.out( 2416): MOOD-PROOF STEP ml+ta selected
+11-24 20:52:34.933 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-04-united-states-chips.png bytes=119012
+11-24 20:52:37.185 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-05-india-selection-kept.png bytes=116334
+11-24 20:52:37.189 I/System.out( 2416): MOOD-PROOF STEP country switch ok
+11-24 20:52:39.804 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-06-moods-pill-confirmed.png bytes=144579
+11-24 20:52:39.815 I/System.out( 2416): MOOD-PROOF STEP controller connected
+11-24 20:53:25.578 I/System.out( 2416): MOOD-PROOF Energy: no playing queue within 45s: Condition still not satisfied after 45000 ms
+11-24 20:53:30.593 I/System.out( 2416): MOOD-PROOF STEP Energy tapped
+11-24 20:53:30.599 I/System.out( 2416): MOOD-PROOF TEST-FAILURE java.lang.IllegalStateException: MediaController method is called from a wrong thread. See javadoc of MediaController for details.
+11-24 20:53:31.592 I/System.out( 2416): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-failure.png bytes=168428
+11-24 20:53:32.390 E/TestRunner( 2416): failed: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-24 20:53:32.394 E/TestRunner( 2416): ----- begin exception -----
+11-24 20:53:32.394 E/TestRunner( 2416): java.lang.IllegalStateException: MediaController method is called from a wrong thread. See javadoc of MediaController for details.
+11-24 20:53:32.394 E/TestRunner( 2416): 	at com.google.common.base.Preconditions.checkState(Preconditions.java:513)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.media3.session.MediaController.verifyApplicationThread(MediaController.java:2261)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.media3.session.MediaController.getCurrentTimeline(MediaController.java:1354)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.media3.session.MediaController.getMediaItemCount(MediaController.java:1633)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:160)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at java.lang.reflect.Method.invoke(Native Method)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$testWithDisposal$1.evaluate(AndroidComposeTestRule.android.kt:322)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invokeSuspend(AndroidComposeTestRule.android.kt:334)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(Unknown Source:8)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(Unknown Source:4)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invokeSuspend(ComposeUiTest.android.kt:605)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(Unknown Source:8)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(Unknown Source:2)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.EspressoLink.withStrategy(EspressoLink.android.kt:69)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invokeSuspend(ComposeUiTest.android.kt:602)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(Unknown Source:8)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(Unknown Source:4)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:98)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:326)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source:1)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source:1)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source:1)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+11-24 20:53:32.394 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:585)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:334)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.Suite.runChild(Suite.java:128)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.Suite.runChild(Suite.java:27)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:467)
+11-24 20:53:32.396 E/TestRunner( 2416): 	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)
+11-24 20:53:32.396 E/TestRunner( 2416): ----- end exception -----
+11-24 20:53:32.401 I/TestRunner( 2416): finished: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-24 20:53:32.405 I/TestRunner( 2416): run finished: 1 tests, 1 failed, 0 ignored

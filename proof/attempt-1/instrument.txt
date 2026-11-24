@@ -1,0 +1,53 @@
+INSTRUMENTATION_STATUS: class=com.music.bitchord.MoodRegionEmulatorTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.music.bitchord.MoodRegionEmulatorTest:
+INSTRUMENTATION_STATUS: test=regionChipsPillAndRealMoodPlayback
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.music.bitchord.MoodRegionEmulatorTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.IllegalStateException: MediaController method is called from a wrong thread. See javadoc of MediaController for details.
+	at com.google.common.base.Preconditions.checkState(Preconditions.java:513)
+	at androidx.media3.session.MediaController.verifyApplicationThread(MediaController.java:2261)
+	at androidx.media3.session.MediaController.getCurrentTimeline(MediaController.java:1354)
+	at androidx.media3.session.MediaController.getMediaItemCount(MediaController.java:1633)
+	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:160)
+	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+
+INSTRUMENTATION_STATUS: stream=
+Error in regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest):
+java.lang.IllegalStateException: MediaController method is called from a wrong thread. See javadoc of MediaController for details.
+	at com.google.common.base.Preconditions.checkState(Preconditions.java:513)
+	at androidx.media3.session.MediaController.verifyApplicationThread(MediaController.java:2261)
+	at androidx.media3.session.MediaController.getCurrentTimeline(MediaController.java:1354)
+	at androidx.media3.session.MediaController.getMediaItemCount(MediaController.java:1633)
+	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:160)
+	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+
+INSTRUMENTATION_STATUS: test=regionChipsPillAndRealMoodPlayback
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 82.306
+There was 1 failure:
+1) regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+java.lang.IllegalStateException: MediaController method is called from a wrong thread. See javadoc of MediaController for details.
+	at com.google.common.base.Preconditions.checkState(Preconditions.java:513)
+	at androidx.media3.session.MediaController.verifyApplicationThread(MediaController.java:2261)
+	at androidx.media3.session.MediaController.getCurrentTimeline(MediaController.java:1354)
+	at androidx.media3.session.MediaController.getMediaItemCount(MediaController.java:1633)
+	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:160)
+	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

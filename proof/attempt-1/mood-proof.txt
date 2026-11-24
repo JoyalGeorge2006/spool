@@ -1,0 +1,10 @@
+phone device languages=[english] country=IN active=[english]
+STEP pill screenshot taken
+STEP pill clicked
+STEP chips asserted
+STEP ml+ta selected
+STEP country switch ok
+STEP controller connected
+Energy: no playing queue within 45s: Condition still not satisfied after 45000 ms
+STEP Energy tapped
+TEST-FAILURE java.lang.IllegalStateException: MediaController method is called from a wrong thread. See javadoc of MediaController for details.
