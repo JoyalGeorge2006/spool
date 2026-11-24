@@ -75,7 +75,7 @@ class MoodRegionEmulatorTest {
         shot("region-01-moods-pill-unconfirmed")
 
         // Open the region page through the pill.
-        compose.onNode(hasText("India", substring = true) and hasClickAction(), useUnmergedTree = true).performClick()
+        compose.onNode(hasText("India", substring = true), useUnmergedTree = true).performClick()
         settle(1500)
         assertTrue("confirmation prompt shown", textShown("Choose the languages you listen to"))
         for (l in listOf("Malayalam", "Tamil", "Hindi", "Telugu", "Kannada", "English")) assertTrue("$l chip for India", textShown(l))
