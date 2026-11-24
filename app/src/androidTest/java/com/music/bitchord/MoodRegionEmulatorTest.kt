@@ -120,8 +120,16 @@ class MoodRegionEmulatorTest {
             step("country chooser: pick $name") {
                 compose.onNodeWithText("Country").performClick(); settle(1200)
                 if (name == "United States") shot("region-03b-country-chooser-open")
-                compose.onNode(hasScrollToNodeAction() and hasAnyDescendant(hasText("Afghanistan")), useUnmergedTree = true).performScrollToNode(hasText(name)); settle(600)
-                compose.onNodeWithText(name).performClick(); settle(1200)
+                // Real finger swipes on the screen until the exact row is composed (lazy list), then tap it.
+                var found = false
+                for (i in 0 until 90) {
+                    if (compose.onAllNodes(hasText(name), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()) { found = true; break }
+                    val pfd = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("input swipe 540 1700 540 700 150")
+                    android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
+                    settle(300)
+                }
+                assertTrue("country row $name never became visible after swiping", found)
+                compose.onNode(hasText(name), useUnmergedTree = true).performClick(); settle(1200)
                 viaUi = true
             }
             if (!viaUi) {
