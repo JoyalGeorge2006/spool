@@ -38,7 +38,10 @@ jobs:
     - name: Failure summary
       if: always()
       run: |
-        grep -E "^e: |FAILED|BUILD " /tmp/gradle.log | head -60 || true
+        grep -E "^e: |FAILED|BUILD |tests completed" /tmp/gradle.log | head -40 || true
+        grep -B2 -A14 " FAILED$" /tmp/gradle.log | head -150 || true
+        grep -l "<failure" $(find . -path "*test-results*" -name "*.xml") 2>/dev/null | head -20 || true
+        find . -path "*test-results*" -name "*MusicRegion*.xml" -exec grep -m2 "<testsuite " {} \; || true
     - uses: actions/upload-artifact@v4
       if: always()
       with:
