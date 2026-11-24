@@ -31,10 +31,14 @@ jobs:
         }
         INIT
     - name: Unit tests (shared JVM and app dev unit tests)
-      run: timeout 2400 ./gradlew --init-script /tmp/platform.gradle :shared:jvmTest :app:testDevDebugUnitTest --no-daemon --console=plain 2>&1 | tee /tmp/gradle.log; exit ${PIPESTATUS[0]}
+      shell: bash
+      run: |
+        set -o pipefail
+        timeout 2400 ./gradlew --init-script /tmp/platform.gradle :shared:jvmTest :app:testDevDebugUnitTest --no-daemon --console=plain 2>&1 | tee /tmp/gradle.log
     - name: Failure summary
       if: always()
-      run: grep -E "^e: |FAILED|error:|BUILD |Test.*FAILED" /tmp/gradle.log | head -60 || true
+      run: |
+        grep -E "^e: |FAILED|BUILD " /tmp/gradle.log | head -60 || true
     - uses: actions/upload-artifact@v4
       if: always()
       with:
