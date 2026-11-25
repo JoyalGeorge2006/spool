@@ -98,7 +98,7 @@ jobs:
         existing=subprocess.run(['gh','api',f'repos/{repo}/releases/tags/{tag}'],capture_output=True,text=True)
         assert existing.returncode!=0,'Release already exists: stop rather than overwrite'
         notes=open('release-notes.md').read()
-        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','cfc25f21fc840f20f87846e664d3483321a4d030','--draft','--title','Spool 2.1.6','--notes',notes],check=True)
+        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','spool-mood-region','--draft','--title','Spool 2.1.6','--notes',notes],check=True)
         assets=[p for p in out.iterdir() if p.suffix in ['.apk','.spdelta'] or p.name=='spool-v2.1.6-source.tar.gz']
         subprocess.run(['gh','release','upload',tag,'--repo',repo]+[str(p) for p in assets],check=True)
         r=json.loads(cmd('gh','api',f'repos/{repo}/releases/tags/{tag}'));assert r['draft']
