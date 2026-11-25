@@ -1,0 +1,137 @@
+name: Spool 2.1.6 staged OTA-first publisher
+on:
+  push:
+    branches: [spool-mood-region]
+    paths: [.github/workflows/spool-216-publish.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: spool-216-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: JoyalGeorge2006/spool
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: 3acc3aae0df12a2044daa9fd7c3e3af5c2841257
+    - name: Wait for signed candidate and download exact artifact
+      run: |
+        set -euo pipefail
+        gh run watch 45523308037 --repo "$REPO" --exit-status
+        gh run download 45523308037 --repo "$REPO" --name spool-216-candidate-45523308037-1 --dir candidate
+        python3 - <<'PY'
+        import json,hashlib,pathlib
+        m=json.loads(pathlib.Path('candidate/manifest.json').read_text())
+        assert m['commit'].startswith('3acc3aae') and m['code']==65 and m['version']=='2.1.6' and m['package']=='app.spool.music'
+        assert m['certificate_sha256']=='a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
+        for name,v in m['files'].items():
+            p=pathlib.Path('candidate')/name
+            assert p.stat().st_size==v['size'] and hashlib.sha256(p.read_bytes()).hexdigest()==v['sha256']
+        PY
+    - name: Generate and reconstruct all supported patches before public mutation
+      run: |
+        set -euo pipefail
+        mkdir -p ota/classes ota/src/com/music/bitchord/data
+        cp app/src/main/java/com/music/bitchord/data/SpoolDelta.java ota/src/com/music/bitchord/data/
+        cat > ota/DeltaApply.java <<'JAVA'
+        import com.music.bitchord.data.SpoolDelta;
+        import java.io.File;
+        public final class DeltaApply { public static void main(String[] a) throws Exception { SpoolDelta.apply(new File(a[0]),new File(a[1]),new File(a[2]),Long.parseLong(a[3]),Long.parseLong(a[4]),a[5],a[6],()->{}); } }
+        JAVA
+        javac -d ota/classes ota/src/com/music/bitchord/data/SpoolDelta.java ota/DeltaApply.java
+        gh run download 44994216959 --repo "$REPO" --name spool-2.1.2-reviewed-candidate-44994216959-1 --dir ota/base59
+        python3 - <<'PY'
+        import hashlib,json,pathlib,subprocess,os,re
+        repo=os.environ['REPO'];out=pathlib.Path('candidate');work=pathlib.Path('ota')
+        def cmd(*a):return subprocess.check_output([str(v) for v in a],text=True)
+        def sha(p):return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+        target=out/'spool.apk';th=sha(target);ts=target.stat().st_size
+        aapt=sorted(pathlib.Path(os.environ['ANDROID_HOME']).glob('build-tools/*/aapt'))[-1]
+        signer=aapt.parent/'apksigner'
+        bases=[]
+        for tag in ['v2.1.5','v2.1.4','v2.1.1','v2.1.0-theme-preview','v2.0.0']:
+            r=json.loads(cmd('gh','api',f'repos/{repo}/releases/tags/{tag}'))
+            for a in r['assets']:
+                if not a['name'].endswith('.apk'):continue
+                p=work/f"base-{a['id']}.apk"
+                subprocess.run(['gh','release','download',tag,'--repo',repo,'--pattern',a['name'],'--output',str(p)],check=True)
+                assert p.stat().st_size==a['size'] and 'sha256:'+sha(p)==a['digest']
+                bad=cmd(aapt,'dump','badging',p);m=re.search(r"package: name='([^']+)' versionCode='(\d+)'",bad);assert m and m[1]=='app.spool.music'
+                code=int(m[2]);assert code in [56,57,58,63,64],code
+                nc=re.search(r'^native-code: (.*)$',bad,re.M);abis=set(re.findall(r"'([^']+)'",nc[1]))
+                kind='arm64' if abis=={'arm64-v8a'} else 'universal'
+                if not any(b[0]==code and b[1]==kind for b in bases):bases.append((code,kind,p))
+        b59=[p for p in (work/'base59').rglob('*.apk') if p.stat().st_size==84374401 and sha(p)=='1126371f6446c2bc115c0311935f769ffe57c92e8eedaec1dba31c5da69f7046']
+        assert len(b59)==1,b59;bases.append((59,'arm64',b59[0]))
+        assert set((c,k) for c,k,p in bases)=={(c,k) for c in [56,57,58,63,64] for k in ['arm64','universal']}|{(59,'arm64')}
+        cat=[]
+        for code,kind,p in bases:
+            name=f"spool-{code}{'-arm64' if kind=='arm64' else ''}-to-65.spdelta";patch=out/name
+            subprocess.run(['python3','tools/ota/make_delta.py',str(p),str(target),str(patch)],check=True)
+            bh=sha(p);bs=p.stat().st_size
+            result=work/'roundtrip.apk'
+            subprocess.run(['java','-Xmx64m','-cp','ota/classes','DeltaApply',str(p),str(patch),str(result),str(bs),str(ts),bh,th],check=True)
+            assert sha(result)==th and result.stat().st_size==ts
+            subprocess.run(['cmp',str(result),str(target)],check=True);result.unlink()
+            cat.append(dict(name=name,format='spdelta-1',layout='standalone',package='app.spool.music',target_version='2.1.6',target_code=65,target_size=ts,target_sha256=th,base_code=code,base_size=bs,base_sha256=bh,min_sdk=26,abi='arm64-v8a',patch_size=patch.stat().st_size,patch_sha256=sha(patch)))
+            print('EXACT RECONSTRUCTION VERIFIED',name,flush=True)
+        (work/'patch-plan.json').write_text(json.dumps(cat,indent=2))
+        PY
+    - name: Stage complete draft release and catalog, then publish OTA
+      run: |
+        set -euo pipefail
+        cat > release-notes.md <<'NOTESEOF'
+        Find Your Mood now follows your country and languages. Choose a country and languages in Find Your Mood; defaults come from your phone and you confirm them. Sleep prefers soft songs over generic sleep and meditation channels. Language matching ranks by title and artist, so some other-language songs can appear.
+        NOTESEOF
+        python3 - <<'PY'
+        import json,subprocess,pathlib,os,hashlib
+        repo=os.environ['REPO'];out=pathlib.Path('candidate');tag='v2.1.6'
+        def cmd(*a):return subprocess.check_output([str(v) for v in a],text=True)
+        def sha(p):return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+        existing=subprocess.run(['gh','api',f'repos/{repo}/releases/tags/{tag}'],capture_output=True,text=True)
+        assert existing.returncode!=0,'Release already exists: stop rather than overwrite'
+        notes=open('release-notes.md').read()
+        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','3acc3aae0df12a2044daa9fd7c3e3af5c2841257','--draft','--title','Spool 2.1.6','--notes',notes],check=True)
+        assets=[p for p in out.iterdir() if p.suffix in ['.apk','.spdelta'] or p.name=='spool-v2.1.6-source.tar.gz']
+        subprocess.run(['gh','release','upload',tag,'--repo',repo]+[str(p) for p in assets],check=True)
+        r=json.loads(cmd('gh','api',f'repos/{repo}/releases/tags/{tag}'));assert r['draft']
+        by={a['name']:a for a in r['assets']};cat=json.loads(pathlib.Path('ota/patch-plan.json').read_text())
+        for e in cat:
+            name=e.pop('name');a=by[name];assert a['size']==e['patch_size'] and a['digest']=='sha256:'+e['patch_sha256'];e['patch_asset_id']=str(a['id'])
+        (out/'spool-ota-v1.json').write_text(json.dumps(dict(schema=1,patches=cat),indent=2))
+        files=assets+[out/'spool-ota-v1.json'];(out/'SHA256SUMS.txt').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in sorted(files)))
+        subprocess.run(['gh','release','upload',tag,'--repo',repo,str(out/'spool-ota-v1.json'),str(out/'SHA256SUMS.txt')],check=True)
+        subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false','--latest'],check=True)
+        PY
+    - name: Verify live OTA catalog, published patches and APK bytes
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import subprocess,json,pathlib,hashlib,urllib.request,os
+        repo=os.environ['REPO'];r=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/latest'],text=True));assert r['tag_name']=='v2.1.6' and not r['draft'] and not r['prerelease']
+        out=pathlib.Path('candidate');pub=pathlib.Path('public-check');pub.mkdir()
+        for a in r['assets']:
+            p=pub/a['name'];urllib.request.urlretrieve(a['browser_download_url'],p)
+            assert hashlib.sha256(p.read_bytes()).hexdigest()==hashlib.sha256((out/a['name']).read_bytes()).hexdigest(),a['name']
+            print('PUBLIC BYTES VERIFIED',a['name'],a['browser_download_url'],flush=True)
+        cat=json.loads((pub/'spool-ota-v1.json').read_text());assert len(cat['patches'])==11 and set(e['base_code'] for e in cat['patches'])=={56,57,58,59,63,64}
+        assert all(e['target_code']==65 and e['package']=='app.spool.music' for e in cat['patches'])
+        print('OTA LIVE VERIFIED BEFORE APK DELIVERY',r['html_url'])
+        PY
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      if: always()
+      with:
+        name: spool-216-publication-evidence
+        path: |
+          candidate/manifest.json
+          candidate/SHA256SUMS.txt
+          candidate/spool-ota-v1.json
+          ota/patch-plan.json
+        if-no-files-found: warn
