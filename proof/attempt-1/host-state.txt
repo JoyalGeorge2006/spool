@@ -1,0 +1,320 @@
+01:30:09
+Mem:           15983        5063        1206          56       10114       10919
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    243 4209636    42 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    9.1 137812    804 /tmp/provjobd4109784874
+01:30:15
+Mem:           15983        5245        1023          56       10115       10737
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    254 4428332    47 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    9.0 137812    809 /tmp/provjobd4109784874
+01:30:20
+Mem:           15983        5228        1025          56       10130       10754
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    261 4446284    52 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    9.0 137964    814 /tmp/provjobd4109784874
+01:30:25
+Mem:           15983        5334         917          56       10132       10648
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    265 4587020    57 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    9.0 138128    819 /tmp/provjobd4109784874
+01:30:30
+Mem:           15983        5384         867          56       10132       10598
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4634704    62 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.9 138140    824 /tmp/provjobd4109784874
+01:30:35
+Mem:           15983        5419         832          56       10132       10564
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    261 4665732    67 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.9 138148    829 /tmp/provjobd4109784874
+01:30:40
+Mem:           15983        5436         814          56       10132       10546
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    252 4670428    72 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.9 138148    834 /tmp/provjobd4109784874
+01:30:45
+Mem:           15983        5439         812          56       10132       10543
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    254 4670800    78 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.8 138148    839 /tmp/provjobd4109784874
+01:30:50
+Mem:           15983        5439         812          56       10133       10543
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    250 4671832    83 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.8 138164    844 /tmp/provjobd4109784874
+01:30:55
+Mem:           15983        5440         810          56       10133       10542
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    248 4671872    88 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.7 138164    849 /tmp/provjobd4109784874
+01:31:00
+Mem:           15983        5452         795          56       10137       10530
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    240 4676052    93 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.7 138164    854 /tmp/provjobd4109784874
+01:31:05
+Mem:           15983        5452         791          56       10141       10530
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    237 4676636    98 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.7 138164    859 /tmp/provjobd4109784874
+01:31:10
+Mem:           15983        5452         790          56       10141       10530
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    238 4676704   103 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.6 139044    864 /tmp/provjobd4109784874
+01:31:15
+Mem:           15983        5455         787          56       10141       10527
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    240 4676716   108 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.6 140672    870 /tmp/provjobd4109784874
+01:31:20
+Mem:           15983        5457         785          56       10141       10525
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    235 4676740   113 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.6 141136    875 /tmp/provjobd4109784874
+01:31:25
+Mem:           15983        5458         784          56       10141       10524
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    241 4676768   118 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.5 141136    880 /tmp/provjobd4109784874
+01:31:30
+Mem:           15983        5458         783          56       10142       10524
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    243 4676772   123 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.5 141148    885 /tmp/provjobd4109784874
+01:31:35
+Mem:           15983        5458         783          56       10143       10524
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    248 4676804   128 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.5 141152    890 /tmp/provjobd4109784874
+01:31:40
+Mem:           15983        5459         781          56       10143       10523
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    250 4676804   133 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.5 141152    895 /tmp/provjobd4109784874
+01:31:45
+Mem:           15983        5459         781          56       10143       10523
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    255 4676928   138 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.4 141180    900 /tmp/provjobd4109784874
+01:31:50
+Mem:           15983        5460         780          56       10143       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    254 4676948   143 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.4 141244    905 /tmp/provjobd4109784874
+01:31:55
+Mem:           15983        5459         780          56       10144       10523
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    249 4676980   148 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.4 141344    910 /tmp/provjobd4109784874
+01:32:00
+Mem:           15983        5460         780          56       10144       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    250 4677208   153 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.3 141348    915 /tmp/provjobd4109784874
+01:32:06
+Mem:           15983        5460         779          56       10144       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    251 4677312   158 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.3 141348    920 /tmp/provjobd4109784874
+01:32:11
+Mem:           15983        5460         779          56       10144       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    250 4677360   163 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.3 141352    925 /tmp/provjobd4109784874
+01:32:16
+Mem:           15983        5460         779          56       10144       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    251 4677400   168 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.3 141392    930 /tmp/provjobd4109784874
+01:32:21
+Mem:           15983        5461         778          56       10144       10521
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    252 4677404   173 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.2 141412    935 /tmp/provjobd4109784874
+01:32:26
+Mem:           15983        5461         778          56       10144       10521
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    255 4677444   178 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.2 141412    940 /tmp/provjobd4109784874
+01:32:31
+Mem:           15983        5460         779          56       10145       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    258 4677444   183 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.2 141412    945 /tmp/provjobd4109784874
+01:32:36
+Mem:           15983        5460         778          56       10145       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    259 4677548   189 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.1 141412    950 /tmp/provjobd4109784874
+01:32:41
+Mem:           15983        5460         778          56       10145       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    262 4677576   194 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.1 141412    955 /tmp/provjobd4109784874
+01:32:46
+Mem:           15983        5460         779          56       10145       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    261 4677576   199 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.1 141420    960 /tmp/provjobd4109784874
+01:32:51
+Mem:           15983        5460         779          56       10145       10522
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    257 4677612   204 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.1 141420    965 /tmp/provjobd4109784874
+01:32:56
+Mem:           15983        5463         774          57       10146       10519
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    257 4677660   209 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.0 141428    970 /tmp/provjobd4109784874
+01:33:01
+Mem:           15983        5463         774          57       10146       10519
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    257 4677696   214 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.0 141428    976 /tmp/provjobd4109784874
+01:33:06
+Mem:           15983        5464         773          57       10146       10518
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    256 4677888   219 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.0 141428    981 /tmp/provjobd4109784874
+01:33:11
+Mem:           15983        5466         772          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    257 4677888   224 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    8.0 141428    986 /tmp/provjobd4109784874
+01:33:16
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    259 4677820   229 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.9 141428    991 /tmp/provjobd4109784874
+01:33:21
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    260 4677796   234 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.9 141428    996 /tmp/provjobd4109784874
+01:33:26
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    262 4677900   239 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.9 141428   1001 /tmp/provjobd4109784874
+01:33:31
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    264 4677932   244 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.9 141428   1006 /tmp/provjobd4109784874
+01:33:36
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    266 4677940   249 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.8 141428   1011 /tmp/provjobd4109784874
+01:33:41
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    262 4677968   254 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.8 141428   1016 /tmp/provjobd4109784874
+01:33:46
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    260 4678040   259 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.8 141432   1021 /tmp/provjobd4109784874
+01:33:51
+Mem:           15983        5466         771          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    262 4678120   264 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.8 141432   1026 /tmp/provjobd4109784874
+01:33:56
+Mem:           15983        5466         770          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    259 4678124   269 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.7 141432   1031 /tmp/provjobd4109784874
+01:34:01
+Mem:           15983        5467         770          57       10147       10516
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    261 4678180   274 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.7 141432   1036 /tmp/provjobd4109784874
+01:34:07
+Mem:           15983        5467         769          57       10147       10515
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    261 4678180   279 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.7 141432   1041 /tmp/provjobd4109784874
+01:34:12
+Mem:           15983        5468         769          57       10147       10514
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4678188   284 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.7 141432   1046 /tmp/provjobd4109784874
+01:34:17
+Mem:           15983        5468         768          57       10148       10514
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4678204   289 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.7 141440   1051 /tmp/provjobd4109784874
+01:34:22
+Mem:           15983        5468         768          57       10148       10514
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    265 4678292   294 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.6 141440   1056 /tmp/provjobd4109784874
+01:34:27
+Mem:           15983        5468         768          57       10148       10514
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    267 4678292   299 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.6 141440   1061 /tmp/provjobd4109784874
+01:34:32
+Mem:           15983        5468         768          57       10148       10514
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    264 4678320   304 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.6 141440   1066 /tmp/provjobd4109784874
+01:34:37
+Mem:           15983        5469         767          57       10148       10513
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    262 4678368   310 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.6 141440   1071 /tmp/provjobd4109784874
+01:34:42
+Mem:           15983        5469         767          57       10148       10513
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4678496   315 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.6 141440   1076 /tmp/provjobd4109784874
+01:34:47
+Mem:           15983        5469         767          57       10148       10513
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    262 4678548   320 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.5 141576   1081 /tmp/provjobd4109784874
+01:34:52
+Mem:           15983        5469         766          57       10148       10513
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    261 4678608   325 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.5 141576   1086 /tmp/provjobd4109784874
+01:34:57
+Mem:           15983        5469         766          57       10148       10513
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4678624   330 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.5 141576   1091 /tmp/provjobd4109784874
+01:35:02
+Mem:           15983        5469         766          57       10149       10513
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4678668   335 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.5 141576   1096 /tmp/provjobd4109784874
+01:35:07
+Mem:           15983        5470         765          57       10149       10512
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    264 4678676   340 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.5 141576   1101 /tmp/provjobd4109784874
+01:35:12
+Mem:           15983        5472         763          57       10149       10510
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    265 4678680   345 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.4 141576   1107 /tmp/provjobd4109784874
+01:35:17
+Mem:           15983        5473         762          57       10149       10509
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    266 4678696   350 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.4 141624   1112 /tmp/provjobd4109784874
+01:35:22
+Mem:           15983        5473         762          57       10149       10509
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    266 4678696   355 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.4 141816   1117 /tmp/provjobd4109784874
+01:35:27
+Mem:           15983        5473         762          57       10149       10509
+    PID STAT %CPU   RSS ELAPSED COMMAND
+   4571 Sl    263 4678696   360 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headl
+   2176 Sl    7.4 142028   1122 /tmp/provjobd4109784874

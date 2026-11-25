@@ -1,0 +1,30 @@
+11-25 01:35:30.179 D/ConnectivityService(  518): releasing NetworkRequest [ REQUEST id=60, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10141 RequestorUid: 10141 RequestorPkg: app.spool.music.dev UnderlyingNetworks: Null] ] (release request)
+11-25 01:35:30.196 I/Zygote  (  340): Process 2450 exited due to signal 9 (Killed)
+11-25 01:35:30.202 W/ServiceManagerCppClient(  518): Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
+11-25 01:35:30.203 D/PermissionCache(  518): checking android.permission.ROTATE_SURFACE_FLINGER for uid=10142 => denied (719 us)
+11-25 01:35:30.203 W/ServiceManagerCppClient(  518): Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
+11-25 01:35:30.203 D/PermissionCache(  518): checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10142 => denied (311 us)
+11-25 01:35:30.204 W/ServiceManagerCppClient(  518): Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
+11-25 01:35:30.204 D/PermissionCache(  518): checking android.permission.ACCESS_SURFACE_FLINGER for uid=10142 => denied (326 us)
+11-25 01:35:30.206 V/MediaPlayerList( 1022): onActiveSessionsChanged: number of controllers: 0
+11-25 01:35:30.206 W/LocalMediaManager(  836): BluetoothAdapter is null or muting expected device not exist
+11-25 01:35:30.207 V/MediaPlayerList( 1022): onActiveSessionsChanged: number of controllers: 0
+11-25 01:35:30.207 D/AvrcpTargetJni( 1022): sendPlayerSettingsNative
+11-25 01:35:30.207 I/bt_stack( 1022): [INFO:avrcp_service.cc(551)] virtual void bluetooth::avrcp::AvrcpService::SendPlayerSettingsChanged(std::vector<PlayerAttribute>, std::vector<uint8_t>)
+11-25 01:35:30.207 I/bt_stack( 1022): [INFO:avrcp_service.cc(565)] attribute=PlayerAttribute::REPEAT : value=PlayerRepeatValue::OFF
+11-25 01:35:30.207 I/bt_stack( 1022): attribute=PlayerAttribute::SHUFFLE : value=PlayerShuffleValue::OFF
+11-25 01:35:30.207 I/bt_stack( 1022): 
+11-25 01:35:30.208 D/MediaDeviceManager(  836): Can not get LocalBluetoothLeBroadcast
+11-25 01:35:30.212 W/ConstraintSet(  836): id unknown center_vertical_guideline
+11-25 01:35:30.212 W/ConstraintSet(  836): id unknown action_button_guideline
+11-25 01:35:30.212 W/ConstraintSet(  836): id unknown icon
+11-25 01:35:30.212 W/ConstraintSet(  836): id unknown media_seamless
+11-25 01:35:30.212 W/ConstraintSet(  836): id unknown media_action_barrier_start
+11-25 01:35:30.243 W/ConstraintSet(  836): id unknown media_action_barrier_end
+11-25 01:35:30.243 W/ConstraintSet(  836): id unknown media_action_barrier_top
+11-25 01:35:30.243 W/ConstraintSet(  836): id unknown remove_text
+11-25 01:35:30.243 W/ConstraintSet(  836): id unknown settings
+11-25 01:35:30.243 W/ConstraintSet(  836): id unknown dismiss
+11-25 01:35:30.243 W/ConstraintSet(  836): id unknown cancel
+11-25 01:35:30.315 E/OpenGLRenderer( 1091): Unable to match the desired swap behavior.
+11-25 01:35:30.525 I/ndroid.systemui(  836): Background concurrent copying GC freed 565015(12MB) AllocSpace objects, 23(2220KB) LOS objects, 50% free, 16MB/33MB, paused 3.146ms,130us total 312.977ms

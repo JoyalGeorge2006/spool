@@ -1,0 +1,41 @@
+-- dmesg
+[    9.069860] ephemeral0: Can't lookup blockdev
+[    9.135718] systemd-fstab-generator[1049]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   10.135453] ephemeral0: Can't lookup blockdev
+[   10.676763] loop0: detected capacity change from 0 to 8
+[   10.773361] NET: Registered PF_QIPCRTR protocol family
+[   10.988912] kauditd_printk_skb: 178 callbacks suppressed
+[   10.988918] audit: type=1400 audit(1795569402.850:190): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/lib/snapd/snap-confine" pid=1455 comm="apparmor_parser"
+[   11.351895] Adding 3145724k swap on /swapfile.  Priority:-1 extents:4 across:4440060k 
+[   11.428932] audit: type=1400 audit(1795569403.290:191): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1618 comm="apparmor_parser"
+[   11.694567] Initializing XFRM netlink socket
+[   11.714419] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   11.870558] systemd-fstab-generator[1873]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   12.976458] systemd-fstab-generator[2068]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   13.339500] systemd-fstab-generator[2133]: 'ephemeral0' is not a device path, ignoring x-systemd.device-timeout= option.
+[   17.379143] hv_netvsc 000d3a59-b098-000d-3a59-b098000d3a59 eth0: VF slot 1 added
+[   17.382114] hv_pci 790667b5-8aae-4705-bfdf-8c9c210514a9: PCI VMBus probing: Using version 0x10004
+[   17.384243] hv_pci 790667b5-8aae-4705-bfdf-8c9c210514a9: PCI host bridge to bus 8aae:00
+[   17.384249] pci_bus 8aae:00: root bus resource [mem 0xfc0000000-0xfc00fffff window]
+[   17.384254] pci_bus 8aae:00: No busn resource found for root bus, will use [bus 00-ff]
+[   17.388186] pci 8aae:00:02.0: [15b3:1016] type 00 class 0x020000 PCIe Endpoint
+[   17.392616] pci 8aae:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]
+[   17.393348] pci 8aae:00:02.0: enabling Extended Tags
+[   17.409937] pci 8aae:00:02.0: 0.000 Gb/s available PCIe bandwidth, limited by Unknown x0 link at 8aae:00:02.0 (capable of 63.008 Gb/s with 8.0 GT/s PCIe x8 link)
+[   17.418277] pci_bus 8aae:00: busn_res: [bus 00-ff] end is updated to 00
+[   17.418295] pci 8aae:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]: assigned
+[   17.673692] mlx5_core 8aae:00:02.0: enabling device (0000 -> 0002)
+[   17.676739] mlx5_core 8aae:00:02.0: firmware version: 14.30.5026
+[   17.814197] mlx5_core 8aae:00:02.0: Flow counters bulk query buffer size increased, bulk_query_len(8)
+[   17.900970] hv_netvsc 000d3a59-b098-000d-3a59-b098000d3a59 eth0: VF registering: eth1
+[   17.901017] mlx5_core 8aae:00:02.0 eth1: joined to eth0
+[   17.901768] mlx5_core 8aae:00:02.0: MLX5E: StrdRq(0) RqSz(1024) StrdSz(256) RxCqeCmprss(0 basic)
+[   17.929228] mlx5_core 8aae:00:02.0 enP35502s1: renamed from eth1
+[   17.954698] MACsec IEEE 802.1AE
+[   18.060432] mlx5_core 8aae:00:02.0 enP35502s1: Link up
+[   18.091192] hv_netvsc 000d3a59-b098-000d-3a59-b098000d3a59 eth0: Data path switched to VF: enP35502s1
+[   18.091534] mlx5_core 8aae:00:02.0 mlx5_0: Port: 1 Link ACTIVE
+[   49.089368] hv_balloon: Max. dynamic memory size: 16384 MB
+[  124.324327] /proc/cgroups lists only v1 controllers, use cgroup.controllers of root cgroup for v2 info
+[  311.719102] hrtimer: interrupt took 5221595 ns
+[  777.685286] kvm: kvm [4571]: vcpu0, guest rIP: 0xffffffffbd003a51 Unhandled WRMSR(0xc0010007) = 0xffff

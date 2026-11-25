@@ -1,0 +1,40 @@
+DEBUG   | Crash dump message: 'emuglConfig_init: gpu_mode_requested: lavapipe, no_window: 1'
+DEBUG   | Crash dump message: 'emuglConfig_init: GPU emulation enabled using Vulkan:'lavapipe' GLES:'swangle' modes'
+DEBUG   | Crash dump message: 'Deciding if GLDirectMem/Vulkan should be enabled. Selected GLES renderer: Angle Indirect Selected Vulkan renderer: Lavapipe API level: 34 '
+DEBUG   | Crash dump message: 'Enabling Vulkan'
+DEBUG   | Crash dump message: 'Enabling GLDirectMem'
+INFO         | Storing crashdata in: /tmp/android-runner/emu-crash-37.3.10.db, detection is enabled for process: 4571
+DEBUG   | Crash dump message: 'Selecting Vulkan device: llvmpipe (LLVM 21.1.8, 256 bits), Version: 1.4.363'
+DEBUG   | Crash dump message: 'VkEmulation deviceInfo: 
+DEBUG   | Crash dump message: 'Vulkan emulation initialized'
+INFO         | 	hw.lcd.circular = false
+INFO         | 	 argv[110] = "8250.nr_uarts=1 clocksource=pit no_timer_check console=ttyS0,38400 earlyprintk=ttyS0 loop.max_part=7 ramoops.mem_address=0xff018000 ramoops.mem_size=0x10000 memmap=0x10000$0xff018000 printk.devkmsg=on bootconfig"
+INFO         | Concatenated QEMU options: /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headless -dns-server 127.0.0.53 -no-audio -serial stdio -android-ports 5554,5555 -device goldfish_pstore,addr=0xff018000,size=0x10000,f
+DEBUG   | Crash info: sessionId=
+DEBUG   | Crash info: ro.build.fingerprint=Android/sdk_phone64_x86_64/emu64x:14/UE1A.230829.036.A1/11228894:userdebug/test-keys
+DEBUG   | Crash info: avd_space=83190964224
+DEBUG   | Crash info: free_ram=14486
+DEBUG   | Crash info: hw.gpu.enabled=yes
+DEBUG   | Crash info: cpu_cores=4
+DEBUG   | Crash info: PlayStore.enabled=false
+DEBUG   | Crash info: hw.ramSize=4096
+DEBUG   | Crash info: hw.lcd.width=1080
+DEBUG   | Crash info: hw.sensor.hinge=?
+DEBUG   | Crash info: hw.cpu.ncore=3
+DEBUG   | Crash info: hw.gpu.mode=auto
+DEBUG   | Crash info: hw.lcd.height=2400
+DEBUG   | Crash info: disk.dataPartition.size=6G
+[    0.000000] Command line: 8250.nr_uarts=1 clocksource=pit no_timer_check console=ttyS0,38400 earlyprintk=ttyS0 loop.max_part=7 ramoops.mem_address=0xff018000 ramoops.mem_size=0x10000 memmap=0x10000$0xff018000 printk.devkmsg=on bootconfig mac80211_
+[    0.110542] Kernel command line: console=ttynull stack_depot_disable=on cgroup_disable=pressure bootconfig 8250.nr_uarts=1 clocksource=pit no_timer_check console=ttyS0,38400 earlyprintk=ttyS0 loop.max_part=7 ramoops.mem_address=0xff018000 ramoops.
+[    0.152157] rcu: Preemptible hierarchical RCU implementation.
+[    0.153840] rcu: 	RCU event tracing is enabled.
+[    0.155147] rcu: 	RCU restricting CPUs from NR_CPUS=32 to nr_cpu_ids=3.
+[    0.157116] rcu: 	RCU priority boosting: priority 1 delay 500 ms.
+[    0.158888] 	Trampoline variant of Tasks RCU enabled.
+[    0.160341] 	Tracing variant of Tasks RCU enabled.
+[    0.161719] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.163946] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.168717] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.468169] rcu: Hierarchical SRCU implementation.
+[    0.469085] rcu: 	Max phase no-delay instances is 1000.
+[    0.518612] ramoops: using module parameters

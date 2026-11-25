@@ -1,0 +1,139 @@
+11-25 01:29:35.327 I/lowmemorykiller(  142): Using psi monitors for memory pressure detection
+11-25 01:29:35.331 I/lowmemorykiller(  142): Process polling is supported
+11-25 01:29:35.331 I/lowmemorykiller(  142): Process reaper initialized with 2 threads in the pool
+11-25 01:29:45.002 I/lowmemorykiller(  142): lmkd data connection established
+11-25 01:29:49.776 I/ActivityManager(  518): Process WebViewLoader-x86_64 (pid 958) has died: psvc PER 
+11-25 01:30:08.225 I/TestRunner( 2450): run started: 1 tests
+11-25 01:30:08.227 I/TestRunner( 2450): started: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-25 01:30:25.043 I/System.out( 2450): MOOD-PROOF phone device languages=[english] country=IN active=[english]
+11-25 01:30:26.228 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-01-moods-pill-unconfirmed.png bytes=145265
+11-25 01:30:26.240 I/System.out( 2450): MOOD-PROOF STEP pill screenshot taken
+11-25 01:30:28.855 I/System.out( 2450): MOOD-PROOF STEP pill clicked
+11-25 01:30:29.994 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-02-india-chips-unconfirmed.png bytes=127454
+11-25 01:30:30.000 I/System.out( 2450): MOOD-PROOF STEP chips asserted
+11-25 01:30:33.873 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03a-india-ml-ta-with-phone-english.png bytes=116660
+11-25 01:30:36.224 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03-india-malayalam-tamil-selected.png bytes=116151
+11-25 01:30:36.231 I/System.out( 2450): MOOD-PROOF STEP ml+ta selected
+11-25 01:30:38.804 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-03b-country-chooser-open.png bytes=85892
+11-25 01:30:48.693 I/System.out( 2450): MOOD-PROOF STEP-OK country chooser: pick United States
+11-25 01:30:49.743 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-04-united-states-chips.png bytes=118984
+11-25 01:30:49.749 I/System.out( 2450): MOOD-PROOF STEP-OK US chips
+11-25 01:30:56.044 I/System.out( 2450): MOOD-PROOF STEP-OK country chooser: pick India
+11-25 01:30:57.008 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-05-india-selection-kept.png bytes=116314
+11-25 01:30:57.014 I/System.out( 2450): MOOD-PROOF STEP-OK India selection kept
+11-25 01:30:59.649 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-06-moods-pill-confirmed.png bytes=145561
+11-25 01:30:59.655 I/System.out( 2450): MOOD-PROOF STEP-OK Done and confirmed pill
+11-25 01:30:59.670 I/System.out( 2450): MOOD-PROOF STEP controller connected
+11-25 01:31:03.640 I/System.out( 2450): MOOD-PROOF GRID-END Social label bottom=196.0 rootHeight=2400 gridNodeHeight=2400
+11-25 01:31:04.632 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-08-grid-scrolled-to-end.png bytes=141623
+11-25 01:31:05.442 I/System.out( 2450): MOOD-PROOF Energy tile bounds top=1180.0 bottom=1231.0 rootHeight=2400
+11-25 01:31:06.451 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07a-energy-before-tap.png bytes=144934
+11-25 01:31:48.340 I/System.out( 2450): MOOD-PROOF Energy: queued but not READY+playing within 40s
+11-25 01:31:53.473 I/System.out( 2450): MOOD-PROOF STEP Energy tapped
+11-25 01:31:53.484 I/System.out( 2450): MOOD-PROOF Energy queued=66 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Mascara | Supriya Joshi, Vijay Antony ;; Asalayavale (From "Khalifa") | Jakes Bejoy, 
+11-25 01:31:56.224 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-energy-playing.png bytes=182971
+11-25 01:31:58.724 I/System.out( 2450): MOOD-PROOF Sleep tile bounds top=2349.0 bottom=2400.0 rootHeight=2400
+11-25 01:32:00.207 I/System.out( 2450): MOOD-PROOF Sleep tile bounds after nudge top=2349.0 bottom=2400.0
+11-25 01:32:01.392 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07a-sleep-before-tap.png bytes=122405
+11-25 01:32:43.406 I/System.out( 2450): MOOD-PROOF Sleep: queued but not READY+playing within 40s
+11-25 01:32:48.576 I/System.out( 2450): MOOD-PROOF STEP Sleep tapped
+11-25 01:32:48.583 I/System.out( 2450): MOOD-PROOF Sleep queued=64 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Vazhithunaiye (From "Dragon") | Sid Sriram, Sanjana Kalmanje, Vignesh Shivan, Leon Jam
+11-25 01:32:51.182 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-sleep-playing.png bytes=162020
+11-25 01:32:51.973 I/System.out( 2450): MOOD-PROOF Relax tile bounds top=1180.0 bottom=1231.0 rootHeight=2400
+11-25 01:32:53.519 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07a-relax-before-tap.png bytes=145283
+11-25 01:33:35.436 I/System.out( 2450): MOOD-PROOF Relax: queued but not READY+playing within 40s
+11-25 01:33:40.821 I/System.out( 2450): MOOD-PROOF STEP Relax tapped
+11-25 01:33:40.833 I/System.out( 2450): MOOD-PROOF Relax queued=63 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Raavin Nilaakaayal (Version, 1) | Mohan Sithara, K.J. Yesudas ;; Silu Silu | Vijay Yes
+11-25 01:33:43.459 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-relax-playing.png bytes=176872
+11-25 01:33:45.341 I/System.out( 2450): MOOD-PROOF Party tile bounds top=1888.0 bottom=1939.0 rootHeight=2400
+11-25 01:33:46.781 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07a-party-before-tap.png bytes=108596
+11-25 01:34:28.098 I/System.out( 2450): MOOD-PROOF Party: queued but not READY+playing within 40s
+11-25 01:34:33.105 I/System.out( 2450): MOOD-PROOF STEP Party tapped
+11-25 01:34:33.112 I/System.out( 2450): MOOD-PROOF Party queued=65 playbackState=2(3=READY) playerError= readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Oru Madhura Kinavin - Retro Mix | Vijay Yesudas, Shaan Rahman ;; Jingunamani | K. G. R
+11-25 01:34:36.044 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-party-playing.png bytes=149902
+11-25 01:34:37.556 I/System.out( 2450): MOOD-PROOF Love tile bounds top=616.0 bottom=667.0 rootHeight=2400
+11-25 01:34:38.667 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07a-love-before-tap.png bytes=116183
+11-25 01:35:20.146 I/System.out( 2450): MOOD-PROOF Love: queued but not READY+playing within 40s
+11-25 01:35:25.360 I/System.out( 2450): MOOD-PROOF STEP Love tapped
+11-25 01:35:25.367 I/System.out( 2450): MOOD-PROOF Love queued=57 playbackState=1(3=READY) playerError=Source error readyAndPlaying=false positionAdvancedMs=0 (position moving is not proof of audible audio) volume=1.0 titles=Mazhavillaye (From "I'M Game - Malayalam") | Jakes Bejoy, Armaan Malik, Sha
+11-25 01:35:27.985 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-07-mood-love-playing.png bytes=157840
+11-25 01:35:27.992 I/System.out( 2450): MOOD-PROOF SUMMARY moods with advancing position: 0 of 5; problems=[Energy: queued but never READY+playing, Sleep: queued but never READY+playing, Relax: queued but never READY+playing, Party: queued but never READY+playing, Love: queued but never READY+playin
+11-25 01:35:27.999 I/System.out( 2450): MOOD-PROOF TEST-FAILURE java.lang.AssertionError: release gate: every mood must queue and play (position advancing) but: [Energy: queued but never READY+playing, Sleep: queued but never READY+playing, Relax: queued but never READY+playing, Party: queued but ne
+11-25 01:35:28.990 I/System.out( 2450): SHOT-SAVED /storage/emulated/0/Android/data/app.spool.music.dev/files/region-failure.png bytes=157840
+11-25 01:35:29.987 E/TestRunner( 2450): failed: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-25 01:35:29.993 E/TestRunner( 2450): ----- begin exception -----
+11-25 01:35:29.993 E/TestRunner( 2450): java.lang.AssertionError: release gate: every mood must queue and play (position advancing) but: [Energy: queued but never READY+playing, Sleep: queued but never READY+playing, Relax: queued but never READY+playing, Party: queued but never READY+playing, Love:
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.Assert.fail(Assert.java:89)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.Assert.assertTrue(Assert.java:42)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at com.music.bitchord.MoodRegionEmulatorTest.runProof(MoodRegionEmulatorTest.kt:252)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at com.music.bitchord.MoodRegionEmulatorTest.regionChipsPillAndRealMoodPlayback(MoodRegionEmulatorTest.kt:70)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at java.lang.reflect.Method.invoke(Native Method)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$testWithDisposal$1.evaluate(AndroidComposeTestRule.android.kt:322)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invokeSuspend(AndroidComposeTestRule.android.kt:334)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(Unknown Source:8)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(Unknown Source:4)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invokeSuspend(ComposeUiTest.android.kt:605)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(Unknown Source:8)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(Unknown Source:2)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.EspressoLink.withStrategy(EspressoLink.android.kt:69)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invokeSuspend(ComposeUiTest.android.kt:602)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(Unknown Source:8)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(Unknown Source:4)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:98)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:326)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source:1)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source:1)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source:1)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+11-25 01:35:29.993 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:1)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:585)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:334)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.Suite.runChild(Suite.java:128)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.Suite.runChild(Suite.java:27)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:467)
+11-25 01:35:29.994 E/TestRunner( 2450): 	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)
+11-25 01:35:29.994 E/TestRunner( 2450): ----- end exception -----
+11-25 01:35:30.000 I/TestRunner( 2450): finished: regionChipsPillAndRealMoodPlayback(com.music.bitchord.MoodRegionEmulatorTest)
+11-25 01:35:30.012 I/TestRunner( 2450): run finished: 1 tests, 1 failed, 0 ignored
