@@ -20,16 +20,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: 3acc3aae0df12a2044daa9fd7c3e3af5c2841257
+        ref: cfc25f21fc840f20f87846e664d3483321a4d030
     - name: Wait for signed candidate and download exact artifact
       run: |
         set -euo pipefail
-        gh run watch 45523308037 --repo "$REPO" --exit-status
-        gh run download 45523308037 --repo "$REPO" --name spool-216-candidate-45523308037-1 --dir candidate
+        gh run watch 45524587974 --repo "$REPO" --exit-status
+        gh run download 45524587974 --repo "$REPO" --name spool-216-candidate-45524587974-1 --dir candidate
         python3 - <<'PY'
         import json,hashlib,pathlib
         m=json.loads(pathlib.Path('candidate/manifest.json').read_text())
-        assert m['commit'].startswith('3acc3aae') and m['code']==65 and m['version']=='2.1.6' and m['package']=='app.spool.music'
+        assert m['commit'].startswith('cfc25f21') and m['code']==65 and m['version']=='2.1.6' and m['package']=='app.spool.music'
         assert m['certificate_sha256']=='a736ba238a0f10d07f9197ca9ba51eb26f46576ba428ed12723434da47b11dee'
         for name,v in m['files'].items():
             p=pathlib.Path('candidate')/name
@@ -98,7 +98,7 @@ jobs:
         existing=subprocess.run(['gh','api',f'repos/{repo}/releases/tags/{tag}'],capture_output=True,text=True)
         assert existing.returncode!=0,'Release already exists: stop rather than overwrite'
         notes=open('release-notes.md').read()
-        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','3acc3aae0df12a2044daa9fd7c3e3af5c2841257','--draft','--title','Spool 2.1.6','--notes',notes],check=True)
+        subprocess.run(['gh','release','create',tag,'--repo',repo,'--target','cfc25f21fc840f20f87846e664d3483321a4d030','--draft','--title','Spool 2.1.6','--notes',notes],check=True)
         assets=[p for p in out.iterdir() if p.suffix in ['.apk','.spdelta'] or p.name=='spool-v2.1.6-source.tar.gz']
         subprocess.run(['gh','release','upload',tag,'--repo',repo]+[str(p) for p in assets],check=True)
         r=json.loads(cmd('gh','api',f'repos/{repo}/releases/tags/{tag}'));assert r['draft']
