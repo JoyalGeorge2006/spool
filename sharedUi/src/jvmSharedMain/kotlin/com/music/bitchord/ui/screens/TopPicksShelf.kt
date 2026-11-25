@@ -1299,25 +1299,63 @@ fun MoodGridPage(
             }
             if (regionLabel != null) {
                 item(key = "moods:region", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.12f))
-                            .clickable(onClick = onRegionClick)
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                    ) {
-                        androidx.compose.material3.Text(
-                            text = "$regionLabel  \u203a",
-                            fontSize = 13.sp,
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
+                    MoodRegionCard(regionLabel, onRegionClick)
                 }
             }
             gridItems(TopPickMood.entries, key = { it.name }) { mood ->
                 MoodTile(mood, onClick, Modifier.fillMaxWidth())
             }
         }
+    }
+}
+
+/** Country and languages as a full-width card with a Change button. */
+@Composable
+private fun MoodRegionCard(label: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(20.dp)
+    androidx.compose.foundation.layout.Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color(0xFF262626))
+            .border(1.dp, Color(0xFF363636), shape)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF333333)), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(22.dp)) {
+                val c = Color(0xFFE6E6E6)
+                val w = 1.6.dp.toPx()
+                drawCircle(c, radius = size.minDimension * 0.46f, style = androidx.compose.ui.graphics.drawscope.Stroke(w))
+                drawLine(c, Offset(size.width * 0.04f, size.height / 2), Offset(size.width * 0.96f, size.height / 2), w)
+                drawOval(c, topLeft = Offset(size.width * 0.33f, size.height * 0.04f),
+                    size = androidx.compose.ui.geometry.Size(size.width * 0.34f, size.height * 0.92f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(w))
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Text("MUSIC FOR", fontSize = 11.5.sp, letterSpacing = 0.3.sp, color = Color(0xFF9B9B9B))
+            Text(
+                text = label,
+                fontSize = 16.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        ChangeButton(onClick)
+    }
+}
+
+@Composable
+private fun ChangeButton(onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(17.dp)).background(Color(0xFF343434)).padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+        Text("Change  \u203a", fontSize = 13.sp, color = Color(0xFFEEEEEE))
     }
 }
 
